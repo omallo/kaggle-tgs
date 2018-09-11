@@ -73,6 +73,10 @@ def contour(mask, width=3):
     return np.int32(contour != 0)
 
 
+def mask_weights(mask):
+    return np.ones_like(mask) + 2 * contour(mask)
+
+
 def precision(outputs, labels):
     predictions = outputs.round()
 
@@ -95,30 +99,35 @@ def precision_batch(outputs, labels):
     return [precision(outputs[batch], labels[batch]) for batch in range(batch_size)]
 
 
-# Loading of training/testing ids and depths
 train_df = pd.read_csv("{}/train.csv".format(input_dir), index_col="id", usecols=[0])
 depths_df = pd.read_csv("{}/depths.csv".format(input_dir), index_col="id")
 train_df = train_df.join(depths_df)
 test_df = depths_df[~depths_df.index.isin(train_df.index)]
 
-# Read images and masks
 train_df["images"] = load_images("{}/train/images".format(input_dir), train_df.index)
 train_df["masks"] = load_images("{}/train/masks".format(input_dir), train_df.index)
+
+train_df["contours"] = train_df.masks.map(contour)
+train_df["mask_weights"] = train_df.masks.map(mask_weights)
 
 train_val_split = int(0.8 * len(train_df))
 train_set_ids = train_df.index.tolist()[:train_val_split]
 val_set_ids = train_df.index.tolist()[train_val_split:]
+
 train_set_df = train_df[train_df.index.isin(train_set_ids)].copy()
 val_set_df = train_df[train_df.index.isin(val_set_ids)].copy()
 
 train_set_x = train_set_df.images.tolist()
 train_set_y = train_set_df.masks.tolist()
+train_set_w = train_set_df.mask_weights.tolist()
 
 train_set_x = np.append(train_set_x, [np.fliplr(x) for x in train_set_x], axis=0)
 train_set_y = np.append(train_set_y, [np.fliplr(y) for y in train_set_y], axis=0)
+train_set_w = np.append(train_set_w, [np.fliplr(w) for w in train_set_w], axis=0)
 
 val_set_x = val_set_df.images.tolist()
 val_set_y = val_set_df.masks.tolist()
+val_set_w = val_set_df.mask_weights.tolist()
 
 input_transform = transforms.Compose([
     transforms.ToTensor(),
@@ -131,7 +140,7 @@ label_transform = transforms.Compose([
 model = AlbuNet(pretrained=True) \
     .to(device)
 
-# model.load_state_dict(torch.load("{}/albunet.model".format(output_dir)))
+# model.load_state_dict(torch.load("{}/albunet.pth".format(output_dir)))
 
 base_lr = 0.001
 lr = base_lr
@@ -143,13 +152,16 @@ optimizer = optim.Adam(model.parameters(), lr=lr)
 with torch.no_grad():
     train_set_inputs = prepare_inputs(train_set_x, input_transform)
     train_set_labels = prepare_labels(train_set_y, label_transform)
+    train_set_weights = prepare_labels(train_set_w, label_transform)
+
     val_set_inputs = prepare_inputs(val_set_x, input_transform)
     val_set_labels = prepare_labels(val_set_y, label_transform)
+    val_set_weights = prepare_labels(val_set_w, label_transform)
 
-train_set = TensorDataset(train_set_inputs, train_set_labels)
+train_set = TensorDataset(train_set_inputs, train_set_labels, train_set_weights)
 train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
 
-val_set = TensorDataset(val_set_inputs, val_set_labels)
+val_set = TensorDataset(val_set_inputs, val_set_labels, val_set_weights)
 val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
 
 print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
@@ -168,11 +180,12 @@ for epoch in range(epochs_to_train):
     epoch_train_precision_sum = 0.0
     epoch_train_step_count = 0
     for _, batch in enumerate(train_loader):
-        inputs, labels = batch[0].to(device), batch[1].to(device)
+        inputs, labels, label_weights = batch[0].to(device), batch[1].to(device), batch[2].to(device)
 
         optimizer.zero_grad()
         outputs = model(inputs)
         predictions = torch.sigmoid(outputs)
+        criterion.weight = label_weights
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
@@ -186,10 +199,11 @@ for epoch in range(epochs_to_train):
     epoch_val_step_count = 0
     with torch.no_grad():
         for _, batch in enumerate(val_loader):
-            inputs, labels = batch[0].to(device), batch[1].to(device)
+            inputs, labels, label_weights = batch[0].to(device), batch[1].to(device), batch[2].to(device)
 
             outputs = model(inputs)
             predictions = torch.sigmoid(outputs)
+            criterion.weight = label_weights
             loss = criterion(outputs, labels)
 
             epoch_val_loss_sum += loss.item()
@@ -203,7 +217,7 @@ for epoch in range(epochs_to_train):
 
     ckpt_saved = False
     if epoch_val_precision_avg > global_val_precision_best_avg:
-        torch.save(model.state_dict(), "{}/albunet.model".format(output_dir))
+        torch.save(model.state_dict(), "{}/albunet.pth".format(output_dir))
         global_val_precision_best_avg = epoch_val_precision_avg
         ckpt_saved = True
 
