@@ -6,9 +6,9 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
 from PIL import Image
+from scipy import ndimage
 from torch.utils.data import TensorDataset, DataLoader
 from tqdm import tqdm
-from scipy import ndimage
 
 from unet_models import AlbuNet
 
@@ -63,18 +63,28 @@ def prepare_labels(masks, transform):
 
 
 def contour(mask, width=3):
-    edge_x = ndimage.convolve(mask, np.array([[-1, 0,+1],[-1, 0,+1],[-1, 0,+1]]))
-    edge_y = ndimage.convolve(mask, np.array([[-1,-1,-1],[ 0, 0, 0],[+1,+1,+1]]))
+    edge_x = ndimage.convolve(mask, np.array([[-1, 0, +1], [-1, 0, +1], [-1, 0, +1]]))
+    edge_y = ndimage.convolve(mask, np.array([[-1, -1, -1], [0, 0, 0], [+1, +1, +1]]))
     contour = np.abs(edge_x) + np.abs(edge_y)
 
     for _ in range(width - 1):
-        contour = ndimage.convolve(contour, np.array([[1,1,1],[1,1,1],[1,1,1]]))
+        contour = ndimage.convolve(contour, np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]]))
 
     return np.int32(contour != 0)
 
 
 def mask_weights(mask):
     return np.ones_like(mask) + 2 * contour(mask)
+
+
+def dice_loss(outputs, labels):
+    smooth = 1.
+
+    outputs_flat = outputs.view(-1)
+    labels_flat = labels.view(-1)
+    intersection = (outputs_flat * labels_flat).sum()
+
+    return 1 - ((2. * intersection + smooth) / (outputs_flat.sum() + labels_flat.sum() + smooth))
 
 
 def precision(outputs, labels):
@@ -163,7 +173,7 @@ val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, num_worker
 
 print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
 
-epochs_to_train = 20
+epochs_to_train = 30
 global_val_precision_best_avg = float("-inf")
 
 clr_base_lr = 0.0001
