@@ -142,11 +142,8 @@ model = AlbuNet(pretrained=True) \
 
 # model.load_state_dict(torch.load("{}/albunet.pth".format(output_dir)))
 
-base_lr = 0.001
-lr = base_lr
-
 criterion = nn.BCEWithLogitsLoss()
-optimizer = optim.Adam(model.parameters(), lr=lr)
+optimizer = optim.Adam(model.parameters())
 
 # TODO: pass transforms to data loader
 with torch.no_grad():
@@ -168,19 +165,31 @@ print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_se
 
 epochs_to_train = 20
 global_val_precision_best_avg = float("-inf")
+
+clr_base_lr = 0.0001
+clr_max_lr = 0.001
+
+epoch_iterations = len(train_set) // batch_size
+clr_step_size = 2 * epoch_iterations
+clr_scale_fn = lambda x: 1.0 / (1.1 ** (x - 1))
+clr_iterations = 0
+
 for epoch in range(epochs_to_train):
 
     epoch_start_time = time.time()
-
-    lr = base_lr * 0.5 ** (epoch // 5)
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
 
     epoch_train_loss_sum = 0.0
     epoch_train_precision_sum = 0.0
     epoch_train_step_count = 0
     for _, batch in enumerate(train_loader):
         inputs, labels, label_weights = batch[0].to(device), batch[1].to(device), batch[2].to(device)
+
+        clr_cycle = np.floor(1 + clr_iterations / (2 * clr_step_size))
+        clr_x = np.abs(clr_iterations / clr_step_size - 2 * clr_cycle + 1)
+        lr = clr_base_lr + (clr_max_lr - clr_base_lr) * np.maximum(0, (1 - clr_x)) * clr_scale_fn(clr_cycle)
+
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr
 
         optimizer.zero_grad()
         outputs = model(inputs)
@@ -192,6 +201,7 @@ for epoch in range(epochs_to_train):
 
         epoch_train_loss_sum += loss.item()
         epoch_train_precision_sum += np.mean(precision_batch(predictions, labels))
+        clr_iterations += 1
         epoch_train_step_count += 1
 
     epoch_val_loss_sum = 0.0
