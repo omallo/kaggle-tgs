@@ -44,6 +44,12 @@ def downsample(img):
     return img[s:e, s:e]
 
 
+def coverage_to_class(coverage):
+    for i in range(0, 11):
+        if coverage * 10 <= i:
+            return i
+
+
 def prepare_input(image, transform):
     return transform(np.expand_dims(upsample(image), axis=2).repeat(3, axis=2))
 
@@ -120,6 +126,9 @@ train_df["masks"] = load_images("{}/train/masks".format(input_dir), train_df.ind
 train_df["contours"] = train_df.masks.map(contour)
 train_df["mask_weights"] = train_df.masks.map(mask_weights)
 
+train_df["coverage"] = train_df.masks.map(np.sum) / pow(img_size_ori, 2)
+train_df["coverage_class"] = train_df.coverage.map(coverage_to_class)
+
 train_val_split = int(0.8 * len(train_df))
 train_set_ids = train_df.index.tolist()[:train_val_split]
 val_set_ids = train_df.index.tolist()[train_val_split:]
@@ -173,7 +182,7 @@ val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, num_worker
 
 print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
 
-epochs_to_train = 30
+epochs_to_train = 32
 global_val_precision_best_avg = float("-inf")
 
 clr_base_lr = 0.0001
@@ -182,6 +191,7 @@ clr_max_lr = 0.001
 epoch_iterations = len(train_set) // batch_size
 clr_step_size = 2 * epoch_iterations
 clr_scale_fn = lambda x: 1.0 / (1.1 ** (x - 1))
+#clr_scale_fn = lambda x: 0.5 * (1 + np.sin(x * np.pi / 2.))
 clr_iterations = 0
 
 for epoch in range(epochs_to_train):
