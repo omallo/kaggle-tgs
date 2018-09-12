@@ -23,6 +23,18 @@ batch_size = 32
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
+class TgsDataset(TensorDataset):
+    def __init__(self, transform=None, *tensors):
+        super().__init__(self, tensors)
+        self.transform = transform
+
+    def __getitem__(self, index):
+        item = super().__getitem__(self, index)
+        if self.transform:
+            item = tuple(self.transform(i) for i in item)
+        return item
+
+
 def load_image(path, id):
     image = np.array(Image.open("{}/{}.png".format(path, id)))
     return np.squeeze(image[:, :, 0:1]) / 255 if len(image.shape) == 3 else image / 65535
@@ -164,7 +176,6 @@ model = AlbuNet(pretrained=True) \
 criterion = nn.BCEWithLogitsLoss()
 optimizer = optim.Adam(model.parameters())
 
-# TODO: pass transforms to data loader
 with torch.no_grad():
     train_set_inputs = prepare_inputs(train_set_x, input_transform)
     train_set_labels = prepare_labels(train_set_y, label_transform)
@@ -191,7 +202,7 @@ clr_max_lr = 0.001
 epoch_iterations = len(train_set) // batch_size
 clr_step_size = 2 * epoch_iterations
 clr_scale_fn = lambda x: 1.0 / (1.1 ** (x - 1))
-#clr_scale_fn = lambda x: 0.5 * (1 + np.sin(x * np.pi / 2.))
+# clr_scale_fn = lambda x: 0.5 * (1 + np.sin(x * np.pi / 2.))
 clr_iterations = 0
 
 for epoch in range(epochs_to_train):
