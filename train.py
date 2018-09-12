@@ -3,6 +3,7 @@ import pandas as pd
 import time
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as transforms
 from PIL import Image
@@ -25,11 +26,11 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class TgsDataset(TensorDataset):
     def __init__(self, transform=None, *tensors):
-        super(TgsDataset, self).__init__(self, tensors)
+        super().__init__(self, tensors)
         self.transform = transform
 
     def __getitem__(self, index):
-        item = super(TgsDataset, self).__getitem__(self, index)
+        item = super().__getitem__(self, index)
         if self.transform:
             item = tuple(self.transform(i) for i in item)
         return item
@@ -37,7 +38,7 @@ class TgsDataset(TensorDataset):
 
 class DiceWithLogitsLoss(nn.Module):
     def __init__(self, weight=None):
-        super(DiceWithLogitsLoss, self).__init__()
+        super().__init__()
         self.weight = weight
 
     def forward(self, logits, targets):
@@ -60,7 +61,7 @@ class DiceWithLogitsLoss(nn.Module):
 
 class BCEDiceWithLogitsLoss(nn.Module):
     def __init__(self, weight=None):
-        super(BCEDiceWithLogitsLoss, self).__init__()
+        super().__init__()
         self.weight = weight
         self.bce_loss = nn.BCEWithLogitsLoss()
         self.dice_loss = DiceWithLogitsLoss()
@@ -69,6 +70,26 @@ class BCEDiceWithLogitsLoss(nn.Module):
         self.bce_loss.weight = self.weight
         self.dice_loss.weight = self.weight
         return self.bce_loss(logits, targets) + self.dice_loss(logits, targets)
+
+
+class FocalWithLogitsLoss(nn.Module):
+    def __init__(self, gamma):
+        super().__init__()
+        self.gamma = gamma
+
+    def forward(self, input, target):
+        # Inspired by the implementation of binary_cross_entropy_with_logits
+        if not (target.size() == input.size()):
+            raise ValueError("Target size ({}) must be the same as input size ({})".format(target.size(), input.size()))
+
+        max_val = (-input).clamp(min=0)
+        loss = input - input * target + max_val + ((-max_val).exp() + (-input - max_val).exp()).log()
+
+        # This formula gives us the log sigmoid of 1-p if y is 0 and of p if y is 1
+        invprobs = F.logsigmoid(-input * (target * 2 - 1))
+        loss = (invprobs * self.gamma).exp() * loss
+
+        return loss.mean()
 
 
 def load_image(path, id):
@@ -203,6 +224,7 @@ model = AlbuNet(pretrained=True) \
 criterion = nn.BCEWithLogitsLoss()
 # criterion = DiceWithLogitsLoss()
 # criterion = BCEDiceWithLogitsLoss()
+# criterion = FocalWithLogitsLoss(2.0)
 
 optimizer = optim.Adam(model.parameters())
 
