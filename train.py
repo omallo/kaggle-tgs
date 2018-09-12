@@ -127,8 +127,9 @@ def contour(mask, width=3):
     return np.int32(contour != 0)
 
 
-def mask_weights(mask):
-    return np.ones_like(mask) + 2 * contour(mask)
+def mask_weights(mask, coverage_class):
+    coverage_class_weight_factor = 1 if coverage_class <= 3 else 1
+    return coverage_class_weight_factor * (np.ones_like(mask) + 2 * contour(mask))
 
 
 def precision(outputs, labels):
@@ -161,11 +162,11 @@ test_df = depths_df[~depths_df.index.isin(train_df.index)]
 train_df["images"] = load_images("{}/train/images".format(input_dir), train_df.index)
 train_df["masks"] = load_images("{}/train/masks".format(input_dir), train_df.index)
 
-train_df["contours"] = train_df.masks.map(contour)
-train_df["mask_weights"] = train_df.masks.map(mask_weights)
-
 train_df["coverage"] = train_df.masks.map(np.sum) / pow(img_size_ori, 2)
 train_df["coverage_class"] = train_df.coverage.map(coverage_to_class)
+
+train_df["contours"] = train_df.masks.map(contour)
+train_df["mask_weights"] = [mask_weights(m, c) for m, c in zip(train_df.masks, train_df.coverage_class)]
 
 train_val_split = int(0.8 * len(train_df))
 train_set_ids = train_df.index.tolist()[:train_val_split]
@@ -200,8 +201,8 @@ model = AlbuNet(pretrained=True) \
 # model.load_state_dict(torch.load("{}/albunet.pth".format(output_dir)))
 
 criterion = nn.BCEWithLogitsLoss()
-#criterion = DiceWithLogitsLoss()
-#criterion = BCEDiceWithLogitsLoss()
+# criterion = DiceWithLogitsLoss()
+# criterion = BCEDiceWithLogitsLoss()
 
 optimizer = optim.Adam(model.parameters())
 
