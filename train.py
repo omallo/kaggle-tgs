@@ -25,14 +25,45 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class TgsDataset(TensorDataset):
     def __init__(self, transform=None, *tensors):
-        super().__init__(self, tensors)
+        super(TgsDataset, self).__init__(self, tensors)
         self.transform = transform
 
     def __getitem__(self, index):
-        item = super().__getitem__(self, index)
+        item = super(TgsDataset, self).__getitem__(self, index)
         if self.transform:
             item = tuple(self.transform(i) for i in item)
         return item
+
+
+# TODO: add support for weights
+class DiceWithLogitsLoss(nn.Module):
+    def __init__(self, weight=None, size_average=True):
+        super(DiceWithLogitsLoss, self).__init__()
+
+    def forward(self, logits, targets):
+        smooth = 1
+        num = targets.size(0)
+        probs = torch.sigmoid(logits)
+        m1 = probs.view(num, -1)
+        m2 = targets.view(num, -1)
+        intersection = (m1 * m2)
+
+        score = 2. * (intersection.sum(1) + smooth) / (m1.sum(1) + m2.sum(1) + smooth)
+        score = 1 - score.sum() / num
+        return score
+
+
+class BCEDiceWithLogitsLoss(nn.Module):
+    def __init__(self, weight=None, size_average=True):
+        super(BCEDiceWithLogitsLoss, self).__init__()
+        self.weight = weight
+        self.bce_loss = nn.BCEWithLogitsLoss()
+        self.dice_loss = DiceWithLogitsLoss()
+
+    def forward(self, logits, targets):
+        self.bce_loss.weight = self.weight
+        self.dice_loss.weight = self.weight
+        return self.bce_loss(logits, targets) + self.dice_loss(logits, targets)
 
 
 def load_image(path, id):
@@ -93,16 +124,6 @@ def contour(mask, width=3):
 
 def mask_weights(mask):
     return np.ones_like(mask) + 2 * contour(mask)
-
-
-def dice_loss(outputs, labels):
-    smooth = 1.
-
-    outputs_flat = outputs.view(-1)
-    labels_flat = labels.view(-1)
-    intersection = (outputs_flat * labels_flat).sum()
-
-    return 1 - ((2. * intersection + smooth) / (outputs_flat.sum() + labels_flat.sum() + smooth))
 
 
 def precision(outputs, labels):
@@ -173,7 +194,10 @@ model = AlbuNet(pretrained=True) \
 
 # model.load_state_dict(torch.load("{}/albunet.pth".format(output_dir)))
 
-criterion = nn.BCEWithLogitsLoss()
+criterion = BCEWithLogitsLoss()
+#criterion = DiceWithLogitsLoss()
+#criterion = BCEDiceWithLogitsLoss()
+
 optimizer = optim.Adam(model.parameters())
 
 with torch.no_grad():
