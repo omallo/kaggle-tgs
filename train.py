@@ -35,26 +35,31 @@ class TgsDataset(TensorDataset):
         return item
 
 
-# TODO: add support for weights
 class DiceWithLogitsLoss(nn.Module):
-    def __init__(self, weight=None, size_average=True):
+    def __init__(self, weight=None):
         super(DiceWithLogitsLoss, self).__init__()
+        self.weight = weight
 
     def forward(self, logits, targets):
         smooth = 1
         num = targets.size(0)
         probs = torch.sigmoid(logits)
+
         m1 = probs.view(num, -1)
         m2 = targets.view(num, -1)
-        intersection = (m1 * m2)
+        intersection = m1 * m2
 
-        score = 2. * (intersection.sum(1) + smooth) / (m1.sum(1) + m2.sum(1) + smooth)
-        score = 1 - score.sum() / num
-        return score
+        w = self.weight.view(num, -1) if self.weight is not None else torch.ones_like(m1)
+        w2 = w * w
+
+        score = 2. * ((w2 * intersection).sum(1) + smooth) / ((w2 * m1).sum(1) + (w2 * m2).sum(1) + smooth)
+        loss = 1 - score.sum() / num
+
+        return loss
 
 
 class BCEDiceWithLogitsLoss(nn.Module):
-    def __init__(self, weight=None, size_average=True):
+    def __init__(self, weight=None):
         super(BCEDiceWithLogitsLoss, self).__init__()
         self.weight = weight
         self.bce_loss = nn.BCEWithLogitsLoss()
@@ -194,7 +199,7 @@ model = AlbuNet(pretrained=True) \
 
 # model.load_state_dict(torch.load("{}/albunet.pth".format(output_dir)))
 
-criterion = BCEWithLogitsLoss()
+criterion = nn.BCEWithLogitsLoss()
 #criterion = DiceWithLogitsLoss()
 #criterion = BCEDiceWithLogitsLoss()
 
