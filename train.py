@@ -279,11 +279,11 @@ model = AlbuNet(pretrained=True) \
 # model.load_state_dict(torch.load("{}/albunet.pth".format(output_dir)))
 
 # criterion = AggregateLoss(nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss())
-criterion = nn.BCEWithLogitsLoss()
+# criterion = nn.BCEWithLogitsLoss()
 # criterion = DiceWithLogitsLoss()
 # criterion = FocalWithLogitsLoss(2.0)
 # criterion = RobustFocalLoss2d()
-# criterion = LovaszWithLogitsLoss()
+criterion = LovaszWithLogitsLoss()
 
 with torch.no_grad():
     train_set_inputs = prepare_inputs(train_set_x, input_transform)
