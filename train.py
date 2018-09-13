@@ -396,6 +396,8 @@ for epoch in range(epochs_to_train):
 val_pred_set = TensorDataset(val_set_inputs)
 val_pred_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=False)
 
+model.load_state_dict(torch.load("{}/albunet.pth".format(output_dir)))
+
 val_predictions = []
 with torch.no_grad():
     for _, batch in enumerate(val_pred_loader):
@@ -418,13 +420,12 @@ threshold_best_index = np.argmax(precisions[9:-10]) + 9
 precision_best = precisions[threshold_best_index]
 threshold_best = thresholds[threshold_best_index]
 
-val_set_df["precisions"] = \
-    np.mean(precision_array(np.int32(np.asarray(val_set_df.predictions.tolist()) > threshold_best), val_set_df.masks))
+val_set_df["precisions"] = [precision(p > threshold_best, m) for p, m in zip(val_set_df.predictions, val_set_df.masks)]
 
 print("precision_best: %.3f, threshold_best: %.3f" % (precision_best, threshold_best))
 
 print("precisions:")
-val_set_df.precisions.describe()
+print(val_set_df.precisions.describe())
 
 
 def calc_max_precision(y_pred_raw, y_true):
