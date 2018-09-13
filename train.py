@@ -26,14 +26,13 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class TgsDataset(TensorDataset):
-    def __init__(self, transform=None, *tensors):
-        super().__init__(self, tensors)
-        self.transform = transform
+    def __init__(self, *tensors):
+        super().__init__(*tensors)
 
     def __getitem__(self, index):
-        item = super().__getitem__(self, index)
-        if self.transform:
-            item = tuple(self.transform(i) for i in item)
+        item = super().__getitem__(index)
+        if np.random.rand() < 0.5:
+            item = tuple(i.flip(dims=(0, 2, 1)) for i in item)
         return item
 
 
@@ -262,10 +261,6 @@ train_set_x = train_set_df.images.tolist()
 train_set_y = train_set_df.masks.tolist()
 train_set_w = train_set_df.mask_weights.tolist()
 
-train_set_x = np.append(train_set_x, [np.fliplr(x) for x in train_set_x], axis=0)
-train_set_y = np.append(train_set_y, [np.fliplr(y) for y in train_set_y], axis=0)
-train_set_w = np.append(train_set_w, [np.fliplr(w) for w in train_set_w], axis=0)
-
 val_set_x = val_set_df.images.tolist()
 val_set_y = val_set_df.masks.tolist()
 val_set_w = val_set_df.mask_weights.tolist()
@@ -299,10 +294,10 @@ with torch.no_grad():
     val_set_labels = prepare_labels(val_set_y, label_transform)
     val_set_weights = prepare_labels(val_set_w, label_transform)
 
-train_set = TensorDataset(train_set_inputs, train_set_labels, train_set_weights)
+train_set = TgsDataset(train_set_inputs, train_set_labels, train_set_weights)
 train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
 
-val_set = TensorDataset(val_set_inputs, val_set_labels, val_set_weights)
+val_set = TgsDataset(val_set_inputs, val_set_labels, val_set_weights)
 val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
 
 print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
