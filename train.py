@@ -440,8 +440,14 @@ val_set_df["precisions_opt"] = [o[1] for o in optimals]
 
 print("precision_opt: %.3f, threshold_opt: %.3f" % (val_set_df.precisions_opt.mean(), val_set_df.thresholds_opt.mean()))
 
-print("thresholds_opt:")
-val_set_df.thresholds_opt.describe()
+print("\nthresholds_opt:")
+print(val_set_df.thresholds_opt.describe())
 
-print("precisions_opt:")
-val_set_df.precisions_opt.describe()
+print("\nprecisions_opt:")
+print(val_set_df.precisions_opt.describe())
+
+val_set_df["prediction_coverage"] = val_set_df.predictions.map(np.sum) / pow(img_size_ori, 2)
+val_set_df["prediction_coverage_class"] = val_set_df.prediction_coverage.map(coverage_to_class)
+
+print("\nprecisions by prediction_coverage_class:")
+print(val_set_df.groupby("prediction_coverage_class").agg({"precisions": "mean", "precisions_opt": "mean"}))
