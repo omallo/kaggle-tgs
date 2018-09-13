@@ -60,17 +60,20 @@ class DiceWithLogitsLoss(nn.Module):
         return loss
 
 
-class BCEDiceWithLogitsLoss(nn.Module):
-    def __init__(self, weight=None):
+class AggregateLoss(nn.Module):
+    def __init__(self, *delegates):
         super().__init__()
-        self.weight = weight
-        self.bce_loss = nn.BCEWithLogitsLoss()
-        self.dice_loss = DiceWithLogitsLoss()
+        self.delegates = delegates
 
-    def forward(self, logits, targets):
-        self.bce_loss.weight = self.weight
-        self.dice_loss.weight = self.weight
-        return self.bce_loss(logits, targets) + self.dice_loss(logits, targets)
+    def forward(self, input, targets):
+        for delegate in self.delegates:
+            delegate.weight = self.weight
+
+        loss = self.delegates[0](input, targets)
+        for delegate in self.delegates[1:]:
+            loss += delegate(input, targets)
+
+        return loss
 
 
 class FocalWithLogitsLoss(nn.Module):
@@ -280,14 +283,12 @@ model = AlbuNet(pretrained=True) \
 
 # model.load_state_dict(torch.load("{}/albunet.pth".format(output_dir)))
 
+# criterion = AggregateLoss(nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss())
 criterion = nn.BCEWithLogitsLoss()
 # criterion = DiceWithLogitsLoss()
-# criterion = BCEDiceWithLogitsLoss()
 # criterion = FocalWithLogitsLoss(2.0)
 # criterion = RobustFocalLoss2d()
 # criterion = LovaszWithLogitsLoss()
-
-optimizer = optim.Adam(model.parameters())
 
 with torch.no_grad():
     train_set_inputs = prepare_inputs(train_set_x, input_transform)
@@ -317,6 +318,8 @@ clr_step_size = 2 * epoch_iterations
 clr_scale_fn = lambda x: 1.0 / (1.1 ** (x - 1))
 # clr_scale_fn = lambda x: 0.5 * (1 + np.sin(x * np.pi / 2.))
 clr_iterations = 0
+
+optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
 
 for epoch in range(epochs_to_train):
 
