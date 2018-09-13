@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 import pandas as pd
 import time
@@ -240,6 +241,14 @@ def precision_array(outputs, labels):
     return [precision(o, l) for o, l in zip(outputs, labels)]
 
 
+# https://www.microsoft.com/developerblog/2018/05/17/using-otsus-method-generate-data-training-deep-learning-image-segmentation-models/
+def compute_otsu_mask(image):
+    image = np.stack((image,) * 3, -1)
+    image = image.astype(np.uint8)
+    image_grayscale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    return cv2.threshold(image_grayscale, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+
+
 train_df = pd.read_csv("{}/train.csv".format(input_dir), index_col="id", usecols=[0])
 depths_df = pd.read_csv("{}/depths.csv".format(input_dir), index_col="id")
 train_df = train_df.join(depths_df)
@@ -424,7 +433,7 @@ val_set_df["precisions"] = [precision(p > threshold_best, m) for p, m in zip(val
 
 print("precision_best: %.3f, threshold_best: %.3f" % (precision_best, threshold_best))
 
-print("precisions:")
+print()
 print(val_set_df.precisions.describe())
 
 
@@ -441,14 +450,49 @@ val_set_df["precisions_opt"] = [o[1] for o in optimals]
 
 print("precision_opt: %.3f, threshold_opt: %.3f" % (val_set_df.precisions_opt.mean(), val_set_df.thresholds_opt.mean()))
 
-print("\nthresholds_opt:")
+print()
 print(val_set_df.thresholds_opt.describe())
 
-print("\nprecisions_opt:")
+print()
 print(val_set_df.precisions_opt.describe())
 
 val_set_df["prediction_coverage"] = val_set_df.predictions.map(np.sum) / pow(img_size_ori, 2)
 val_set_df["prediction_coverage_class"] = val_set_df.prediction_coverage.map(coverage_to_class)
 
-print("\nprecisions by prediction_coverage_class:")
+print()
 print(val_set_df.groupby("prediction_coverage_class").agg({"precisions": "mean", "precisions_opt": "mean"}))
+
+val_set_df["precisions_otsu"] = \
+    [precision(compute_otsu_mask(255 * p), m) for p, m in zip(val_set_df.predictions, val_set_df.masks)]
+
+print()
+print("precision_otsu: %.3f" % val_set_df.precisions_otsu.mean())
+
+val_set_df["precisions_max"] = \
+    [(p if c < 0.005 else po) for c, p, po in
+     zip(val_set_df.prediction_coverage, val_set_df.precisions, val_set_df.precisions_otsu)]
+
+print()
+print("precision_max: %.3f" % val_set_df.precisions_max.mean())
+
+print()
+print(val_set_df
+    .groupby("prediction_coverage_class")
+    .agg({
+    "precisions": "mean",
+    "precisions_opt": "mean",
+    "precisions_otsu": "mean",
+    "precisions_max": "mean",
+    "prediction_coverage_class": "count"
+}))
+
+print()
+print(val_set_df
+    .groupby("coverage_class")
+    .agg({
+    "precisions": "mean",
+    "precisions_opt": "mean",
+    "precisions_otsu": "mean",
+    "precisions_max": "mean",
+    "coverage_class": "count"
+}))
