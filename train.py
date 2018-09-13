@@ -236,6 +236,10 @@ def precision_batch(outputs, labels):
     return [precision(outputs[batch], labels[batch]) for batch in range(batch_size)]
 
 
+def precision_array(outputs, labels):
+    return [precision(o, l) for o, l in zip(outputs, labels)]
+
+
 train_df = pd.read_csv("{}/train.csv".format(input_dir), index_col="id", usecols=[0])
 depths_df = pd.read_csv("{}/depths.csv".format(input_dir), index_col="id")
 train_df = train_df.join(depths_df)
@@ -279,11 +283,11 @@ model = AlbuNet(pretrained=True) \
 # model.load_state_dict(torch.load("{}/albunet.pth".format(output_dir)))
 
 # criterion = AggregateLoss(nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss())
-# criterion = nn.BCEWithLogitsLoss()
+criterion = nn.BCEWithLogitsLoss()
 # criterion = DiceWithLogitsLoss()
 # criterion = FocalWithLogitsLoss(2.0)
 # criterion = RobustFocalLoss2d()
-criterion = LovaszWithLogitsLoss()
+# criterion = LovaszWithLogitsLoss()
 
 with torch.no_grad():
     train_set_inputs = prepare_inputs(train_set_x, input_transform)
@@ -297,12 +301,12 @@ with torch.no_grad():
 train_set = TgsDataset(train_set_inputs, train_set_labels, train_set_weights)
 train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
 
-val_set = TgsDataset(val_set_inputs, val_set_labels, val_set_weights)
+val_set = TensorDataset(val_set_inputs, val_set_labels, val_set_weights)
 val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
 
 print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
 
-epochs_to_train = 64
+epochs_to_train = 40
 global_val_precision_best_avg = float("-inf")
 
 clr_base_lr = 0.0001
@@ -310,6 +314,7 @@ clr_max_lr = 0.001
 
 epoch_iterations = len(train_set) // batch_size
 clr_step_size = 2 * epoch_iterations
+# clr_scale_fn = lambda x: 1.0
 clr_scale_fn = lambda x: 1.0 / (1.1 ** (x - 1))
 # clr_scale_fn = lambda x: 0.5 * (1 + np.sin(x * np.pi / 2.))
 clr_iterations = 0
@@ -387,3 +392,56 @@ for epoch in range(epochs_to_train):
             epoch_train_precision_avg,
             epoch_val_precision_avg,
             ckpt_saved))
+
+val_pred_set = TensorDataset(val_set_inputs)
+val_pred_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=False)
+
+val_predictions = []
+with torch.no_grad():
+    for _, batch in enumerate(val_pred_loader):
+        inputs = batch[0].to(device)
+        outputs = model(inputs)
+        predictions = torch.sigmoid(outputs)
+        val_predictions += [p for p in predictions.cpu().numpy()]
+
+val_predictions = np.asarray(val_predictions).reshape(-1, img_size_target, img_size_target)
+val_predictions = [downsample(p) for p in val_predictions]
+val_set_df["predictions"] = val_predictions
+
+thresholds = np.linspace(0, 1, 51)
+
+precisions = np.array(
+    [np.mean(precision_array(np.int32(np.asarray(val_set_df.predictions.tolist()) > t), val_set_df.masks)) for t in
+     tqdm(thresholds)])
+
+threshold_best_index = np.argmax(precisions[9:-10]) + 9
+precision_best = precisions[threshold_best_index]
+threshold_best = thresholds[threshold_best_index]
+
+val_set_df["precisions"] = \
+    np.mean(precision_array(np.int32(np.asarray(val_set_df.predictions.tolist()) > threshold_best), val_set_df.masks))
+
+print("precision_best: %.3f, threshold_best: %.3f" % (precision_best, threshold_best))
+
+print("precisions:")
+val_set_df.precisions.describe()
+
+
+def calc_max_precision(y_pred_raw, y_true):
+    ious = [precision(np.int32(y_pred_raw > t), y_true) for t in thresholds]
+    am = np.argmax(ious)
+    return (thresholds[am], ious[am])
+
+
+optimals = [calc_max_precision(p, m) for p, m in zip(val_set_df.predictions, val_set_df.masks)]
+
+val_set_df["thresholds_opt"] = [o[0] for o in optimals]
+val_set_df["precisions_opt"] = [o[1] for o in optimals]
+
+print("precision_opt: %.3f, threshold_opt: %.3f" % (val_set_df.precisions_opt.mean(), val_set_df.thresholds_opt.mean()))
+
+print("thresholds_opt:")
+val_set_df.thresholds_opt.describe()
+
+print("precisions_opt:")
+val_set_df.precisions_opt.describe()
