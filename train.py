@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import pandas as pd
+import pydensecrf.densecrf as dcrf
 import time
 import torch
 import torch.nn as nn
@@ -8,7 +9,9 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as transforms
 from PIL import Image
+from pydensecrf.utils import unary_from_labels
 from scipy import ndimage
+from skimage.color import gray2rgb
 from torch.utils.data import TensorDataset, DataLoader
 from tqdm import tqdm
 
@@ -18,7 +21,7 @@ from unet_models import AlbuNet
 # input_dir = "../salt/input"
 # output_dir = "."
 input_dir = "/storage/kaggle/tgs"
-output_dir = "."
+output_dir = "/artifacts"
 img_size_ori = 101
 img_size_target = 128
 batch_size = 32
@@ -249,6 +252,45 @@ def compute_otsu_mask(image):
     return cv2.threshold(image_grayscale, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
 
 
+"""
+Function which returns the labelled image after applying CRF
+"""
+
+
+# Original_image = Image which has to labelled
+# Mask image = Which has been labelled by some technique..
+def crf(original_image, mask_img):
+    # Converting annotated image to RGB if it is Gray scale
+    if (len(mask_img.shape) < 3):
+        mask_img = gray2rgb(mask_img)
+
+    # Converting the annotations RGB color to single 32 bit integer
+    annotated_label = mask_img[:, :, 0] + (mask_img[:, :, 1] << 8) + (mask_img[:, :, 2] << 16)
+
+    # Convert the 32bit integer color to 0,1, 2, ... labels.
+    colors, labels = np.unique(annotated_label, return_inverse=True)
+
+    n_labels = 2
+
+    # Setting up the CRF model
+    d = dcrf.DenseCRF2D(original_image.shape[1], original_image.shape[0], n_labels)
+
+    # get unary potentials (neg log probability)
+    U = unary_from_labels(labels, n_labels, gt_prob=0.7, zero_unsure=False)
+    d.setUnaryEnergy(U)
+
+    # This adds the color-independent term, features are the locations only.
+    d.addPairwiseGaussian(sxy=(3, 3), compat=3, kernel=dcrf.DIAG_KERNEL, normalization=dcrf.NORMALIZE_SYMMETRIC)
+
+    # Run Inference for 10 steps
+    Q = d.inference(10)
+
+    # Find out the most probable class for each pixel.
+    MAP = np.argmax(Q, axis=0)
+
+    return MAP.reshape((original_image.shape[0], original_image.shape[1]))
+
+
 train_df = pd.read_csv("{}/train.csv".format(input_dir), index_col="id", usecols=[0])
 depths_df = pd.read_csv("{}/depths.csv".format(input_dir), index_col="id")
 train_df = train_df.join(depths_df)
@@ -279,8 +321,8 @@ val_set_y = val_set_df.masks.tolist()
 val_set_w = val_set_df.mask_weights.tolist()
 
 input_transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+    transforms.ToTensor()
+    # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 ])
 label_transform = transforms.Compose([
     transforms.ToTensor()
@@ -421,20 +463,16 @@ val_set_df["predictions"] = val_predictions
 
 thresholds = np.linspace(0, 1, 51)
 
-precisions = np.array(
+precisions_per_threshold = np.array(
     [np.mean(precision_array(np.int32(np.asarray(val_set_df.predictions.tolist()) > t), val_set_df.masks)) for t in
      tqdm(thresholds)])
 
-threshold_best_index = np.argmax(precisions[9:-10]) + 9
-precision_best = precisions[threshold_best_index]
+threshold_best_index = np.argmax(precisions_per_threshold)
+precision_best = precisions_per_threshold[threshold_best_index]
 threshold_best = thresholds[threshold_best_index]
 
-val_set_df["precisions"] = [precision(p > threshold_best, m) for p, m in zip(val_set_df.predictions, val_set_df.masks)]
-
-print("precision_best: %.3f, threshold_best: %.3f" % (precision_best, threshold_best))
-
-print()
-print(val_set_df.precisions.describe())
+val_set_df["prediction_masks"] = [np.int32(p > threshold_best) for p in val_set_df.predictions]
+val_set_df["precisions"] = [precision(pm, m) for pm, m in zip(val_set_df.prediction_masks, val_set_df.masks)]
 
 
 def calc_max_precision(y_pred_raw, y_true):
@@ -448,10 +486,16 @@ optimals = [calc_max_precision(p, m) for p, m in zip(val_set_df.predictions, val
 val_set_df["thresholds_opt"] = [o[0] for o in optimals]
 val_set_df["precisions_opt"] = [o[1] for o in optimals]
 
-print("precision_opt: %.3f, threshold_opt: %.3f" % (val_set_df.precisions_opt.mean(), val_set_df.thresholds_opt.mean()))
+print()
+print("precision_best: %.3f, threshold_best: %.3f" % (precision_best, threshold_best))
+print("precision_opt: %.3f, threshold_opt_mean: %.3f"
+      % (val_set_df.precisions_opt.mean(), val_set_df.thresholds_opt.mean()))
 
 print()
 print(val_set_df.thresholds_opt.describe())
+
+print()
+print(val_set_df.precisions.describe())
 
 print()
 print(val_set_df.precisions_opt.describe())
@@ -459,21 +503,18 @@ print(val_set_df.precisions_opt.describe())
 val_set_df["prediction_coverage"] = val_set_df.predictions.map(np.sum) / pow(img_size_ori, 2)
 val_set_df["prediction_coverage_class"] = val_set_df.prediction_coverage.map(coverage_to_class)
 
-print()
-print(val_set_df.groupby("prediction_coverage_class").agg({"precisions": "mean", "precisions_opt": "mean"}))
-
-val_set_df["precisions_otsu"] = \
-    [precision(compute_otsu_mask(255 * p), m) for p, m in zip(val_set_df.predictions, val_set_df.masks)]
+val_set_df["predictions_otsu"] = [np.int32(compute_otsu_mask(255 * p) / 255) for p in val_set_df.predictions]
+val_set_df["precisions_otsu"] = [precision(p, m) for p, m in zip(val_set_df.predictions_otsu, val_set_df.masks)]
 
 print()
 print("precision_otsu: %.3f" % val_set_df.precisions_otsu.mean())
 
-val_set_df["precisions_max"] = \
-    [(p if c < 0.005 else po) for c, p, po in
-     zip(val_set_df.prediction_coverage, val_set_df.precisions, val_set_df.precisions_otsu)]
+val_set_df["predictions_crf"] = \
+    [crf(np.array(i), np.int32(np.array(p))) for i, p in zip(val_set_df.images, val_set_df.prediction_masks)]
+val_set_df["precisions_crf"] = [precision(p, m) for p, m in zip(val_set_df.predictions_crf, val_set_df.masks)]
 
 print()
-print("precision_max: %.3f" % val_set_df.precisions_max.mean())
+print(val_set_df.precisions_crf.describe())
 
 print()
 print(val_set_df
@@ -482,7 +523,7 @@ print(val_set_df
     "precisions": "mean",
     "precisions_opt": "mean",
     "precisions_otsu": "mean",
-    "precisions_max": "mean",
+    "precisions_crf": "mean",
     "prediction_coverage_class": "count"
 }))
 
@@ -493,6 +534,6 @@ print(val_set_df
     "precisions": "mean",
     "precisions_opt": "mean",
     "precisions_otsu": "mean",
-    "precisions_max": "mean",
+    "precisions_crf": "mean",
     "coverage_class": "count"
 }))
