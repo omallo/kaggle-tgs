@@ -21,7 +21,7 @@ from unet_models import AlbuNet
 # input_dir = "../salt/input"
 # output_dir = "."
 input_dir = "/storage/kaggle/tgs"
-output_dir = "/artifacts"
+output_dir = "/storage"
 img_size_ori = 101
 img_size_target = 128
 batch_size = 32
@@ -35,8 +35,22 @@ class TgsDataset(TensorDataset):
 
     def __getitem__(self, index):
         item = super().__getitem__(index)
+
         if np.random.rand() < 0.5:
             item = tuple(i.flip(dims=(0, 2, 1)) for i in item)
+
+        image_np = item[0].cpu().data.numpy()[0:1, :, :].squeeze()
+        is_blurry = cv2.Laplacian(image_np, cv2.CV_32F).var() < 0.001
+        if is_blurry:
+            if np.random.rand() < 0.5:
+                blurr_filter = ndimage.gaussian_filter(image_np, 1)
+                alpha = 30
+                sharpened = image_np + alpha * (image_np - blurr_filter)
+                sharpened = sharpened.reshape(1, image_np.shape[0], image_np.shape[1]).repeat(3, axis=0)
+                item_list = list(item)
+                item_list[0] = torch.FloatTensor(sharpened).to(item[0].device)
+                item = tuple(item_list)
+
         return item
 
 
