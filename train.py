@@ -348,8 +348,8 @@ model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 
 # model.load_state_dict(torch.load("{}/albunet.pth".format(output_dir)))
 
-# criterion = AggregateLoss(nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss())
-criterion = nn.BCEWithLogitsLoss()
+criterion = AggregateLoss(nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss())
+# criterion = nn.BCEWithLogitsLoss()
 # criterion = DiceWithLogitsLoss()
 # criterion = FocalWithLogitsLoss(2.0)
 # criterion = RobustFocalLoss2d()
