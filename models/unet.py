@@ -45,7 +45,7 @@ class UNet(nn.Module):
 class UNetDown(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
-        self.conv = UNetDoubleConv(in_channels, out_channels)
+        self.conv = UNetConvBlock(in_channels, out_channels)
         self.down = nn.MaxPool2d(2)
 
     def forward(self, x):
@@ -57,7 +57,7 @@ class UNetDown(nn.Module):
 class UNetMiddle(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
-        self.delegate = UNetDoubleConv(in_channels, out_channels)
+        self.delegate = UNetConvBlock(in_channels, out_channels)
 
     def forward(self, x):
         return self.delegate(x)
@@ -67,7 +67,7 @@ class UNetUp(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.up = with_he_normal_weights(nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2))
-        self.conv = UNetDoubleConv(in_channels, out_channels)
+        self.conv = UNetConvBlock(in_channels, out_channels)
 
     def forward(self, x, x_skip):
         up_out = self.up(x)
@@ -75,7 +75,7 @@ class UNetUp(nn.Module):
         return conv_out
 
 
-class UNetDoubleConv(nn.Module):
+class UNetConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.delegate = nn.Sequential(
