@@ -9,9 +9,11 @@ class FusionNet(nn.Module):
         self.down2 = FusionNetDown(1 * base_channels, 2 * base_channels)
         self.down3 = FusionNetDown(2 * base_channels, 4 * base_channels)
         self.down4 = FusionNetDown(4 * base_channels, 8 * base_channels)
+        self.down5 = FusionNetDown(8 * base_channels, 16 * base_channels)
 
-        self.middle = FusionNetMiddle(8 * base_channels, 16 * base_channels)
+        self.middle = FusionNetMiddle(16 * base_channels, 32 * base_channels)
 
+        self.up5 = FusionNetUp(32 * base_channels, 16 * base_channels)
         self.up4 = FusionNetUp(16 * base_channels, 8 * base_channels)
         self.up3 = FusionNetUp(8 * base_channels, 4 * base_channels)
         self.up2 = FusionNetUp(4 * base_channels, 2 * base_channels)
@@ -24,9 +26,11 @@ class FusionNet(nn.Module):
         x_skip2, x = self.down2(x)
         x_skip3, x = self.down3(x)
         x_skip4, x = self.down4(x)
+        x_skip5, x = self.down5(x)
 
         x = self.middle(x)
 
+        x = self.up5(x, x_skip5)
         x = self.up4(x, x_skip4)
         x = self.up3(x, x_skip3)
         x = self.up2(x, x_skip2)

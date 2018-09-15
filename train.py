@@ -343,7 +343,7 @@ label_transform = transforms.Compose([
     transforms.ToTensor()
 ])
 
-model = FusionNet(in_depth=3, out_depth=1, base_channels=64).to(device)
+model = FusionNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 # model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 # model = AlbuNet(pretrained=True).to(device)
 
