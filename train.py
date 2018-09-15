@@ -17,7 +17,7 @@ from torch.utils.data import TensorDataset, DataLoader
 from tqdm import tqdm
 
 from lovasz_losses import lovasz_hinge
-from models.unet import UNet
+from models.fusionnet import FusionNet
 
 # input_dir = "../salt/input"
 # output_dir = "."
@@ -343,7 +343,8 @@ label_transform = transforms.Compose([
     transforms.ToTensor()
 ])
 
-model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
+model = FusionNet(in_depth=3, out_depth=1, base_channels=32).to(device)
+# model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 # model = AlbuNet(pretrained=True).to(device)
 
 # model.load_state_dict(torch.load("{}/albunet.pth".format(output_dir)))
