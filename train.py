@@ -22,7 +22,7 @@ from models.unet import UNet
 # input_dir = "../salt/input"
 # output_dir = "."
 input_dir = "/storage/kaggle/tgs"
-output_dir = "/storage"
+output_dir = "/artifacts"
 img_size_ori = 101
 img_size_target = 128
 batch_size = 32

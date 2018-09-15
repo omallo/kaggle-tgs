@@ -10,4 +10,4 @@ virtualenv env --python=python3
 
 pip install -r requirements.txt
 
-python train.py | tee /storage/out.log
+python train.py | tee /artifacts/out.log
