@@ -383,7 +383,7 @@ clr_step_size = 2 * epoch_iterations
 # clr_scale_fn = lambda x: 1.0
 clr_scale_fn = lambda x: 1.0 / (1.1 ** (x - 1))
 # clr_scale_fn = lambda x: 0.5 * (1 + np.sin(x * np.pi / 2.))
-clr_cycle_period = 10
+clr_cycle_reset_period = 10
 clr_iterations = 0
 
 optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
@@ -398,7 +398,10 @@ for epoch in range(epochs_to_train):
     for _, batch in enumerate(train_loader):
         inputs, labels, label_weights = batch[0].to(device), batch[1].to(device), batch[2].to(device)
 
-        clr_cycle = np.floor(1 + clr_iterations / (2 * clr_step_size) % clr_cycle_period)
+        clr_cycle = np.floor(1 + clr_iterations / (2 * clr_step_size))
+        if clr_cycle > clr_cycle_reset_period:
+            clr_cycle = 1
+            clr_iterations = 0
         clr_x = np.abs(clr_iterations / clr_step_size - 2 * clr_cycle + 1)
         lr = clr_base_lr + (clr_max_lr - clr_base_lr) * np.maximum(0, (1 - clr_x)) * clr_scale_fn(clr_cycle)
 
