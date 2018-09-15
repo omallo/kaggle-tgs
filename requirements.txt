@@ -8,5 +8,6 @@ scikit-image==0.14.0
 scikit_learn==0.19.2
 scipy==1.1.0
 torch==0.4.1
+torchsummary==1.4
 torchvision==0.2.1
 tqdm==4.25.0

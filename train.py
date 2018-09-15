@@ -1,8 +1,9 @@
+import time
+
 import cv2
 import numpy as np
 import pandas as pd
 import pydensecrf.densecrf as dcrf
-import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -16,7 +17,7 @@ from torch.utils.data import TensorDataset, DataLoader
 from tqdm import tqdm
 
 from lovasz_losses import lovasz_hinge
-from unet_models import AlbuNet
+from models.unet import UNet
 
 # input_dir = "../salt/input"
 # output_dir = "."
@@ -342,8 +343,8 @@ label_transform = transforms.Compose([
     transforms.ToTensor()
 ])
 
-model = AlbuNet(pretrained=True) \
-    .to(device)
+model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
+# model = AlbuNet(pretrained=True).to(device)
 
 # model.load_state_dict(torch.load("{}/albunet.pth".format(output_dir)))
 
