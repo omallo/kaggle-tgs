@@ -46,7 +46,7 @@ class UNetDown(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.conv = UNetConvBlock(in_channels, out_channels)
-        self.down = nn.MaxPool2d(2)
+        self.down = nn.MaxPool2d(kernel_size=2)
 
     def forward(self, x):
         conv_out = self.conv(x)
