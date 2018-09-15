@@ -62,7 +62,7 @@ class UNetMiddle(nn.Module):
 class UNetUp(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
-        self.up = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2)
+        self.up = with_he_normal_weights(nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2))
         self.conv = UNetDoubleConv(in_channels, out_channels)
 
     def forward(self, x, x_skip):
@@ -87,7 +87,7 @@ class UNetConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.delegate = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
+            with_he_normal_weights(nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
         )
@@ -99,7 +99,12 @@ class UNetConv(nn.Module):
 class UNetOutput(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
-        self.delegate = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+        self.delegate = with_he_normal_weights(nn.Conv2d(in_channels, out_channels, kernel_size=1))
 
     def forward(self, x):
         return self.delegate(x)
+
+
+def with_he_normal_weights(layer):
+    nn.init.kaiming_normal_(layer.weight, a=0, mode="fan_in")
+    return layer
