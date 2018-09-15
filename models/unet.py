@@ -13,10 +13,10 @@ class UNet(nn.Module):
 
         self.middle = UNetMiddle(8 * base_channels, 16 * base_channels)
 
-        self.up1 = UNetUp(16 * base_channels, 8 * base_channels)
-        self.up2 = UNetUp(8 * base_channels, 4 * base_channels)
-        self.up3 = UNetUp(4 * base_channels, 2 * base_channels)
-        self.up4 = UNetUp(2 * base_channels, 1 * base_channels)
+        self.up4 = UNetUp(16 * base_channels, 8 * base_channels)
+        self.up3 = UNetUp(8 * base_channels, 4 * base_channels)
+        self.up2 = UNetUp(4 * base_channels, 2 * base_channels)
+        self.up1 = UNetUp(2 * base_channels, 1 * base_channels)
 
         self.output = UNetOutput(1 * base_channels, out_depth)
 
@@ -28,10 +28,10 @@ class UNet(nn.Module):
 
         x = self.middle(x)
 
-        x = self.up1(x, x_skip4)
-        x = self.up2(x, x_skip3)
-        x = self.up3(x, x_skip2)
-        x = self.up4(x, x_skip1)
+        x = self.up4(x, x_skip4)
+        x = self.up3(x, x_skip3)
+        x = self.up2(x, x_skip2)
+        x = self.up1(x, x_skip1)
 
         x = self.output(x)
 
