@@ -17,14 +17,14 @@ from torch.utils.data import TensorDataset, DataLoader
 from tqdm import tqdm
 
 from lovasz_losses import lovasz_hinge
-from models.fusionnet import FusionNet
-
 # input_dir = "../salt/input"
 # output_dir = "."
+from models.unet import UNet
+
 input_dir = "/storage/kaggle/tgs"
 output_dir = "/artifacts"
 img_size_ori = 101
-img_size_target = 128
+img_size_target = 256
 batch_size = 32
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -182,15 +182,25 @@ def load_images(path, ids):
 
 
 def upsample(img):
-    p = (img_size_target - img_size_ori) / 2
+    if img_size_target >= 2 * img.shape[0]:
+        return upsample(
+            np.pad(np.pad(img, ((0, 0), (0, img.shape[0])), "reflect"), ((0, img.shape[0]), (0, 0)), "reflect"))
+    p = (img_size_target - img.shape[0]) / 2
     return np.pad(img, (int(np.ceil(p)), int(np.floor(p))), mode='reflect')
 
 
 def downsample(img):
-    p = (img_size_target - img_size_ori) / 2
+    if img.shape[0] >= 2 * img_size_ori:
+        p = (img.shape[0] - 2 * img_size_ori) / 2
+    else:
+        p = (img.shape[0] - img_size_ori) / 2
     s = int(np.ceil(p))
     e = s + img_size_ori
-    return img[s:e, s:e]
+    unpadded = img[s:e, s:e]
+    if img.shape[0] >= 2 * img_size_ori:
+        return unpadded[0:img_size_ori, 0:img_size_ori]
+    else:
+        return unpadded
 
 
 def coverage_to_class(coverage):
@@ -343,8 +353,8 @@ label_transform = transforms.Compose([
     transforms.ToTensor()
 ])
 
-model = FusionNet(in_depth=3, out_depth=1, base_channels=32).to(device)
-# model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
+# model = FusionNet(in_depth=3, out_depth=1, base_channels=32).to(device)
+model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 # model = AlbuNet(pretrained=True).to(device)
 
 # model.load_state_dict(torch.load("{}/albunet.pth".format(output_dir)))
