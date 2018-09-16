@@ -9,7 +9,7 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 from PIL import Image
 from scipy import ndimage
-from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 from metrics.precision import precision_batch
@@ -24,15 +24,41 @@ batch_size = 32
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-class TgsDataset(TensorDataset):
-    def __init__(self, *tensors):
-        super().__init__(*tensors)
+class TrainDataset(Dataset):
+    def __init__(self, images, masks, mask_weights):
+        super().__init__()
+        self.images = images
+        self.masks = masks
+        self.mask_weights = mask_weights
+        self.image_transform = transforms.Compose([
+            prepare_input,
+            transforms.ToTensor(),
+            lambda t: t.type(torch.FloatTensor)
+        ])
+        self.mask_transform = transforms.Compose([
+            prepare_label,
+            transforms.ToTensor(),
+            lambda t: t.type(torch.FloatTensor)
+        ])
+
+    def __len__(self):
+        return len(self.images)
 
     def __getitem__(self, index):
-        item = super().__getitem__(index)
+        image = self.images[index]
+        mask = self.masks[index]
+        mask_weights = self.mask_weights[index]
 
         if np.random.rand() < 0.5:
-            item = tuple(i.flip(dims=(0, 2, 1)) for i in item)
+            image = np.fliplr(image)
+            mask = np.fliplr(mask)
+            mask_weights = np.fliplr(mask_weights)
+
+        image = self.image_transform(image)
+        mask = self.mask_transform(mask)
+        mask_weights = self.mask_transform(mask_weights)
+
+        return image, mask, mask_weights
 
         image_np = item[0].cpu().data.numpy()[0:1, :, :].squeeze()
         is_blurry = cv2.Laplacian(image_np, cv2.CV_32F).var() < 0.001
@@ -86,22 +112,12 @@ def coverage_to_class(coverage):
             return i
 
 
-def prepare_input(image, transform):
-    return transform(np.expand_dims(upsample(image), axis=2).repeat(3, axis=2))
+def prepare_input(image):
+    return np.expand_dims(upsample(image), axis=2).repeat(3, axis=2)
 
 
-def prepare_inputs(images, transform):
-    return torch.stack([prepare_input(image, transform) for image in images]) \
-        .type(torch.FloatTensor)
-
-
-def prepare_label(mask, transform):
-    return transform(np.expand_dims(upsample(mask), axis=2))
-
-
-def prepare_labels(masks, transform):
-    return torch.stack([prepare_label(mask, transform) for mask in masks]) \
-        .type(torch.FloatTensor)
+def prepare_label(mask):
+    return np.expand_dims(upsample(mask), axis=2)
 
 
 def contour(mask, width=3):
@@ -157,13 +173,6 @@ val_set_x = val_set_df.images.tolist()
 val_set_y = val_set_df.masks.tolist()
 val_set_w = val_set_df.mask_weights.tolist()
 
-input_transform = transforms.Compose([
-    transforms.ToTensor()
-])
-label_transform = transforms.Compose([
-    transforms.ToTensor()
-])
-
 # model = FusionNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 # model = AlbuNet(pretrained=True).to(device)
@@ -172,24 +181,15 @@ model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 
 criterion = nn.BCEWithLogitsLoss()
 
-with torch.no_grad():
-    train_set_inputs = prepare_inputs(train_set_x, input_transform)
-    train_set_labels = prepare_labels(train_set_y, label_transform)
-    train_set_weights = prepare_labels(train_set_w, label_transform)
-
-    val_set_inputs = prepare_inputs(val_set_x, input_transform)
-    val_set_labels = prepare_labels(val_set_y, label_transform)
-    val_set_weights = prepare_labels(val_set_w, label_transform)
-
-train_set = TgsDataset(train_set_inputs, train_set_labels, train_set_weights)
+train_set = TrainDataset(train_set_x, train_set_y, train_set_w)
 train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
 
-val_set = TensorDataset(val_set_inputs, val_set_labels, val_set_weights)
+val_set = TrainDataset(val_set_x, val_set_y, val_set_w)
 val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
 
 print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
 
-epochs_to_train = 64
+epochs_to_train = 20
 global_val_precision_best_avg = float("-inf")
 
 clr_base_lr = 0.0001
