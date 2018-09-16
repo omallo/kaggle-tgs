@@ -55,7 +55,7 @@ class TrainDataset(Dataset):
                 image = np.fliplr(image)
                 mask = np.fliplr(mask)
 
-            if np.random.rand() < 0.5 and False:
+            if np.random.rand() < 0.5:
                 c = np.random.choice(2)
                 if c == 0:
                     image, mask = apply_elastic_transform(image, mask, alpha=150, sigma=10, alpha_affine=0)
@@ -225,7 +225,7 @@ model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 
 criterion = nn.BCEWithLogitsLoss()
 
-train_set = TrainDataset(train_set_x, train_set_y, augment=True)
+train_set = TrainDataset(train_set_x, train_set_y, augment=False)
 train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
 
 val_set = TrainDataset(val_set_x, val_set_y, augment=False)
@@ -268,7 +268,7 @@ for epoch in range(epochs_to_train):
         optimizer.zero_grad()
         outputs = model(inputs)
         predictions = torch.sigmoid(outputs)
-        criterion.weight = label_weights
+        #criterion.weight = label_weights
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
@@ -287,7 +287,7 @@ for epoch in range(epochs_to_train):
 
             outputs = model(inputs)
             predictions = torch.sigmoid(outputs)
-            criterion.weight = label_weights
+            #criterion.weight = label_weights
             loss = criterion(outputs, labels)
 
             epoch_val_loss_sum += loss.item()
