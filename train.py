@@ -303,7 +303,7 @@ train_set = TrainDataset(train_set_x, train_set_y, augment=True)
 train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
 
 val_set = TrainDataset(val_set_x, val_set_y, augment=False)
-val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
+val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=False)
 
 print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
 
