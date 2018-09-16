@@ -298,6 +298,7 @@ for epoch in range(epochs_to_train):
         #clr_cycle = np.floor(1 + clr_iterations / (2 * clr_step_size))
         #clr_x = np.abs(clr_iterations / clr_step_size - 2 * clr_cycle + 1)
         #lr = clr_base_lr + (clr_max_lr - clr_base_lr) * np.maximum(0, (1 - clr_x)) * clr_scale_fn(clr_cycle)
+        lr = clr_base_lr
 
         #for param_group in optimizer.param_groups:
         #    param_group['lr'] = lr
