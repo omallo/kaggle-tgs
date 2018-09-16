@@ -255,7 +255,7 @@ val_set_y = val_set_df.masks.tolist()
 # model = FusionNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 # model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 model = AlbuNet(pretrained=True).to(device)
-model.load_state_dict(torch.load("/storage/albunet.pth"))
+# model.load_state_dict(torch.load("/storage/albunet.pth"))
 
 criterion = nn.BCEWithLogitsLoss()
 # criterion = RobustFocalLoss2d(2)
@@ -269,7 +269,7 @@ val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, num_worker
 
 print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
 
-epochs_to_train = 64
+epochs_to_train = 10
 global_val_precision_best_avg = float("-inf")
 
 clr_base_lr = 0.0001
@@ -282,7 +282,8 @@ clr_scale_fn = lambda x: 1.0 / (1.1 ** (x - 1))
 # clr_scale_fn = lambda x: 0.5 * (1 + np.sin(x * np.pi / 2.))
 clr_iterations = 0
 
-optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
+# optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
+optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=1e-4)
 
 for epoch in range(epochs_to_train):
 
