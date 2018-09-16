@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import pandas as pd
 import torch
+import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
 from PIL import Image
@@ -13,8 +14,6 @@ from scipy.ndimage.interpolation import map_coordinates
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-from metrics.focal_loss import RobustFocalLoss2d
-from metrics.lovasz_loss import LovaszWithLogitsLoss
 from metrics.precision import precision_batch
 from unet_models import AlbuNet
 
@@ -258,10 +257,9 @@ val_set_y = val_set_df.masks.tolist()
 model = AlbuNet(pretrained=True).to(device)
 model.load_state_dict(torch.load("/storage/albunet.pth"))
 
-#  criterion = nn.BCEWithLogitsLoss()
-criterion1 = RobustFocalLoss2d(2)
-criterion2 = LovaszWithLogitsLoss()
-criterion = criterion1
+criterion = nn.BCEWithLogitsLoss()
+# criterion = RobustFocalLoss2d(2)
+# criterion = LovaszWithLogitsLoss()
 
 train_set = TrainDataset(train_set_x, train_set_y, augment=True)
 train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
@@ -289,9 +287,6 @@ optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
 for epoch in range(epochs_to_train):
 
     epoch_start_time = time.time()
-
-    if epoch == 30:
-        criterion = criterion2
 
     epoch_train_loss_sum = 0.0
     epoch_train_precision_sum = 0.0
