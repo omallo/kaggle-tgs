@@ -56,11 +56,13 @@ class TrainDataset(Dataset):
                 mask = np.fliplr(mask)
 
             if np.random.rand() < 0.5:
-                c = np.random.choice(2)
+                c = np.random.choice(3)
                 if c == 0:
-                    image, mask = apply_elastic_transform(image, mask, alpha=150, sigma=10, alpha_affine=0)
+                    image, mask = apply_elastic_transform(image, mask, alpha=150, sigma=8, alpha_affine=0)
                 elif c == 1:
-                    image, mask = apply_elastic_transform(image, mask, alpha=0, sigma=0, alpha_affine=5)
+                    image, mask = apply_elastic_transform(image, mask, alpha=0, sigma=0, alpha_affine=8)
+                elif c == 2:
+                    image, mask = apply_elastic_transform(image, mask, alpha=150, sigma=10, alpha_affine=5)
 
             if np.random.rand() < 0.5:
                 c = np.random.choice(2)
