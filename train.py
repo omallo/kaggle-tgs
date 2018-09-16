@@ -225,6 +225,42 @@ def compute_otsu_mask(image):
     return cv2.threshold(image_grayscale, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
 
 
+def adjust_learning_rate(optimizer, lr):
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
+    return lr
+
+
+def moving_average(net1, net2, alpha):
+    for param1, param2 in zip(net1.parameters(), net2.parameters()):
+        param1.data *= (1.0 - alpha)
+        param1.data += param2.data * alpha
+
+
+def eval(model, data_loader, criterion):
+    loss_sum = 0.0
+    precision_sum = 0.0
+    step_count = 0
+
+    with torch.no_grad():
+        for _, batch in enumerate(data_loader):
+            inputs, labels, label_weights = batch[0].to(device), batch[1].to(device), batch[2].to(device)
+
+            outputs = model(inputs)
+            predictions = torch.sigmoid(outputs)
+            criterion.weight = label_weights
+            loss = criterion(outputs, labels)
+
+            loss_sum += loss.item()
+            precision_sum += np.mean(precision_batch(predictions, labels))
+            step_count += 1
+
+    loss_avg = loss_sum / step_count
+    precision_avg = precision_sum / step_count
+
+    return loss_avg, precision_avg
+
+
 train_df = pd.read_csv("{}/train.csv".format(input_dir), index_col="id", usecols=[0])
 depths_df = pd.read_csv("{}/depths.csv".format(input_dir), index_col="id")
 train_df = train_df.join(depths_df)
@@ -255,6 +291,7 @@ val_set_y = val_set_df.masks.tolist()
 # model = FusionNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 # model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 model = AlbuNet(pretrained=True).to(device)
+swa_model = AlbuNet(pretrained=True).to(device)
 # model.load_state_dict(torch.load("/storage/albunet.pth"))
 
 criterion = nn.BCEWithLogitsLoss()
@@ -277,10 +314,10 @@ clr_max_lr = 0.03
 
 epoch_iterations = len(train_set) // batch_size
 clr_step_size = 2 * epoch_iterations
-# clr_scale_fn = lambda x: 1.0
+clr_cycle_size = 2 * clr_step_size
 clr_scale_fn = lambda x: 1.0 / (1.1 ** (x - 1))
-# clr_scale_fn = lambda x: 0.5 * (1 + np.sin(x * np.pi / 2.))
 clr_iterations = 0
+swa_c_epochs = 4
 
 # optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
 optimizer = optim.SGD(model.parameters(), lr=clr_base_lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
@@ -295,12 +332,14 @@ for epoch in range(epochs_to_train):
     for _, batch in enumerate(train_loader):
         inputs, labels, label_weights = batch[0].to(device), batch[1].to(device), batch[2].to(device)
 
-        clr_cycle = np.floor(1 + clr_iterations / (2 * clr_step_size))
-        clr_x = np.abs(clr_iterations / clr_step_size - 2 * clr_cycle + 1)
-        lr = clr_base_lr + (clr_max_lr - clr_base_lr) * np.maximum(0, (1 - clr_x)) * clr_scale_fn(clr_cycle)
+        # clr_cycle = np.floor(1 + clr_iterations / (2 * clr_step_size))
+        # clr_x = np.abs(clr_iterations / clr_step_size - 2 * clr_cycle + 1)
+        # lr = clr_base_lr + (clr_max_lr - clr_base_lr) * np.maximum(0, (1 - clr_x)) * clr_scale_fn(clr_cycle)
 
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = lr
+        swa_x = (clr_iterations % clr_cycle_size) / clr_cycle_size
+        lr = (1 - swa_x) * clr_max_lr + swa_x * clr_base_lr
+
+        adjust_learning_rate(optimizer, lr)
 
         optimizer.zero_grad()
         outputs = model(inputs)
@@ -315,26 +354,15 @@ for epoch in range(epochs_to_train):
         clr_iterations += 1
         epoch_train_step_count += 1
 
-    epoch_val_loss_sum = 0.0
-    epoch_val_precision_sum = 0.0
-    epoch_val_step_count = 0
-    with torch.no_grad():
-        for _, batch in enumerate(val_loader):
-            inputs, labels, label_weights = batch[0].to(device), batch[1].to(device), batch[2].to(device)
-
-            outputs = model(inputs)
-            predictions = torch.sigmoid(outputs)
-            criterion.weight = label_weights
-            loss = criterion(outputs, labels)
-
-            epoch_val_loss_sum += loss.item()
-            epoch_val_precision_sum += np.mean(precision_batch(predictions, labels))
-            epoch_val_step_count += 1
-
     epoch_train_loss_avg = epoch_train_loss_sum / epoch_train_step_count
-    epoch_val_loss_avg = epoch_val_loss_sum / epoch_val_step_count
     epoch_train_precision_avg = epoch_train_precision_sum / epoch_train_step_count
-    epoch_val_precision_avg = epoch_val_precision_sum / epoch_val_step_count
+
+    if (epoch + 1) % swa_c_epochs == 0:
+        swa_n = (epoch + 1) // swa_c_epochs
+        moving_average(swa_model, model, 1.0 / swa_n)
+
+    epoch_val_loss_avg, epoch_val_precision_avg = eval(model, val_loader, criterion)
+    epoch_swa_val_loss_avg, epoch_swa_val_precision_avg = eval(swa_model, val_loader, criterion)
 
     ckpt_saved = False
     if epoch_val_precision_avg > global_val_precision_best_avg:
@@ -346,13 +374,15 @@ for epoch in range(epochs_to_train):
     epoch_duration_time = epoch_end_time - epoch_start_time
 
     print(
-        "[%03d/%03d] time: %ds, lr: %.6f, loss: %.3f, val_loss: %.3f, precision: %.3f, val_precision: %.3f, ckpt: %s" % (
+        "[%03d/%03d] %ds, lr: %.6f, loss: %.3f, val_loss: %.3f (%.3f), prec: %.3f, val_prec: %.3f (%.3f), ckpt: %d" % (
             epoch + 1,
             epochs_to_train,
             epoch_duration_time,
             lr,
             epoch_train_loss_avg,
             epoch_val_loss_avg,
+            epoch_swa_val_loss_avg,
             epoch_train_precision_avg,
             epoch_val_precision_avg,
-            ckpt_saved))
+            epoch_swa_val_precision_avg,
+            int(ckpt_saved)))
