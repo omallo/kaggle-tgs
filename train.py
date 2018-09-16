@@ -63,7 +63,11 @@ class TrainDataset(Dataset):
                     image, mask = apply_elastic_transform(image, mask, alpha=0, sigma=0, alpha_affine=5)
 
             if np.random.rand() < 0.5:
-                image = adjust_gamma(image, np.random.uniform(1 - 0.05, 1 + 0.05))
+                c = np.random.choice(2)
+                if c == 0:
+                    image = multiply_brightness(image, np.random.uniform(1 - 0.1, 1 + 0.1))
+                elif c == 1:
+                    image = adjust_gamma(image, np.random.uniform(1 - 0.1, 1 + 0.1))
 
         mask_weights = calculate_mask_weights(mask)
 
@@ -79,6 +83,21 @@ class TrainDataset(Dataset):
                 blurr_filter = ndimage.gaussian_filter(image, 1)
                 alpha = 30
                 image = image + alpha * (image - blurr_filter)
+
+
+def multiply_brightness(image, coefficient):
+    i = np.expand_dims(image, axis=2)
+    i = i.repeat(3, axis=2)
+    i = (255 * i).astype("uint8")
+    image_HLS = cv2.cvtColor(i, cv2.COLOR_RGB2HLS)
+    image_HLS = np.array(image_HLS, dtype=np.float64)
+    image_HLS[:, :, 1] = image_HLS[:, :, 1] * coefficient
+    image_HLS[:, :, 1][image_HLS[:, :, 1] > 255] = 255
+    image_HLS = np.array(image_HLS, dtype=np.uint8)
+    result = cv2.cvtColor(image_HLS, cv2.COLOR_HLS2RGB)
+    result = result[:, :, 0:1].squeeze()
+    result = (result / 255.0).astype(image.dtype)
+    return result
 
 
 def adjust_gamma(image, gamma):
