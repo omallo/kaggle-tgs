@@ -62,7 +62,7 @@ class TrainDataset(Dataset):
                 elif c == 1:
                     image, mask = apply_elastic_transform(image, mask, alpha=0, sigma=0, alpha_affine=5)
 
-        mask_weights = contour(mask)
+        mask_weights = calculate_mask_weights(mask)
 
         image = self.image_transform(image)
         mask = self.mask_transform(mask)
@@ -268,7 +268,7 @@ for epoch in range(epochs_to_train):
         optimizer.zero_grad()
         outputs = model(inputs)
         predictions = torch.sigmoid(outputs)
-        #criterion.weight = label_weights
+        criterion.weight = label_weights
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
@@ -287,7 +287,7 @@ for epoch in range(epochs_to_train):
 
             outputs = model(inputs)
             predictions = torch.sigmoid(outputs)
-            #criterion.weight = label_weights
+            criterion.weight = label_weights
             loss = criterion(outputs, labels)
 
             epoch_val_loss_sum += loss.item()
