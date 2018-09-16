@@ -4,7 +4,6 @@ import cv2
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
 from PIL import Image
@@ -14,6 +13,7 @@ from scipy.ndimage.interpolation import map_coordinates
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
+from metrics.lovasz_loss import LovaszWithLogitsLoss
 from metrics.precision import precision_batch
 from unet_models import AlbuNet
 
@@ -253,10 +253,10 @@ val_set_y = val_set_df.masks.tolist()
 # model = FusionNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 # model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 model = AlbuNet(pretrained=True).to(device)
+model.load_state_dict(torch.load("/storage/albunet.pth"))
 
-# model.load_state_dict(torch.load("{}/model.pth".format(output_dir)))
-
-criterion = nn.BCEWithLogitsLoss()
+# criterion = nn.BCEWithLogitsLoss()
+criterion = LovaszWithLogitsLoss()
 
 train_set = TrainDataset(train_set_x, train_set_y, augment=True)
 train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
