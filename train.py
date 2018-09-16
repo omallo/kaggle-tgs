@@ -9,6 +9,8 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 from PIL import Image
 from scipy import ndimage
+from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage.interpolation import map_coordinates
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
@@ -25,11 +27,10 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class TrainDataset(Dataset):
-    def __init__(self, images, masks, mask_weights, augment):
+    def __init__(self, images, masks, augment):
         super().__init__()
         self.images = images
         self.masks = masks
-        self.mask_weights = mask_weights
         self.augment = augment
         self.image_transform = transforms.Compose([
             prepare_input,
@@ -48,13 +49,20 @@ class TrainDataset(Dataset):
     def __getitem__(self, index):
         image = self.images[index]
         mask = self.masks[index]
-        mask_weights = self.mask_weights[index]
 
         if self.augment:
             if np.random.rand() < 0.5:
                 image = np.fliplr(image)
                 mask = np.fliplr(mask)
-                mask_weights = np.fliplr(mask_weights)
+
+            if np.random.rand() < 0.5:
+                c = np.random.choice(2)
+                if c == 0:
+                    image, mask = apply_elastic_transform(image, mask, alpha=15, sigma=5, alpha_affine=0)
+                elif c == 1:
+                    image, mask = apply_elastic_transform(image, mask, alpha=0, sigma=0, alpha_affine=5)
+
+        mask_weights = contour(mask)
 
         image = self.image_transform(image)
         mask = self.mask_transform(mask)
@@ -62,19 +70,56 @@ class TrainDataset(Dataset):
 
         return image, mask, mask_weights
 
-        image_np = item[0].cpu().data.numpy()[0:1, :, :].squeeze()
-        is_blurry = cv2.Laplacian(image_np, cv2.CV_32F).var() < 0.001
+        is_blurry = cv2.Laplacian(image, cv2.CV_32F).var() < 0.001
         if is_blurry:
             if np.random.rand() < 0.5:
-                blurr_filter = ndimage.gaussian_filter(image_np, 1)
+                blurr_filter = ndimage.gaussian_filter(image, 1)
                 alpha = 30
-                sharpened = image_np + alpha * (image_np - blurr_filter)
-                sharpened = sharpened.reshape(1, image_np.shape[0], image_np.shape[1]).repeat(3, axis=0)
-                item_list = list(item)
-                item_list[0] = torch.FloatTensor(sharpened).to(item[0].device)
-                item = tuple(item_list)
+                image = image + alpha * (image - blurr_filter)
 
-        return item
+
+# Function to distort image
+def elastic_transform(image, alpha, sigma, alpha_affine, random_state=None):
+    """Elastic deformation of images as described in [Simard2003]_ (with modifications).
+    .. [Simard2003] Simard, Steinkraus and Platt, "Best Practices for
+         Convolutional Neural Networks applied to Visual Document Analysis", in
+         Proc. of the International Conference on Document Analysis and
+         Recognition, 2003.
+
+     Based on https://gist.github.com/erniejunior/601cdf56d2b424757de5
+    """
+    if random_state is None:
+        random_state = np.random.RandomState(None)
+
+    shape = image.shape
+    shape_size = shape[:2]
+
+    # Random affine
+    center_square = np.float32(shape_size) // 2
+    square_size = min(shape_size) // 3
+    pts1 = np.float32([center_square + square_size, [center_square[0] + square_size, center_square[1] - square_size],
+                       center_square - square_size])
+    pts2 = pts1 + random_state.uniform(-alpha_affine, alpha_affine, size=pts1.shape).astype(np.float32)
+    M = cv2.getAffineTransform(pts1, pts2)
+    image = cv2.warpAffine(image, M, shape_size[::-1], borderMode=cv2.BORDER_REFLECT_101)
+
+    dx = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma) * alpha
+    dy = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma) * alpha
+    dz = np.zeros_like(dx)
+
+    x, y, z = np.meshgrid(np.arange(shape[1]), np.arange(shape[0]), np.arange(shape[2]))
+    indices = np.reshape(y + dy, (-1, 1)), np.reshape(x + dx, (-1, 1)), np.reshape(z, (-1, 1))
+
+    return map_coordinates(image, indices, order=1, mode='reflect').reshape(shape)
+
+
+def apply_elastic_transform(image, mask, alpha, sigma, alpha_affine):
+    channels = np.concatenate((image[..., None], mask[..., None]), axis=2)
+    result = elastic_transform(channels, alpha, sigma, alpha_affine, random_state=np.random.RandomState(None))
+    image_result = result[..., 0]
+    mask_result = result[..., 1]
+    mask_result = (mask_result > 0.5).astype(mask.dtype)
+    return image_result, mask_result
 
 
 def load_image(path, id):
@@ -133,9 +178,8 @@ def contour(mask, width=3):
     return np.int32(contour != 0)
 
 
-def mask_weights(mask, coverage_class):
-    coverage_class_weight_factor = 1 if coverage_class <= 3 else 1
-    return coverage_class_weight_factor * (np.ones_like(mask) + 2 * contour(mask))
+def calculate_mask_weights(mask):
+    return np.ones_like(mask) + 2 * contour(mask)
 
 
 # https://www.microsoft.com/developerblog/2018/05/17/using-otsus-method-generate-data-training-deep-learning-image-segmentation-models/
@@ -158,7 +202,7 @@ train_df["coverage"] = train_df.masks.map(np.sum) / pow(img_size_ori, 2)
 train_df["coverage_class"] = train_df.coverage.map(coverage_to_class)
 
 train_df["contours"] = train_df.masks.map(contour)
-train_df["mask_weights"] = [mask_weights(m, c) for m, c in zip(train_df.masks, train_df.coverage_class)]
+train_df["mask_weights"] = [calculate_mask_weights(m) for m, c in zip(train_df.masks, train_df.coverage_class)]
 
 train_val_split = int(0.8 * len(train_df))
 train_set_ids = train_df.index.tolist()[:train_val_split]
@@ -169,11 +213,9 @@ val_set_df = train_df[train_df.index.isin(val_set_ids)].copy()
 
 train_set_x = train_set_df.images.tolist()
 train_set_y = train_set_df.masks.tolist()
-train_set_w = train_set_df.mask_weights.tolist()
 
 val_set_x = val_set_df.images.tolist()
 val_set_y = val_set_df.masks.tolist()
-val_set_w = val_set_df.mask_weights.tolist()
 
 # model = FusionNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
@@ -183,10 +225,10 @@ model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 
 criterion = nn.BCEWithLogitsLoss()
 
-train_set = TrainDataset(train_set_x, train_set_y, train_set_w, augment=True)
+train_set = TrainDataset(train_set_x, train_set_y, augment=True)
 train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
 
-val_set = TrainDataset(val_set_x, val_set_y, val_set_w, augment=False)
+val_set = TrainDataset(val_set_x, val_set_y, augment=False)
 val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
 
 print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
