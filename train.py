@@ -3,22 +3,16 @@ import time
 import cv2
 import numpy as np
 import pandas as pd
-import pydensecrf.densecrf as dcrf
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as transforms
 from PIL import Image
-from pydensecrf.utils import unary_from_labels
 from scipy import ndimage
-from skimage.color import gray2rgb
 from torch.utils.data import TensorDataset, DataLoader
 from tqdm import tqdm
 
-from lovasz_losses import lovasz_hinge
-# input_dir = "../salt/input"
-# output_dir = "."
+from metrics.precision import precision_batch
 from models.unet import UNet
 
 input_dir = "/storage/kaggle/tgs"
@@ -53,123 +47,6 @@ class TgsDataset(TensorDataset):
                 item = tuple(item_list)
 
         return item
-
-
-class DiceWithLogitsLoss(nn.Module):
-    def __init__(self, weight=None):
-        super().__init__()
-        self.weight = weight
-
-    def forward(self, logits, targets):
-        smooth = 1
-        num = targets.size(0)
-        probs = torch.sigmoid(logits)
-
-        m1 = probs.view(num, -1)
-        m2 = targets.view(num, -1)
-        intersection = m1 * m2
-
-        w = self.weight.view(num, -1) if self.weight is not None else torch.ones_like(m1)
-        w2 = w * w
-
-        score = 2. * ((w2 * intersection).sum(1) + smooth) / ((w2 * m1).sum(1) + (w2 * m2).sum(1) + smooth)
-        loss = 1 - score.sum() / num
-
-        return loss
-
-
-class AggregateLoss(nn.Module):
-    def __init__(self, *delegates):
-        super().__init__()
-        self.delegates = delegates
-
-    def forward(self, input, targets):
-        for delegate in self.delegates:
-            delegate.weight = self.weight
-
-        loss = self.delegates[0](input, targets)
-        for delegate in self.delegates[1:]:
-            loss += delegate(input, targets)
-
-        return loss
-
-
-class FocalWithLogitsLoss(nn.Module):
-    def __init__(self, gamma):
-        super().__init__()
-        self.gamma = gamma
-
-    def forward(self, input, target):
-        # Inspired by the implementation of binary_cross_entropy_with_logits
-        if not (target.size() == input.size()):
-            raise ValueError("Target size ({}) must be the same as input size ({})".format(target.size(), input.size()))
-
-        max_val = (-input).clamp(min=0)
-        loss = input - input * target + max_val + ((-max_val).exp() + (-input - max_val).exp()).log()
-
-        # This formula gives us the log sigmoid of 1-p if y is 0 and of p if y is 1
-        invprobs = F.logsigmoid(-input * (target * 2 - 1))
-        loss = (invprobs * self.gamma).exp() * loss
-
-        return loss.mean()
-
-
-class LovaszWithLogitsLoss(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, logits, target):
-        return lovasz_hinge(logits, labels, per_image=False)
-
-
-class RobustFocalLoss2d(nn.Module):
-    # assume top 10% is outliers
-    def __init__(self, gamma=2, size_average=True):
-        super(RobustFocalLoss2d, self).__init__()
-        self.gamma = gamma
-        self.size_average = size_average
-
-    def forward(self, logit, target, class_weight=None, type='sigmoid'):
-        target = target.view(-1, 1).long()
-
-        if type == 'sigmoid':
-            if class_weight is None:
-                class_weight = [1] * 2  # [0.5, 0.5]
-
-            prob = F.sigmoid(logit)
-            prob = prob.view(-1, 1)
-            prob = torch.cat((1 - prob, prob), 1)
-            select = torch.FloatTensor(len(prob), 2).zero_().cuda()
-            select.scatter_(1, target, 1.)
-
-        elif type == 'softmax':
-            B, C, H, W = logit.size()
-            if class_weight is None:
-                class_weight = [1] * C  # [1/C]*C
-
-            logit = logit.permute(0, 2, 3, 1).contiguous().view(-1, C)
-            prob = F.softmax(logit, 1)
-            select = torch.FloatTensor(len(prob), C).zero_().cuda()
-            select.scatter_(1, target, 1.)
-
-        class_weight = torch.FloatTensor(class_weight).cuda().view(-1, 1)
-        class_weight = torch.gather(class_weight, 0, target)
-
-        prob = (prob * select).sum(1).view(-1, 1)
-        prob = torch.clamp(prob, 1e-8, 1 - 1e-8)
-
-        focus = torch.pow((1 - prob), self.gamma)
-        # focus = torch.where(focus < 2.0, focus, torch.zeros(prob.size()).cuda())
-        focus = torch.clamp(focus, 0, 2)
-
-        batch_loss = - class_weight * focus * prob.log()
-
-        if self.size_average:
-            loss = batch_loss.mean()
-        else:
-            loss = batch_loss
-
-        return loss
 
 
 def load_image(path, id):
@@ -243,77 +120,12 @@ def mask_weights(mask, coverage_class):
     return coverage_class_weight_factor * (np.ones_like(mask) + 2 * contour(mask))
 
 
-def precision(outputs, labels):
-    predictions = outputs.round()
-
-    intersection = float((predictions * labels).sum())
-    union = float(((predictions + labels) > 0).sum())
-
-    if union == 0:
-        return 1.0
-
-    iou = intersection / union
-
-    thresholds = np.arange(0.5, 1.0, 0.05)
-    precision = (iou > thresholds).sum() / float(len(thresholds))
-
-    return precision
-
-
-def precision_batch(outputs, labels):
-    batch_size = labels.shape[0]
-    return [precision(outputs[batch], labels[batch]) for batch in range(batch_size)]
-
-
-def precision_array(outputs, labels):
-    return [precision(o, l) for o, l in zip(outputs, labels)]
-
-
 # https://www.microsoft.com/developerblog/2018/05/17/using-otsus-method-generate-data-training-deep-learning-image-segmentation-models/
 def compute_otsu_mask(image):
     image = np.stack((image,) * 3, -1)
     image = image.astype(np.uint8)
     image_grayscale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     return cv2.threshold(image_grayscale, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-
-
-"""
-Function which returns the labelled image after applying CRF
-"""
-
-
-# Original_image = Image which has to labelled
-# Mask image = Which has been labelled by some technique..
-def crf(original_image, mask_img):
-    # Converting annotated image to RGB if it is Gray scale
-    if len(mask_img.shape) < 3:
-        mask_img = gray2rgb(mask_img)
-
-    # Converting the annotations RGB color to single 32 bit integer
-    annotated_label = mask_img[:, :, 0] + (mask_img[:, :, 1] << 8) + (mask_img[:, :, 2] << 16)
-
-    # Convert the 32bit integer color to 0,1, 2, ... labels.
-    colors, labels = np.unique(annotated_label, return_inverse=True)
-
-    n_labels = 2
-
-    # Setting up the CRF model
-    d = dcrf.DenseCRF2D(original_image.shape[1], original_image.shape[0], n_labels)
-
-    # get unary potentials (neg log probability)
-    U = unary_from_labels(labels, n_labels, gt_prob=0.7, zero_unsure=False)
-    d.setUnaryEnergy(U)
-
-    # This adds the color-independent term, features are the locations only.
-    d.addPairwiseGaussian(sxy=(3, 3), compat=3, kernel=dcrf.DIAG_KERNEL, normalization=dcrf.NORMALIZE_SYMMETRIC)
-
-    # Run Inference for 10 steps
-    Q = d.inference(10)
-
-    # Find out the most probable class for each pixel.
-    MAP = np.argmax(Q, axis=0)
-
-    return MAP.reshape((original_image.shape[0], original_image.shape[1]))
 
 
 train_df = pd.read_csv("{}/train.csv".format(input_dir), index_col="id", usecols=[0])
@@ -347,7 +159,6 @@ val_set_w = val_set_df.mask_weights.tolist()
 
 input_transform = transforms.Compose([
     transforms.ToTensor()
-    # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 ])
 label_transform = transforms.Compose([
     transforms.ToTensor()
@@ -357,14 +168,9 @@ label_transform = transforms.Compose([
 model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 # model = AlbuNet(pretrained=True).to(device)
 
-# model.load_state_dict(torch.load("{}/albunet.pth".format(output_dir)))
+# model.load_state_dict(torch.load("{}/model.pth".format(output_dir)))
 
-# criterion = AggregateLoss(nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss())
 criterion = nn.BCEWithLogitsLoss()
-# criterion = DiceWithLogitsLoss()
-# criterion = FocalWithLogitsLoss(2.0)
-# criterion = RobustFocalLoss2d()
-# criterion = LovaszWithLogitsLoss()
 
 with torch.no_grad():
     train_set_inputs = prepare_inputs(train_set_x, input_transform)
@@ -451,7 +257,7 @@ for epoch in range(epochs_to_train):
 
     ckpt_saved = False
     if epoch_val_precision_avg > global_val_precision_best_avg:
-        torch.save(model.state_dict(), "{}/albunet.pth".format(output_dir))
+        torch.save(model.state_dict(), "{}/model.pth".format(output_dir))
         global_val_precision_best_avg = epoch_val_precision_avg
         ckpt_saved = True
 
@@ -469,97 +275,3 @@ for epoch in range(epochs_to_train):
             epoch_train_precision_avg,
             epoch_val_precision_avg,
             ckpt_saved))
-
-val_pred_set = TensorDataset(val_set_inputs)
-val_pred_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=False)
-
-model.load_state_dict(torch.load("{}/albunet.pth".format(output_dir)))
-
-val_predictions = []
-with torch.no_grad():
-    for _, batch in enumerate(val_pred_loader):
-        inputs = batch[0].to(device)
-        outputs = model(inputs)
-        predictions = torch.sigmoid(outputs)
-        val_predictions += [p for p in predictions.cpu().numpy()]
-
-val_predictions = np.asarray(val_predictions).reshape(-1, img_size_target, img_size_target)
-val_predictions = [downsample(p) for p in val_predictions]
-val_set_df["predictions"] = val_predictions
-
-thresholds = np.linspace(0, 1, 51)
-
-precisions_per_threshold = np.array(
-    [np.mean(precision_array(np.int32(np.asarray(val_set_df.predictions.tolist()) > t), val_set_df.masks)) for t in
-     tqdm(thresholds)])
-
-threshold_best_index = np.argmax(precisions_per_threshold)
-precision_best = precisions_per_threshold[threshold_best_index]
-threshold_best = thresholds[threshold_best_index]
-
-val_set_df["prediction_masks"] = [np.int32(p > threshold_best) for p in val_set_df.predictions]
-val_set_df["precisions"] = [precision(pm, m) for pm, m in zip(val_set_df.prediction_masks, val_set_df.masks)]
-
-
-def calc_max_precision(y_pred_raw, y_true):
-    ious = [precision(np.int32(y_pred_raw > t), y_true) for t in thresholds]
-    am = np.argmax(ious)
-    return (thresholds[am], ious[am])
-
-
-optimals = [calc_max_precision(p, m) for p, m in zip(val_set_df.predictions, val_set_df.masks)]
-
-val_set_df["thresholds_opt"] = [o[0] for o in optimals]
-val_set_df["precisions_opt"] = [o[1] for o in optimals]
-
-print()
-print("precision_best: %.3f, threshold_best: %.3f" % (precision_best, threshold_best))
-print("precision_opt: %.3f, threshold_opt_mean: %.3f"
-      % (val_set_df.precisions_opt.mean(), val_set_df.thresholds_opt.mean()))
-
-print()
-print(val_set_df.thresholds_opt.describe())
-
-print()
-print(val_set_df.precisions.describe())
-
-print()
-print(val_set_df.precisions_opt.describe())
-
-val_set_df["prediction_coverage"] = val_set_df.predictions.map(np.sum) / pow(img_size_ori, 2)
-val_set_df["prediction_coverage_class"] = val_set_df.prediction_coverage.map(coverage_to_class)
-
-val_set_df["predictions_otsu"] = [np.int32(compute_otsu_mask(255 * p) / 255) for p in val_set_df.predictions]
-val_set_df["precisions_otsu"] = [precision(p, m) for p, m in zip(val_set_df.predictions_otsu, val_set_df.masks)]
-
-print()
-print("precision_otsu: %.3f" % val_set_df.precisions_otsu.mean())
-
-val_set_df["predictions_crf"] = \
-    [crf(np.array(i), np.int32(np.array(p))) for i, p in zip(val_set_df.images, val_set_df.prediction_masks)]
-val_set_df["precisions_crf"] = [precision(p, m) for p, m in zip(val_set_df.predictions_crf, val_set_df.masks)]
-
-print()
-print(val_set_df.precisions_crf.describe())
-
-print()
-print(val_set_df
-    .groupby("prediction_coverage_class")
-    .agg({
-    "precisions": "mean",
-    "precisions_opt": "mean",
-    "precisions_otsu": "mean",
-    "precisions_crf": "mean",
-    "prediction_coverage_class": "count"
-}))
-
-print()
-print(val_set_df
-    .groupby("coverage_class")
-    .agg({
-    "precisions": "mean",
-    "precisions_opt": "mean",
-    "precisions_otsu": "mean",
-    "precisions_crf": "mean",
-    "coverage_class": "count"
-}))

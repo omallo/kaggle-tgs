@@ -1,0 +1,93 @@
+val_pred_set = TensorDataset(val_set_inputs)
+val_pred_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=False)
+
+model.load_state_dict(torch.load("{}/model.pth".format(output_dir)))
+
+val_predictions = []
+with torch.no_grad():
+    for _, batch in enumerate(val_pred_loader):
+        inputs = batch[0].to(device)
+        outputs = model(inputs)
+        predictions = torch.sigmoid(outputs)
+        val_predictions += [p for p in predictions.cpu().numpy()]
+
+val_predictions = np.asarray(val_predictions).reshape(-1, img_size_target, img_size_target)
+val_predictions = [downsample(p) for p in val_predictions]
+val_set_df["predictions"] = val_predictions
+
+thresholds = np.linspace(0, 1, 51)
+
+precisions_per_threshold = np.array(
+    [np.mean(precision_array(np.int32(np.asarray(val_set_df.predictions.tolist()) > t), val_set_df.masks)) for t in
+     tqdm(thresholds)])
+
+threshold_best_index = np.argmax(precisions_per_threshold)
+precision_best = precisions_per_threshold[threshold_best_index]
+threshold_best = thresholds[threshold_best_index]
+
+val_set_df["prediction_masks"] = [np.int32(p > threshold_best) for p in val_set_df.predictions]
+val_set_df["precisions"] = [precision(pm, m) for pm, m in zip(val_set_df.prediction_masks, val_set_df.masks)]
+
+
+def calc_max_precision(y_pred_raw, y_true):
+    ious = [precision(np.int32(y_pred_raw > t), y_true) for t in thresholds]
+    am = np.argmax(ious)
+    return (thresholds[am], ious[am])
+
+
+optimals = [calc_max_precision(p, m) for p, m in zip(val_set_df.predictions, val_set_df.masks)]
+
+val_set_df["thresholds_opt"] = [o[0] for o in optimals]
+val_set_df["precisions_opt"] = [o[1] for o in optimals]
+
+print()
+print("precision_best: %.3f, threshold_best: %.3f" % (precision_best, threshold_best))
+print("precision_opt: %.3f, threshold_opt_mean: %.3f"
+      % (val_set_df.precisions_opt.mean(), val_set_df.thresholds_opt.mean()))
+
+print()
+print(val_set_df.thresholds_opt.describe())
+
+print()
+print(val_set_df.precisions.describe())
+
+print()
+print(val_set_df.precisions_opt.describe())
+
+val_set_df["prediction_coverage"] = val_set_df.predictions.map(np.sum) / pow(img_size_ori, 2)
+val_set_df["prediction_coverage_class"] = val_set_df.prediction_coverage.map(coverage_to_class)
+
+val_set_df["predictions_otsu"] = [np.int32(compute_otsu_mask(255 * p) / 255) for p in val_set_df.predictions]
+val_set_df["precisions_otsu"] = [precision(p, m) for p, m in zip(val_set_df.predictions_otsu, val_set_df.masks)]
+
+print()
+print("precision_otsu: %.3f" % val_set_df.precisions_otsu.mean())
+
+val_set_df["predictions_crf"] = \
+    [crf(np.array(i), np.int32(np.array(p))) for i, p in zip(val_set_df.images, val_set_df.prediction_masks)]
+val_set_df["precisions_crf"] = [precision(p, m) for p, m in zip(val_set_df.predictions_crf, val_set_df.masks)]
+
+print()
+print(val_set_df.precisions_crf.describe())
+
+print()
+print(val_set_df
+    .groupby("prediction_coverage_class")
+    .agg({
+    "precisions": "mean",
+    "precisions_opt": "mean",
+    "precisions_otsu": "mean",
+    "precisions_crf": "mean",
+    "prediction_coverage_class": "count"
+}))
+
+print()
+print(val_set_df
+    .groupby("coverage_class")
+    .agg({
+    "precisions": "mean",
+    "precisions_opt": "mean",
+    "precisions_otsu": "mean",
+    "precisions_crf": "mean",
+    "coverage_class": "count"
+}))
