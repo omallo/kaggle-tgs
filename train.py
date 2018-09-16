@@ -62,6 +62,9 @@ class TrainDataset(Dataset):
                 elif c == 1:
                     image, mask = apply_elastic_transform(image, mask, alpha=0, sigma=0, alpha_affine=5)
 
+            if np.random.rand() < 0.5:
+                image = adjust_gamma(image, np.random.uniform(1 - 0.05, 1 + 0.05))
+
         mask_weights = calculate_mask_weights(mask)
 
         image = self.image_transform(image)
@@ -76,6 +79,17 @@ class TrainDataset(Dataset):
                 blurr_filter = ndimage.gaussian_filter(image, 1)
                 alpha = 30
                 image = image + alpha * (image - blurr_filter)
+
+
+def adjust_gamma(image, gamma):
+    # build a lookup table mapping the pixel values [0, 255] to
+    # their adjusted gamma values
+    invGamma = 1.0 / gamma
+    table = np.array([((i / 255.0) ** invGamma) * 255 for i in np.arange(0, 256)]).astype("uint8")
+
+    # apply gamma correction using the lookup table
+    result = cv2.LUT((255 * image).astype("uint8"), table)
+    return (result / 255.0).astype(image.dtype)
 
 
 # Function to distort image
