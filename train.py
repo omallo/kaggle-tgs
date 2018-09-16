@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 from metrics.precision import precision_batch
-from models.unet import UNet
+from unet_models import AlbuNet
 
 input_dir = "/storage/kaggle/tgs"
 output_dir = "/artifacts"
@@ -251,8 +251,8 @@ val_set_x = val_set_df.images.tolist()
 val_set_y = val_set_df.masks.tolist()
 
 # model = FusionNet(in_depth=3, out_depth=1, base_channels=32).to(device)
-model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
-# model = AlbuNet(pretrained=True).to(device)
+# model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
+model = AlbuNet(pretrained=True).to(device)
 
 # model.load_state_dict(torch.load("{}/model.pth".format(output_dir)))
 
