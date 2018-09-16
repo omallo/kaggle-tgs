@@ -273,7 +273,7 @@ epochs_to_train = 40
 global_val_precision_best_avg = float("-inf")
 
 clr_base_lr = 0.05
-clr_max_lr = 0.1
+clr_max_lr = 0.01
 
 epoch_iterations = len(train_set) // batch_size
 clr_step_size = 2 * epoch_iterations
@@ -283,7 +283,7 @@ clr_scale_fn = lambda x: 1.0 / (1.1 ** (x - 1))
 clr_iterations = 0
 
 # optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
-optimizer = optim.SGD(model.parameters(), lr=clr_base_lr, momentum=0.9, weight_decay=0)
+optimizer = optim.SGD(model.parameters(), lr=clr_base_lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
 
 for epoch in range(epochs_to_train):
 
