@@ -55,10 +55,10 @@ class TrainDataset(Dataset):
                 image = np.fliplr(image)
                 mask = np.fliplr(mask)
 
-            if np.random.rand() < 0.5:
+            if np.random.rand() < 0.5 and False:
                 c = np.random.choice(2)
                 if c == 0:
-                    image, mask = apply_elastic_transform(image, mask, alpha=15, sigma=5, alpha_affine=0)
+                    image, mask = apply_elastic_transform(image, mask, alpha=150, sigma=10, alpha_affine=0)
                 elif c == 1:
                     image, mask = apply_elastic_transform(image, mask, alpha=0, sigma=0, alpha_affine=5)
 
