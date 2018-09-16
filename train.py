@@ -278,7 +278,7 @@ clr_max_lr = 0.001
 epoch_iterations = len(train_set) // batch_size
 clr_step_size = 2 * epoch_iterations
 # clr_scale_fn = lambda x: 1.0
-clr_scale_fn = lambda x: 1.0 / (1.05 ** (x - 1))
+clr_scale_fn = lambda x: 1.0 / (1.1 ** (x - 1))
 # clr_scale_fn = lambda x: 0.5 * (1 + np.sin(x * np.pi / 2.))
 clr_iterations = 0
 
