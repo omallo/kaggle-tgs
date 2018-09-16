@@ -25,11 +25,12 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class TrainDataset(Dataset):
-    def __init__(self, images, masks, mask_weights):
+    def __init__(self, images, masks, mask_weights, augment):
         super().__init__()
         self.images = images
         self.masks = masks
         self.mask_weights = mask_weights
+        self.augment = augment
         self.image_transform = transforms.Compose([
             prepare_input,
             transforms.ToTensor(),
@@ -49,10 +50,11 @@ class TrainDataset(Dataset):
         mask = self.masks[index]
         mask_weights = self.mask_weights[index]
 
-        if np.random.rand() < 0.5:
-            image = np.fliplr(image)
-            mask = np.fliplr(mask)
-            mask_weights = np.fliplr(mask_weights)
+        if self.augment:
+            if np.random.rand() < 0.5:
+                image = np.fliplr(image)
+                mask = np.fliplr(mask)
+                mask_weights = np.fliplr(mask_weights)
 
         image = self.image_transform(image)
         mask = self.mask_transform(mask)
@@ -181,10 +183,10 @@ model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 
 criterion = nn.BCEWithLogitsLoss()
 
-train_set = TrainDataset(train_set_x, train_set_y, train_set_w)
+train_set = TrainDataset(train_set_x, train_set_y, train_set_w, augment=True)
 train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
 
-val_set = TrainDataset(val_set_x, val_set_y, val_set_w)
+val_set = TrainDataset(val_set_x, val_set_y, val_set_w, augment=False)
 val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
 
 print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
