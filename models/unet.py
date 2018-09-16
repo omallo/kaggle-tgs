@@ -10,11 +10,9 @@ class UNet(nn.Module):
         self.down2 = UNetDown(1 * base_channels, 2 * base_channels)
         self.down3 = UNetDown(2 * base_channels, 4 * base_channels)
         self.down4 = UNetDown(4 * base_channels, 8 * base_channels)
-        self.down5 = UNetDown(8 * base_channels, 16 * base_channels)
 
-        self.middle = UNetMiddle(16 * base_channels, 32 * base_channels)
+        self.middle = UNetMiddle(8 * base_channels, 16 * base_channels)
 
-        self.up5 = UNetUp(32 * base_channels, 16 * base_channels)
         self.up4 = UNetUp(16 * base_channels, 8 * base_channels)
         self.up3 = UNetUp(8 * base_channels, 4 * base_channels)
         self.up2 = UNetUp(4 * base_channels, 2 * base_channels)
@@ -27,11 +25,9 @@ class UNet(nn.Module):
         x_skip2, x = self.down2(x)
         x_skip3, x = self.down3(x)
         x_skip4, x = self.down4(x)
-        x_skip5, x = self.down5(x)
 
         x = self.middle(x)
 
-        x = self.up5(x, x_skip5)
         x = self.up4(x, x_skip4)
         x = self.up3(x, x_skip3)
         x = self.up2(x, x_skip2)
@@ -91,7 +87,7 @@ class UNetConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.delegate = nn.Sequential(
-            with_he_normal_weights(nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)),
+            with_he_normal_weights(nn.Conv2d(in_channels, out_channels, kernel_size=9, padding=4)),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
         )
