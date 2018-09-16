@@ -35,14 +35,12 @@ class TrainDataset(Dataset):
         self.image_transform = transforms.Compose([
             prepare_input,
             transforms.ToTensor(),
-            lambda t: t.type(torch.FloatTensor),
-            lambda t: t.to(device)
+            lambda t: t.type(torch.FloatTensor)
         ])
         self.mask_transform = transforms.Compose([
             prepare_label,
             transforms.ToTensor(),
-            lambda t: t.type(torch.FloatTensor),
-            lambda t: t.to(device)
+            lambda t: t.type(torch.FloatTensor)
         ])
 
     def __len__(self):
@@ -246,7 +244,7 @@ def eval(model, data_loader, criterion):
 
     with torch.no_grad():
         for _, batch in enumerate(data_loader):
-            inputs, labels, label_weights = batch
+            inputs, labels, label_weights = batch[0].to(device), batch[1].to(device), batch[2].to(device)
 
             outputs = model(inputs)
             predictions = torch.sigmoid(outputs)
@@ -333,7 +331,7 @@ for epoch in range(epochs_to_train):
     epoch_train_precision_sum = 0.0
     epoch_train_step_count = 0
     for _, batch in enumerate(train_loader):
-        inputs, labels, label_weights = batch
+        inputs, labels, label_weights = batch[0].to(device), batch[1].to(device), batch[2].to(device)
 
         # clr_cycle = np.floor(1 + clr_iterations / (2 * clr_step_size))
         # clr_x = np.abs(clr_iterations / clr_step_size - 2 * clr_cycle + 1)
