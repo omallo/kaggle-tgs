@@ -16,5 +16,5 @@ echo "" >>/artifacts/out.log
 
 python train.py | tee -a /artifacts/out.log
 
-zip -r /artifacts/logs.zip /artifacts/logs
+( cd /artifacts && zip -r logs.zip logs )
 rm -rf /artifacts/logs

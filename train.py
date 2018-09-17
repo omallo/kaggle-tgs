@@ -329,7 +329,9 @@ swa_n = 0
 optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
 # optimizer = optim.SGD(model.parameters(), lr=clr_base_lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
 
-summary_writer = SummaryWriter(log_dir="{}/logs".format(output_dir))
+train_summary_writer = SummaryWriter(log_dir="{}/logs/train".format(output_dir))
+val_summary_writer = SummaryWriter(log_dir="{}/logs/val".format(output_dir))
+val_swa_summary_writer = SummaryWriter(log_dir="{}/logs/val_swa".format(output_dir))
 
 for epoch in range(epochs_to_train):
 
@@ -392,13 +394,15 @@ for epoch in range(epochs_to_train):
     epoch_end_time = time.time()
     epoch_duration_time = epoch_end_time - epoch_start_time
 
-    summary_writer.add_scalar("lr", lr, epoch + 1)
-    summary_writer.add_scalar("loss", train_loss_avg, epoch + 1)
-    summary_writer.add_scalar("val_loss", val_loss_avg, epoch + 1)
-    summary_writer.add_scalar("val_loss_swa", val_loss_swa_avg, epoch + 1)
-    summary_writer.add_scalar("precision", train_precision_avg, epoch + 1)
-    summary_writer.add_scalar("val_precision", val_precision_avg, epoch + 1)
-    summary_writer.add_scalar("val_precision_swa", val_precision_swa_avg, epoch + 1)
+    train_summary_writer.add_scalar("lr", lr, epoch + 1)
+    train_summary_writer.add_scalar("loss", train_loss_avg, epoch + 1)
+    train_summary_writer.add_scalar("precision", train_precision_avg, epoch + 1)
+
+    val_summary_writer.add_scalar("loss", val_loss_avg, epoch + 1)
+    val_summary_writer.add_scalar("precision", val_precision_avg, epoch + 1)
+
+    val_swa_summary_writer.add_scalar("loss", val_loss_swa_avg, epoch + 1)
+    val_swa_summary_writer.add_scalar("precision", val_precision_swa_avg, epoch + 1)
 
     print(
         "[%03d/%03d] %ds, lr: %.6f, loss: %.3f, val_loss: %.3f|%.3f, prec: %.3f, val_prec: %.3f|%.3f, swa: %d, ckpt: %d|%d" % (
@@ -416,4 +420,6 @@ for epoch in range(epochs_to_train):
             int(ckpt_saved),
             int(swa_ckpt_saved)))
 
-summary_writer.close()
+train_summary_writer.close()
+val_summary_writer.close()
+val_swa_summary_writer.close()
