@@ -401,8 +401,9 @@ for epoch in range(epochs_to_train):
     val_summary_writer.add_scalar("loss", val_loss_avg, epoch + 1)
     val_summary_writer.add_scalar("precision", val_precision_avg, epoch + 1)
 
-    val_swa_summary_writer.add_scalar("loss", val_loss_swa_avg, epoch + 1)
-    val_swa_summary_writer.add_scalar("precision", val_precision_swa_avg, epoch + 1)
+    if swa_updated:
+        val_swa_summary_writer.add_scalar("loss", val_loss_swa_avg, epoch + 1)
+        val_swa_summary_writer.add_scalar("precision", val_precision_swa_avg, epoch + 1)
 
     print(
         "[%03d/%03d] %ds, lr: %.6f, loss: %.3f, val_loss: %.3f|%.3f, prec: %.3f, val_prec: %.3f|%.3f, swa: %d, ckpt: %d|%d" % (
