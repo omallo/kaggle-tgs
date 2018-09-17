@@ -23,8 +23,8 @@ from .models import ResNetUNet
 input_dir = "/storage/kaggle/tgs"
 output_dir = "/artifacts"
 img_size_ori = 101
-img_size_target = 256
-batch_size = 16
+img_size_target = 128
+batch_size = 32
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -311,12 +311,12 @@ def main():
 
     print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
 
-    epochs_to_train = 100
+    epochs_to_train = 50
     global_val_precision_best_avg = float("-inf")
     global_val_precision_swa_best_avg = float("-inf")
 
-    clr_base_lr = 0.0001  # SGD: 0.003, Adam: 0.0001
-    clr_max_lr = 0.001  # SGD: 0.03, Adam: 0.001
+    clr_base_lr = 0.00001  # SGD: 0.003, Adam: 0.0001
+    clr_max_lr = 0.01  # SGD: 0.03, Adam: 0.001
 
     epoch_iterations = len(train_set) // batch_size
     clr_step_size = 2 * epoch_iterations
@@ -346,12 +346,14 @@ def main():
         for _, batch in enumerate(train_loader):
             inputs, labels, label_weights = batch[0].to(device), batch[1].to(device), batch[2].to(device)
 
-            clr_cycle = np.floor(1 + clr_iterations / (2 * clr_step_size))
-            clr_x = np.abs(clr_iterations / clr_step_size - 2 * clr_cycle + 1)
-            lr = clr_base_lr + (clr_max_lr - clr_base_lr) * np.maximum(0, (1 - clr_x)) * clr_scale_fn(clr_cycle)
+            # clr_cycle = np.floor(1 + clr_iterations / (2 * clr_step_size))
+            # clr_x = np.abs(clr_iterations / clr_step_size - 2 * clr_cycle + 1)
+            # lr = clr_base_lr + (clr_max_lr - clr_base_lr) * np.maximum(0, (1 - clr_x)) * clr_scale_fn(clr_cycle)
 
             # swa_x = (clr_iterations % clr_cycle_size) / clr_cycle_size
             # lr = (1 - swa_x) * clr_max_lr + swa_x * clr_base_lr
+
+            lr = clr_base_lr + (1.0 - batch_count / (epochs_to_train * epoch_iterations)) * (clr_max_lr - clr_base_lr)
 
             adjust_learning_rate(optimizer, lr)
 
