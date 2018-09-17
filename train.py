@@ -327,9 +327,6 @@ for epoch in range(epochs_to_train):
 
     epoch_start_time = time.time()
 
-    epoch_train_loss_sum = 0.0
-    epoch_train_precision_sum = 0.0
-    epoch_train_step_count = 0
     for _, batch in enumerate(train_loader):
         inputs, labels, label_weights = batch[0].to(device), batch[1].to(device), batch[2].to(device)
 
@@ -345,31 +342,25 @@ for epoch in range(epochs_to_train):
 
         optimizer.zero_grad()
         outputs = model(inputs)
-        predictions = torch.sigmoid(outputs)
         criterion.weight = label_weights
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
 
-        epoch_train_loss_sum += loss.item()
-        epoch_train_precision_sum += np.mean(precision_batch(predictions, labels))
         clr_iterations += 1
-        epoch_train_step_count += 1
-
-    epoch_train_loss_avg = epoch_train_loss_sum / epoch_train_step_count
-    epoch_train_precision_avg = epoch_train_precision_sum / epoch_train_step_count
 
     if (epoch + 1) % swa_c_epochs == 0:
         swa_n = (epoch + 1) // swa_c_epochs
         moving_average(swa_model, model, 1.0 / swa_n)
 
-    epoch_val_loss_avg, epoch_val_precision_avg = eval(model, val_loader, criterion)
-    epoch_swa_val_loss_avg, epoch_swa_val_precision_avg = eval(swa_model, val_loader, criterion)
+    train_loss_avg, train_precision_avg = eval(model, train_loader, criterion)
+    val_loss_avg, val_precision_avg = eval(model, val_loader, criterion)
+    swa_val_loss_avg, swa_val_precision_avg = eval(swa_model, val_loader, criterion)
 
     ckpt_saved = False
-    if epoch_val_precision_avg > global_val_precision_best_avg:
+    if val_precision_avg > global_val_precision_best_avg:
         torch.save(model.state_dict(), "{}/model.pth".format(output_dir))
-        global_val_precision_best_avg = epoch_val_precision_avg
+        global_val_precision_best_avg = val_precision_avg
         ckpt_saved = True
 
     epoch_end_time = time.time()
@@ -381,10 +372,10 @@ for epoch in range(epochs_to_train):
             epochs_to_train,
             epoch_duration_time,
             lr,
-            epoch_train_loss_avg,
-            epoch_val_loss_avg,
-            epoch_swa_val_loss_avg,
-            epoch_train_precision_avg,
-            epoch_val_precision_avg,
-            epoch_swa_val_precision_avg,
+            train_loss_avg,
+            val_loss_avg,
+            swa_val_loss_avg,
+            train_precision_avg,
+            val_precision_avg,
+            swa_val_precision_avg,
             int(ckpt_saved)))
