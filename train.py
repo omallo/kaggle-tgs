@@ -315,8 +315,8 @@ def main():
     global_val_precision_best_avg = float("-inf")
     global_val_precision_swa_best_avg = float("-inf")
 
-    clr_base_lr = 0.0001  # SGD: 0.003, Adam: 0.0001
-    clr_max_lr = 0.1  # SGD: 0.03, Adam: 0.001
+    clr_base_lr = 0.00001  # SGD: 0.003, Adam: 0.0001
+    clr_max_lr = 0.01  # SGD: 0.03, Adam: 0.001
 
     epoch_iterations = len(train_set) // batch_size
     clr_step_size = 2 * epoch_iterations
@@ -327,8 +327,8 @@ def main():
     swa_c_epochs = 4
     swa_n = 0
 
-    # optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
-    optimizer = optim.SGD(model.parameters(), lr=clr_base_lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
+    optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
+    # optimizer = optim.SGD(model.parameters(), lr=clr_base_lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
 
     batch_count = 0
 
