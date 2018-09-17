@@ -2,16 +2,17 @@ import torch.nn as nn
 
 
 class AggregateLoss(nn.Module):
-    def __init__(self, *delegates):
+    def __init__(self, criterions, criterion_weights):
         super().__init__()
-        self.delegates = delegates
+        self.criterions = criterions
+        self.criterion_weights = criterion_weights
 
     def forward(self, input, targets):
-        for delegate in self.delegates:
-            delegate.weight = self.weight
+        for criterion in self.criterions:
+            criterion.weight = self.weight
 
-        loss = self.delegates[0](input, targets)
-        for delegate in self.delegates[1:]:
-            loss += delegate(input, targets)
+        loss = 0.0
+        for criterion, criterion_weight in zip(self.criterions, self.criterion_weights):
+            loss += criterion_weight * criterion(input, targets)
 
         return loss
