@@ -264,167 +264,172 @@ def eval(model, data_loader, criterion):
     return loss_avg, precision_avg
 
 
-train_df = pd.read_csv("{}/train.csv".format(input_dir), index_col="id", usecols=[0])
-depths_df = pd.read_csv("{}/depths.csv".format(input_dir), index_col="id")
-train_df = train_df.join(depths_df)
-test_df = depths_df[~depths_df.index.isin(train_df.index)]
+def main():
+    train_df = pd.read_csv("{}/train.csv".format(input_dir), index_col="id", usecols=[0])
+    depths_df = pd.read_csv("{}/depths.csv".format(input_dir), index_col="id")
+    train_df = train_df.join(depths_df)
+    test_df = depths_df[~depths_df.index.isin(train_df.index)]
 
-train_df["images"] = load_images("{}/train/images".format(input_dir), train_df.index)
-train_df["masks"] = load_images("{}/train/masks".format(input_dir), train_df.index)
+    train_df["images"] = load_images("{}/train/images".format(input_dir), train_df.index)
+    train_df["masks"] = load_images("{}/train/masks".format(input_dir), train_df.index)
 
-train_df["coverage"] = train_df.masks.map(np.sum) / pow(img_size_ori, 2)
-train_df["coverage_class"] = train_df.coverage.map(coverage_to_class)
+    train_df["coverage"] = train_df.masks.map(np.sum) / pow(img_size_ori, 2)
+    train_df["coverage_class"] = train_df.coverage.map(coverage_to_class)
 
-train_df["contours"] = train_df.masks.map(contour)
-train_df["mask_weights"] = [calculate_mask_weights(m) for m, c in zip(train_df.masks, train_df.coverage_class)]
+    train_df["contours"] = train_df.masks.map(contour)
+    train_df["mask_weights"] = [calculate_mask_weights(m) for m, c in zip(train_df.masks, train_df.coverage_class)]
 
-train_val_split = int(0.8 * len(train_df))
-train_set_ids = train_df.index.tolist()[:train_val_split]
-val_set_ids = train_df.index.tolist()[train_val_split:]
+    train_val_split = int(0.8 * len(train_df))
+    train_set_ids = train_df.index.tolist()[:train_val_split]
+    val_set_ids = train_df.index.tolist()[train_val_split:]
 
-train_set_df = train_df[train_df.index.isin(train_set_ids)].copy()
-val_set_df = train_df[train_df.index.isin(val_set_ids)].copy()
+    train_set_df = train_df[train_df.index.isin(train_set_ids)].copy()
+    val_set_df = train_df[train_df.index.isin(val_set_ids)].copy()
 
-train_set_x = train_set_df.images.tolist()
-train_set_y = train_set_df.masks.tolist()
+    train_set_x = train_set_df.images.tolist()
+    train_set_y = train_set_df.masks.tolist()
 
-val_set_x = val_set_df.images.tolist()
-val_set_y = val_set_df.masks.tolist()
+    val_set_x = val_set_df.images.tolist()
+    val_set_y = val_set_df.masks.tolist()
 
-# model = FusionNet(in_depth=3, out_depth=1, base_channels=32).to(device)
-# model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
-# model = AlbuNet(pretrained=True).to(device)
-model = ResNetUNet(n_class=1).to(device)
-# model.load_state_dict(torch.load("/storage/albunet.pth"))
+    # model = FusionNet(in_depth=3, out_depth=1, base_channels=32).to(device)
+    # model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
+    # model = AlbuNet(pretrained=True).to(device)
+    model = ResNetUNet(n_class=1).to(device)
+    # model.load_state_dict(torch.load("/storage/albunet.pth"))
 
-swa_model = ResNetUNet(n_class=1).to(device)
-swa_model.load_state_dict(model.state_dict())
+    swa_model = ResNetUNet(n_class=1).to(device)
+    swa_model.load_state_dict(model.state_dict())
 
-criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()], [0.7, 0.3])
+    criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()], [0.7, 0.3])
 
-train_set = TrainDataset(train_set_x, train_set_y, augment=True)
-train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
+    train_set = TrainDataset(train_set_x, train_set_y, augment=True)
+    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
 
-val_set = TrainDataset(val_set_x, val_set_y, augment=False)
-val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=False)
+    val_set = TrainDataset(val_set_x, val_set_y, augment=False)
+    val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=False)
 
-print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
+    print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
 
-epochs_to_train = 100
-global_val_precision_best_avg = float("-inf")
-global_val_precision_swa_best_avg = float("-inf")
+    epochs_to_train = 100
+    global_val_precision_best_avg = float("-inf")
+    global_val_precision_swa_best_avg = float("-inf")
 
-clr_base_lr = 0.0001  # SGD: 0.003, Adam: 0.0001
-clr_max_lr = 0.001  # SGD: 0.03, Adam: 0.001
+    clr_base_lr = 0.0001  # SGD: 0.003, Adam: 0.0001
+    clr_max_lr = 0.001  # SGD: 0.03, Adam: 0.001
 
-epoch_iterations = len(train_set) // batch_size
-clr_step_size = 2 * epoch_iterations
-clr_cycle_size = 2 * clr_step_size
-clr_scale_fn = lambda x: 1.0 / (1.1 ** (x - 1))
-clr_iterations = 0
+    epoch_iterations = len(train_set) // batch_size
+    clr_step_size = 2 * epoch_iterations
+    clr_cycle_size = 2 * clr_step_size
+    clr_scale_fn = lambda x: 1.0 / (1.1 ** (x - 1))
+    clr_iterations = 0
 
-swa_c_epochs = 4
-swa_n = 0
+    swa_c_epochs = 4
+    swa_n = 0
 
-optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
-# optimizer = optim.SGD(model.parameters(), lr=clr_base_lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
+    optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
+    # optimizer = optim.SGD(model.parameters(), lr=clr_base_lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
 
-batch_count = 0
+    batch_count = 0
 
-train_summary_writer = SummaryWriter(log_dir="{}/logs/train".format(output_dir))
-val_summary_writer = SummaryWriter(log_dir="{}/logs/val".format(output_dir))
-val_swa_summary_writer = SummaryWriter(log_dir="{}/logs/val_swa".format(output_dir))
+    train_summary_writer = SummaryWriter(log_dir="{}/logs/train".format(output_dir))
+    val_summary_writer = SummaryWriter(log_dir="{}/logs/val".format(output_dir))
+    val_swa_summary_writer = SummaryWriter(log_dir="{}/logs/val_swa".format(output_dir))
 
-for epoch in range(epochs_to_train):
+    for epoch in range(epochs_to_train):
 
-    epoch_start_time = time.time()
+        epoch_start_time = time.time()
 
-    train_loss_sum = 0.0
-    train_precision_sum = 0.0
-    train_step_count = 0
-    for _, batch in enumerate(train_loader):
-        inputs, labels, label_weights = batch[0].to(device), batch[1].to(device), batch[2].to(device)
+        train_loss_sum = 0.0
+        train_precision_sum = 0.0
+        train_step_count = 0
+        for _, batch in enumerate(train_loader):
+            inputs, labels, label_weights = batch[0].to(device), batch[1].to(device), batch[2].to(device)
 
-        clr_cycle = np.floor(1 + clr_iterations / (2 * clr_step_size))
-        clr_x = np.abs(clr_iterations / clr_step_size - 2 * clr_cycle + 1)
-        lr = clr_base_lr + (clr_max_lr - clr_base_lr) * np.maximum(0, (1 - clr_x)) * clr_scale_fn(clr_cycle)
+            clr_cycle = np.floor(1 + clr_iterations / (2 * clr_step_size))
+            clr_x = np.abs(clr_iterations / clr_step_size - 2 * clr_cycle + 1)
+            lr = clr_base_lr + (clr_max_lr - clr_base_lr) * np.maximum(0, (1 - clr_x)) * clr_scale_fn(clr_cycle)
 
-        # swa_x = (clr_iterations % clr_cycle_size) / clr_cycle_size
-        # lr = (1 - swa_x) * clr_max_lr + swa_x * clr_base_lr
+            # swa_x = (clr_iterations % clr_cycle_size) / clr_cycle_size
+            # lr = (1 - swa_x) * clr_max_lr + swa_x * clr_base_lr
 
-        adjust_learning_rate(optimizer, lr)
+            adjust_learning_rate(optimizer, lr)
 
-        optimizer.zero_grad()
-        outputs = model(inputs)
-        predictions = torch.sigmoid(outputs)
-        criterion.weight = label_weights
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            predictions = torch.sigmoid(outputs)
+            criterion.weight = label_weights
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
 
-        train_loss_sum += loss.item()
-        train_precision_sum += np.mean(precision_batch(predictions, labels))
-        clr_iterations += 1
-        train_step_count += 1
-        batch_count += 1
+            train_loss_sum += loss.item()
+            train_precision_sum += np.mean(precision_batch(predictions, labels))
+            clr_iterations += 1
+            train_step_count += 1
+            batch_count += 1
 
-        train_summary_writer.add_scalar("lr", lr, batch_count + 1)
+            train_summary_writer.add_scalar("lr", lr, batch_count + 1)
 
-    train_loss_avg = train_loss_sum / train_step_count
-    train_precision_avg = train_precision_sum / train_step_count
-    val_loss_avg, val_precision_avg = eval(model, val_loader, criterion)
+        train_loss_avg = train_loss_sum / train_step_count
+        train_precision_avg = train_precision_sum / train_step_count
+        val_loss_avg, val_precision_avg = eval(model, val_loader, criterion)
 
-    model_improved = val_precision_avg > global_val_precision_best_avg
-    ckpt_saved = False
-    if model_improved:
-        torch.save(model.state_dict(), "{}/model.pth".format(output_dir))
-        global_val_precision_best_avg = val_precision_avg
-        ckpt_saved = True
+        model_improved = val_precision_avg > global_val_precision_best_avg
+        ckpt_saved = False
+        if model_improved:
+            torch.save(model.state_dict(), "{}/model.pth".format(output_dir))
+            global_val_precision_best_avg = val_precision_avg
+            ckpt_saved = True
 
-    swa_updated = False
-    if model_improved or (epoch + 1) % swa_c_epochs == 0:
-        swa_n += 1
-        moving_average(swa_model, model, 1.0 / swa_n)
-        swa_updated = True
+        swa_updated = False
+        if model_improved or (epoch + 1) % swa_c_epochs == 0:
+            swa_n += 1
+            moving_average(swa_model, model, 1.0 / swa_n)
+            swa_updated = True
 
-    val_loss_swa_avg, val_precision_swa_avg = eval(swa_model, val_loader, criterion)
+        val_loss_swa_avg, val_precision_swa_avg = eval(swa_model, val_loader, criterion)
 
-    swa_model_improved = val_precision_swa_avg > global_val_precision_swa_best_avg
-    swa_ckpt_saved = False
-    if swa_model_improved:
-        torch.save(swa_model.state_dict(), "{}/swa_model.pth".format(output_dir))
-        global_val_precision_swa_best_avg = val_precision_swa_avg
-        swa_ckpt_saved = True
+        swa_model_improved = val_precision_swa_avg > global_val_precision_swa_best_avg
+        swa_ckpt_saved = False
+        if swa_model_improved:
+            torch.save(swa_model.state_dict(), "{}/swa_model.pth".format(output_dir))
+            global_val_precision_swa_best_avg = val_precision_swa_avg
+            swa_ckpt_saved = True
 
-    epoch_end_time = time.time()
-    epoch_duration_time = epoch_end_time - epoch_start_time
+        epoch_end_time = time.time()
+        epoch_duration_time = epoch_end_time - epoch_start_time
 
-    train_summary_writer.add_scalar("loss", train_loss_avg, epoch + 1)
-    train_summary_writer.add_scalar("precision", train_precision_avg, epoch + 1)
+        train_summary_writer.add_scalar("loss", train_loss_avg, epoch + 1)
+        train_summary_writer.add_scalar("precision", train_precision_avg, epoch + 1)
 
-    val_summary_writer.add_scalar("loss", val_loss_avg, epoch + 1)
-    val_summary_writer.add_scalar("precision", val_precision_avg, epoch + 1)
+        val_summary_writer.add_scalar("loss", val_loss_avg, epoch + 1)
+        val_summary_writer.add_scalar("precision", val_precision_avg, epoch + 1)
 
-    if swa_updated:
-        val_swa_summary_writer.add_scalar("loss", val_loss_swa_avg, epoch + 1)
-        val_swa_summary_writer.add_scalar("precision", val_precision_swa_avg, epoch + 1)
+        if swa_updated:
+            val_swa_summary_writer.add_scalar("loss", val_loss_swa_avg, epoch + 1)
+            val_swa_summary_writer.add_scalar("precision", val_precision_swa_avg, epoch + 1)
 
-    print(
-        "[%03d/%03d] %ds, lr: %.6f, loss: %.3f, val_loss: %.3f|%.3f, prec: %.3f, val_prec: %.3f|%.3f, swa: %d, ckpt: %d|%d" % (
-            epoch + 1,
-            epochs_to_train,
-            epoch_duration_time,
-            lr,
-            train_loss_avg,
-            val_loss_avg,
-            val_loss_swa_avg,
-            train_precision_avg,
-            val_precision_avg,
-            val_precision_swa_avg,
-            int(swa_updated),
-            int(ckpt_saved),
-            int(swa_ckpt_saved)))
+        print(
+            "[%03d/%03d] %ds, lr: %.6f, loss: %.3f, val_loss: %.3f|%.3f, prec: %.3f, val_prec: %.3f|%.3f, swa: %d, ckpt: %d|%d" % (
+                epoch + 1,
+                epochs_to_train,
+                epoch_duration_time,
+                lr,
+                train_loss_avg,
+                val_loss_avg,
+                val_loss_swa_avg,
+                train_precision_avg,
+                val_precision_avg,
+                val_precision_swa_avg,
+                int(swa_updated),
+                int(ckpt_saved),
+                int(swa_ckpt_saved)))
 
-train_summary_writer.close()
-val_summary_writer.close()
-val_swa_summary_writer.close()
+    train_summary_writer.close()
+    val_summary_writer.close()
+    val_swa_summary_writer.close()
+
+
+if __name__ == "__main__":
+    main()
