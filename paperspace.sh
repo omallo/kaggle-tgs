@@ -11,3 +11,6 @@ virtualenv env --python=python3
 pip install -r requirements.txt
 
 python train.py | tee /artifacts/out.log
+
+zip -r /artifacts/logs.zip /artifacts/logs
+rm -rf /artifacts/logs

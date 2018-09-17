@@ -11,6 +11,7 @@ from PIL import Image
 from scipy import ndimage
 from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage.interpolation import map_coordinates
+from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
@@ -326,6 +327,8 @@ swa_n = 0
 optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
 # optimizer = optim.SGD(model.parameters(), lr=clr_base_lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
 
+summary_writer = SummaryWriter(log_dir="{}/logs".format(output_dir))
+
 for epoch in range(epochs_to_train):
 
     epoch_start_time = time.time()
@@ -370,7 +373,7 @@ for epoch in range(epochs_to_train):
         moving_average(swa_model, model, 1.0 / swa_n)
         swa_updated = True
 
-    swa_val_loss_avg, swa_val_precision_avg = eval(swa_model, val_loader, criterion)
+    val_loss_swa_avg, val_precision_swa_avg = eval(swa_model, val_loader, criterion)
 
     ckpt_saved = False
     if model_improved:
@@ -381,6 +384,14 @@ for epoch in range(epochs_to_train):
     epoch_end_time = time.time()
     epoch_duration_time = epoch_end_time - epoch_start_time
 
+    summary_writer.add_scalar('lr', lr, epoch + 1)
+    summary_writer.add_scalar('loss', train_loss_avg, epoch + 1)
+    summary_writer.add_scalar('val_loss', val_loss_avg, epoch + 1)
+    summary_writer.add_scalar('val_loss_swa', val_loss_swa_avg, epoch + 1)
+    summary_writer.add_scalar('precision', train_precision_avg, epoch + 1)
+    summary_writer.add_scalar('val_precision', val_precision_avg, epoch + 1)
+    summary_writer.add_scalar('val_precision_swa', val_precision_swa_avg, epoch + 1)
+
     print(
         "[%03d/%03d] %ds, lr: %.6f, loss: %.3f, val_loss: %.3f/%.3f, prec: %.3f, val_prec: %.3f/%.3f, swa: %d, ckpt: %d" % (
             epoch + 1,
@@ -389,9 +400,11 @@ for epoch in range(epochs_to_train):
             lr,
             train_loss_avg,
             val_loss_avg,
-            swa_val_loss_avg,
+            val_loss_swa_avg,
             train_precision_avg,
             val_precision_avg,
-            swa_val_precision_avg,
+            val_precision_swa_avg,
             int(swa_updated),
             int(ckpt_saved)))
+
+summary_writer.close()
