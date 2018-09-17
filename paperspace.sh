@@ -10,11 +10,7 @@ virtualenv env --python=python3
 
 pip install -r requirements.txt
 
-echo "args: $*" >/artifacts/out.log
-echo "commit: $(git rev-parse HEAD)" >>/artifacts/out.log
-echo "" >>/artifacts/out.log
-
-time python train.py | tee -a /artifacts/out.log
+python train.py | tee -a /artifacts/out.log
 
 ( cd /artifacts && zip -r logs.zip logs )
 rm -rf /artifacts/logs
