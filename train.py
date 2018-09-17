@@ -321,7 +321,7 @@ clr_cycle_size = 2 * clr_step_size
 clr_scale_fn = lambda x: 1.0 / (1.1 ** (x - 1))
 clr_iterations = 0
 
-swa_c_epochs = 1
+swa_c_epochs = 4
 swa_n = 0
 
 optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
