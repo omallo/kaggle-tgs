@@ -319,7 +319,7 @@ clr_step_size = 2 * epoch_iterations
 clr_cycle_size = 2 * clr_step_size
 clr_scale_fn = lambda x: 1.0 / (1.1 ** (x - 1))
 clr_iterations = 0
-swa_c_epochs = 1
+swa_c_epochs = 4
 
 # optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
 optimizer = optim.SGD(model.parameters(), lr=clr_base_lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
