@@ -18,7 +18,7 @@ from tqdm import tqdm
 from metrics.aggregate_loss import AggregateLoss
 from metrics.lovasz_loss import LovaszWithLogitsLoss
 from metrics.precision import precision_batch
-from unet_models import AlbuNet
+from models.resnet_unet import ResNetUNet
 
 input_dir = "/storage/kaggle/tgs"
 output_dir = "/artifacts"
@@ -293,13 +293,14 @@ val_set_y = val_set_df.masks.tolist()
 
 # model = FusionNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 # model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
-model = AlbuNet(pretrained=True).to(device)
+# model = AlbuNet(pretrained=True).to(device)
+model = ResNetUNet(n_class=1).to(device)
 # model.load_state_dict(torch.load("/storage/albunet.pth"))
 
-swa_model = AlbuNet(pretrained=True).to(device)
+swa_model = ResNetUNet(n_class=1).to(device)
 swa_model.load_state_dict(model.state_dict())
 
-criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()], [0.3, 0.7])
+criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()], [0.7, 0.3])
 
 train_set = TrainDataset(train_set_x, train_set_y, augment=True)
 train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
