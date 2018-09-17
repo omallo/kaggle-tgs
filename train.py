@@ -372,7 +372,7 @@ for epoch in range(epochs_to_train):
     epoch_duration_time = epoch_end_time - epoch_start_time
 
     print(
-        "[%03d/%03d] %ds, lr: %.6f, loss: %.3f (%.3f), val_loss: %.3f (%.3f), prec: %.3f (%.3f), val_prec: %.3f (%.3f), swa_upd: %d, ckpt: %d" % (
+        "[%03d/%03d] %ds, lr: %.6f, loss: %.3f/%.3f, val_loss: %.3f/%.3f, prec: %.3f/%.3f, val_prec: %.3f/%.3f, swa: %d, ckpt: %d" % (
             epoch + 1,
             epochs_to_train,
             epoch_duration_time,
