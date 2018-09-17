@@ -291,7 +291,7 @@ val_set_y = val_set_df.masks.tolist()
 # model = FusionNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 # model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
 model = AlbuNet(pretrained=True).to(device)
-model.load_state_dict(torch.load("/storage/albunet.pth"))
+# model.load_state_dict(torch.load("/storage/albunet.pth"))
 
 swa_model = AlbuNet(pretrained=True).to(device)
 swa_model.load_state_dict(model.state_dict())
@@ -335,9 +335,8 @@ for epoch in range(epochs_to_train):
         # clr_x = np.abs(clr_iterations / clr_step_size - 2 * clr_cycle + 1)
         # lr = clr_base_lr + (clr_max_lr - clr_base_lr) * np.maximum(0, (1 - clr_x)) * clr_scale_fn(clr_cycle)
 
-        # swa_x = (clr_iterations % clr_cycle_size) / clr_cycle_size
-        # lr = (1 - swa_x) * clr_max_lr + swa_x * clr_base_lr
-        lr = clr_max_lr
+        swa_x = (clr_iterations % clr_cycle_size) / clr_cycle_size
+        lr = (1 - swa_x) * clr_max_lr + swa_x * clr_base_lr
 
         adjust_learning_rate(optimizer, lr)
 
