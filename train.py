@@ -311,6 +311,7 @@ print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_se
 
 epochs_to_train = 64
 global_val_precision_best_avg = float("-inf")
+global_val_precision_swa_best_avg = float("-inf")
 
 clr_base_lr = 0.0001  # SGD: 0.003, Adam: 0.0001
 clr_max_lr = 0.001  # SGD: 0.03, Adam: 0.001
@@ -366,6 +367,11 @@ for epoch in range(epochs_to_train):
     val_loss_avg, val_precision_avg = eval(model, val_loader, criterion)
 
     model_improved = val_precision_avg > global_val_precision_best_avg
+    ckpt_saved = False
+    if model_improved:
+        torch.save(model.state_dict(), "{}/model.pth".format(output_dir))
+        global_val_precision_best_avg = val_precision_avg
+        ckpt_saved = True
 
     swa_updated = False
     if model_improved or (epoch + 1) % swa_c_epochs == 0:
@@ -375,25 +381,26 @@ for epoch in range(epochs_to_train):
 
     val_loss_swa_avg, val_precision_swa_avg = eval(swa_model, val_loader, criterion)
 
-    ckpt_saved = False
-    if model_improved:
-        torch.save(model.state_dict(), "{}/model.pth".format(output_dir))
-        global_val_precision_best_avg = val_precision_avg
-        ckpt_saved = True
+    swa_model_improved = val_precision_swa_avg > global_val_precision_swa_best_avg
+    swa_ckpt_saved = False
+    if swa_model_improved:
+        torch.save(swa_model.state_dict(), "{}/swa_model.pth".format(output_dir))
+        global_val_precision_swa_best_avg = val_precision_swa_avg
+        swa_ckpt_saved = True
 
     epoch_end_time = time.time()
     epoch_duration_time = epoch_end_time - epoch_start_time
 
-    summary_writer.add_scalar('lr', lr, epoch + 1)
-    summary_writer.add_scalar('loss', train_loss_avg, epoch + 1)
-    summary_writer.add_scalar('val_loss', val_loss_avg, epoch + 1)
-    summary_writer.add_scalar('val_loss_swa', val_loss_swa_avg, epoch + 1)
-    summary_writer.add_scalar('precision', train_precision_avg, epoch + 1)
-    summary_writer.add_scalar('val_precision', val_precision_avg, epoch + 1)
-    summary_writer.add_scalar('val_precision_swa', val_precision_swa_avg, epoch + 1)
+    summary_writer.add_scalar("lr", lr, epoch + 1)
+    summary_writer.add_scalar("loss", train_loss_avg, epoch + 1)
+    summary_writer.add_scalar("val_loss", val_loss_avg, epoch + 1)
+    summary_writer.add_scalar("val_loss_swa", val_loss_swa_avg, epoch + 1)
+    summary_writer.add_scalar("precision", train_precision_avg, epoch + 1)
+    summary_writer.add_scalar("val_precision", val_precision_avg, epoch + 1)
+    summary_writer.add_scalar("val_precision_swa", val_precision_swa_avg, epoch + 1)
 
     print(
-        "[%03d/%03d] %ds, lr: %.6f, loss: %.3f, val_loss: %.3f/%.3f, prec: %.3f, val_prec: %.3f/%.3f, swa: %d, ckpt: %d" % (
+        "[%03d/%03d] %ds, lr: %.6f, loss: %.3f, val_loss: %.3f|%.3f, prec: %.3f, val_prec: %.3f|%.3f, swa: %d, ckpt: %d|%d" % (
             epoch + 1,
             epochs_to_train,
             epoch_duration_time,
@@ -405,6 +412,7 @@ for epoch in range(epochs_to_train):
             val_precision_avg,
             val_precision_swa_avg,
             int(swa_updated),
-            int(ckpt_saved)))
+            int(ckpt_saved),
+            int(swa_ckpt_saved)))
 
 summary_writer.close()
