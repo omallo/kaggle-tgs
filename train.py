@@ -329,6 +329,8 @@ swa_n = 0
 optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
 # optimizer = optim.SGD(model.parameters(), lr=clr_base_lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
 
+batch_count = 0
+
 train_summary_writer = SummaryWriter(log_dir="{}/logs/train".format(output_dir))
 val_summary_writer = SummaryWriter(log_dir="{}/logs/val".format(output_dir))
 val_swa_summary_writer = SummaryWriter(log_dir="{}/logs/val_swa".format(output_dir))
@@ -364,6 +366,9 @@ for epoch in range(epochs_to_train):
         train_precision_sum += np.mean(precision_batch(predictions, labels))
         clr_iterations += 1
         train_step_count += 1
+        batch_count += 1
+
+        train_summary_writer.add_scalar("lr", lr, batch_count + 1)
 
     train_loss_avg = train_loss_sum / train_step_count
     train_precision_avg = train_precision_sum / train_step_count
@@ -394,7 +399,6 @@ for epoch in range(epochs_to_train):
     epoch_end_time = time.time()
     epoch_duration_time = epoch_end_time - epoch_start_time
 
-    train_summary_writer.add_scalar("lr", lr, epoch + 1)
     train_summary_writer.add_scalar("loss", train_loss_avg, epoch + 1)
     train_summary_writer.add_scalar("precision", train_precision_avg, epoch + 1)
 
