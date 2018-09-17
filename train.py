@@ -293,7 +293,7 @@ val_set_y = val_set_df.masks.tolist()
 model = AlbuNet(pretrained=True).to(device)
 swa_model = AlbuNet(pretrained=True).to(device)
 swa_model.load_state_dict(model.state_dict())
-# model.load_state_dict(torch.load("/storage/albunet.pth"))
+model.load_state_dict(torch.load("/storage/albunet.pth"))
 
 criterion = nn.BCEWithLogitsLoss()
 # criterion = RobustFocalLoss2d(2)
@@ -310,8 +310,8 @@ print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_se
 epochs_to_train = 64
 global_val_precision_best_avg = float("-inf")
 
-clr_base_lr = 0.005
-clr_max_lr = 0.05
+clr_base_lr = 0.003
+clr_max_lr = 0.03
 
 epoch_iterations = len(train_set) // batch_size
 clr_step_size = 2 * epoch_iterations
