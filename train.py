@@ -310,7 +310,7 @@ val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_worke
 
 print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
 
-epochs_to_train = 64
+epochs_to_train = 100
 global_val_precision_best_avg = float("-inf")
 global_val_precision_swa_best_avg = float("-inf")
 
