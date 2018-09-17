@@ -15,8 +15,6 @@ from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-from metrics import AggregateLoss
-from metrics import LovaszWithLogitsLoss
 from metrics import precision_batch
 from models import ResNetUNet
 
@@ -251,7 +249,8 @@ def eval(model, data_loader, criterion):
 
             outputs = model(inputs)
             predictions = torch.sigmoid(outputs)
-            criterion.weight = label_weights
+            # TODO: add again
+            # criterion.weight = label_weights
             loss = criterion(outputs, labels)
 
             loss_sum += loss.item()
@@ -279,6 +278,9 @@ def main():
     train_df["contours"] = train_df.masks.map(contour)
     train_df["mask_weights"] = [calculate_mask_weights(m) for m, c in zip(train_df.masks, train_df.coverage_class)]
 
+    # TODO: remove
+    train_df["masks"] = train_df.masks.map(contour)
+
     train_val_split = int(0.8 * len(train_df))
     train_set_ids = train_df.index.tolist()[:train_val_split]
     val_set_ids = train_df.index.tolist()[train_val_split:]
@@ -301,7 +303,8 @@ def main():
     swa_model = ResNetUNet(n_class=1).to(device)
     swa_model.load_state_dict(model.state_dict())
 
-    criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()], [0.7, 0.3])
+    # criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()], [0.7, 0.3])
+    criterion = nn.BCEWithLogitsLoss()
 
     train_set = TrainDataset(train_set_x, train_set_y, augment=True)
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
@@ -311,7 +314,7 @@ def main():
 
     print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
 
-    epochs_to_train = 50
+    epochs_to_train = 64
     global_val_precision_best_avg = float("-inf")
     global_val_precision_swa_best_avg = float("-inf")
 
@@ -358,7 +361,8 @@ def main():
             optimizer.zero_grad()
             outputs = model(inputs)
             predictions = torch.sigmoid(outputs)
-            criterion.weight = label_weights
+            # TODO: add again
+            # criterion.weight = label_weights
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
