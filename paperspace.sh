@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 apt-get update
-apt-get -y install python3-dev libsm-dev libxrender1 libxext6
+apt-get -y install python3-dev libsm-dev libxrender1 libxext6 zip
 rm -rf /var/lib/apt/lists/*
 
 pip install virtualenv
