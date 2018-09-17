@@ -330,8 +330,8 @@ def main():
     swa_c_epochs = 4
     swa_n = 0
 
-    # optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
-    optimizer = optim.SGD(model.parameters(), lr=clr_base_lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
+    optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
+    # optimizer = optim.SGD(model.parameters(), lr=clr_base_lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
 
     batch_count = 0
 
