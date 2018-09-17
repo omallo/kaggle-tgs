@@ -4,7 +4,6 @@ import cv2
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
 from PIL import Image
@@ -14,6 +13,7 @@ from scipy.ndimage.interpolation import map_coordinates
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
+from metrics.lovasz_loss import LovaszWithLogitsLoss
 from metrics.precision import precision_batch
 from unet_models import AlbuNet
 
@@ -295,9 +295,9 @@ swa_model = AlbuNet(pretrained=True).to(device)
 swa_model.load_state_dict(model.state_dict())
 model.load_state_dict(torch.load("/storage/albunet.pth"))
 
-criterion = nn.BCEWithLogitsLoss()
+# criterion = nn.BCEWithLogitsLoss()
 # criterion = RobustFocalLoss2d(2)
-# criterion = LovaszWithLogitsLoss()
+criterion = LovaszWithLogitsLoss()
 
 train_set = TrainDataset(train_set_x, train_set_y, augment=True)
 train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
@@ -354,6 +354,8 @@ for epoch in range(epochs_to_train):
         moving_average(swa_model, model, 1.0 / swa_n)
 
     train_loss_avg, train_precision_avg = eval(model, train_loader, criterion)
+    swa_train_loss_avg, swa_train_precision_avg = eval(swa_model, train_loader, criterion)
+
     val_loss_avg, val_precision_avg = eval(model, val_loader, criterion)
     swa_val_loss_avg, swa_val_precision_avg = eval(swa_model, val_loader, criterion)
 
@@ -367,15 +369,17 @@ for epoch in range(epochs_to_train):
     epoch_duration_time = epoch_end_time - epoch_start_time
 
     print(
-        "[%03d/%03d] %ds, lr: %.6f, loss: %.3f, val_loss: %.3f (%.3f), prec: %.3f, val_prec: %.3f (%.3f), ckpt: %d" % (
+        "[%03d/%03d] %ds, lr: %.6f, loss: %.3f (%.3f), val_loss: %.3f (%.3f), prec: %.3f (%.3f), val_prec: %.3f (%.3f), ckpt: %d" % (
             epoch + 1,
             epochs_to_train,
             epoch_duration_time,
             lr,
             train_loss_avg,
+            swa_train_loss_avg,
             val_loss_avg,
             swa_val_loss_avg,
             train_precision_avg,
+            swa_train_precision_avg,
             val_precision_avg,
             swa_val_precision_avg,
             int(ckpt_saved)))
