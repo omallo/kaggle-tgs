@@ -315,8 +315,8 @@ def main():
     global_val_precision_best_avg = float("-inf")
     global_val_precision_swa_best_avg = float("-inf")
 
-    clr_base_lr = 0.00001  # SGD: 0.003, Adam: 0.0001
-    clr_max_lr = 0.01  # SGD: 0.03, Adam: 0.001
+    clr_base_lr = 0.0001  # SGD: 0.003, Adam: 0.0001
+    clr_max_lr = 0.1  # SGD: 0.03, Adam: 0.001
 
     epoch_iterations = len(train_set) // batch_size
     clr_step_size = 2 * epoch_iterations
@@ -327,8 +327,8 @@ def main():
     swa_c_epochs = 4
     swa_n = 0
 
-    optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
-    # optimizer = optim.SGD(model.parameters(), lr=clr_base_lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
+    # optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
+    optimizer = optim.SGD(model.parameters(), lr=clr_base_lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
 
     batch_count = 0
 
@@ -353,7 +353,7 @@ def main():
             # swa_x = (clr_iterations % clr_cycle_size) / clr_cycle_size
             # lr = (1 - swa_x) * clr_max_lr + swa_x * clr_base_lr
 
-            lr = clr_base_lr + (1.0 - batch_count / (epochs_to_train * epoch_iterations)) * (clr_max_lr - clr_base_lr)
+            lr = clr_base_lr + (batch_count / (epochs_to_train * epoch_iterations)) * (clr_max_lr - clr_base_lr)
 
             adjust_learning_rate(optimizer, lr)
 
