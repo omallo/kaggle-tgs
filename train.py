@@ -15,10 +15,10 @@ from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-from metrics.aggregate_loss import AggregateLoss
-from metrics.lovasz_loss import LovaszWithLogitsLoss
-from metrics.precision import precision_batch
-from models.resnet_unet import ResNetUNet
+from .metrics import AggregateLoss
+from .metrics import LovaszWithLogitsLoss
+from .metrics import precision_batch
+from .models import ResNetUNet
 
 input_dir = "/storage/kaggle/tgs"
 output_dir = "/artifacts"
