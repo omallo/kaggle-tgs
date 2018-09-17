@@ -328,6 +328,9 @@ for epoch in range(epochs_to_train):
 
     epoch_start_time = time.time()
 
+    train_loss_sum = 0.0
+    train_precision_sum = 0.0
+    train_step_count = 0
     for _, batch in enumerate(train_loader):
         inputs, labels, label_weights = batch[0].to(device), batch[1].to(device), batch[2].to(device)
 
@@ -342,21 +345,25 @@ for epoch in range(epochs_to_train):
 
         optimizer.zero_grad()
         outputs = model(inputs)
+        predictions = torch.sigmoid(outputs)
         criterion.weight = label_weights
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
 
+        train_loss_sum += loss.item()
+        train_precision_sum += np.mean(precision_batch(predictions, labels))
         clr_iterations += 1
+        train_step_count += 1
+
+    train_loss_avg = train_loss_sum / train_step_count
+    train_precision_avg = train_precision_sum / train_step_count
 
     swa_updated = False
     if (epoch + 1) % swa_c_epochs == 0:
         swa_n = (epoch + 1) // swa_c_epochs
         moving_average(swa_model, model, 1.0 / swa_n)
         swa_updated = True
-
-    train_loss_avg, train_precision_avg = eval(model, train_loader, criterion)
-    swa_train_loss_avg, swa_train_precision_avg = eval(swa_model, train_loader, criterion)
 
     val_loss_avg, val_precision_avg = eval(model, val_loader, criterion)
     swa_val_loss_avg, swa_val_precision_avg = eval(swa_model, val_loader, criterion)
@@ -371,17 +378,15 @@ for epoch in range(epochs_to_train):
     epoch_duration_time = epoch_end_time - epoch_start_time
 
     print(
-        "[%03d/%03d] %ds, lr: %.6f, loss: %.3f/%.3f, val_loss: %.3f/%.3f, prec: %.3f/%.3f, val_prec: %.3f/%.3f, swa: %d, ckpt: %d" % (
+        "[%03d/%03d] %ds, lr: %.6f, loss: %.3f, val_loss: %.3f/%.3f, prec: %.3f, val_prec: %.3f/%.3f, swa: %d, ckpt: %d" % (
             epoch + 1,
             epochs_to_train,
             epoch_duration_time,
             lr,
             train_loss_avg,
-            swa_train_loss_avg,
             val_loss_avg,
             swa_val_loss_avg,
             train_precision_avg,
-            swa_train_precision_avg,
             val_precision_avg,
             swa_val_precision_avg,
             int(swa_updated),
