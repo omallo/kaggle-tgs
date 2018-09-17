@@ -299,7 +299,7 @@ model = AlbuNet(pretrained=True).to(device)
 swa_model = AlbuNet(pretrained=True).to(device)
 swa_model.load_state_dict(model.state_dict())
 
-criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()], [0.7, 0.3])
+criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()], [0.3, 0.7])
 
 train_set = TrainDataset(train_set_x, train_set_y, augment=True)
 train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
