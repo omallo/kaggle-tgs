@@ -311,15 +311,17 @@ print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_se
 epochs_to_train = 64
 global_val_precision_best_avg = float("-inf")
 
-clr_base_lr = 0.003 # SGD: 0.003, Adam: 0.0001
-clr_max_lr = 0.03 # SGD: 0.03, Adam: 0.001
+clr_base_lr = 0.003  # SGD: 0.003, Adam: 0.0001
+clr_max_lr = 0.03  # SGD: 0.03, Adam: 0.001
 
 epoch_iterations = len(train_set) // batch_size
 clr_step_size = 2 * epoch_iterations
 clr_cycle_size = 2 * clr_step_size
 clr_scale_fn = lambda x: 1.0 / (1.1 ** (x - 1))
 clr_iterations = 0
+
 swa_c_epochs = 1
+swa_n = 0
 
 # optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
 optimizer = optim.SGD(model.parameters(), lr=clr_base_lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
@@ -358,18 +360,20 @@ for epoch in range(epochs_to_train):
 
     train_loss_avg = train_loss_sum / train_step_count
     train_precision_avg = train_precision_sum / train_step_count
+    val_loss_avg, val_precision_avg = eval(model, val_loader, criterion)
+
+    model_improved = val_precision_avg > global_val_precision_best_avg
 
     swa_updated = False
-    if (epoch + 1) % swa_c_epochs == 0:
-        swa_n = (epoch + 1) // swa_c_epochs
+    if model_improved or (epoch + 1) % swa_c_epochs == 0:
+        swa_n += 1
         moving_average(swa_model, model, 1.0 / swa_n)
         swa_updated = True
 
-    val_loss_avg, val_precision_avg = eval(model, val_loader, criterion)
     swa_val_loss_avg, swa_val_precision_avg = eval(swa_model, val_loader, criterion)
 
     ckpt_saved = False
-    if val_precision_avg > global_val_precision_best_avg:
+    if model_improved:
         torch.save(model.state_dict(), "{}/model.pth".format(output_dir))
         global_val_precision_best_avg = val_precision_avg
         ckpt_saved = True
