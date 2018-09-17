@@ -24,7 +24,7 @@ input_dir = "/storage/kaggle/tgs"
 output_dir = "/artifacts"
 img_size_ori = 101
 img_size_target = 256
-batch_size = 32
+batch_size = 16
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
