@@ -250,8 +250,7 @@ def eval(model, data_loader, criterion):
 
             outputs = model(inputs)
             predictions = torch.sigmoid(outputs)
-            #  TODO: uncomment
-            # criterion.weight = label_weights
+            criterion.weight = label_weights
             loss = criterion(outputs, labels)
 
             loss_sum += loss.item()
@@ -362,8 +361,7 @@ def main():
             optimizer.zero_grad()
             outputs = model(inputs)
             predictions = torch.sigmoid(outputs)
-            #  TODO: uncomment
-            # criterion.weight = label_weights
+            criterion.weight = label_weights
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
