@@ -44,25 +44,19 @@ class TrainDataset(Dataset):
         ])
 
     def __len__(self):
-        return len(self.images)
+        return 2 * len(self.images)
 
     def __getitem__(self, index):
-        image = self.images[index]
-        mask = self.masks[index]
+        image = self.images[index % len(self.images)]
+        mask = self.masks[index % len(self.images)]
 
-        if self.augment:
+        if index >= len(self.images) and self.augment:
+            augmented = False
+
             if np.random.rand() < 0.5:
                 image = np.fliplr(image)
                 mask = np.fliplr(mask)
-
-            if np.random.rand() < 0.5:
-                c = np.random.choice(3)
-                if c == 0:
-                    image, mask = apply_elastic_transform(image, mask, alpha=150, sigma=8, alpha_affine=0)
-                elif c == 1:
-                    image, mask = apply_elastic_transform(image, mask, alpha=0, sigma=0, alpha_affine=8)
-                elif c == 2:
-                    image, mask = apply_elastic_transform(image, mask, alpha=150, sigma=10, alpha_affine=5)
+                augmented = True
 
             if np.random.rand() < 0.5:
                 c = np.random.choice(2)
@@ -70,6 +64,17 @@ class TrainDataset(Dataset):
                     image = multiply_brightness(image, np.random.uniform(1 - 0.1, 1 + 0.1))
                 elif c == 1:
                     image = adjust_gamma(image, np.random.uniform(1 - 0.1, 1 + 0.1))
+                augmented = True
+
+            if np.random.rand() < 0.5 or not augmented:
+                c = np.random.choice(3)
+                if c == 0:
+                    image, mask = apply_elastic_transform(image, mask, alpha=150, sigma=8, alpha_affine=0)
+                elif c == 1:
+                    image, mask = apply_elastic_transform(image, mask, alpha=0, sigma=0, alpha_affine=8)
+                elif c == 2:
+                    image, mask = apply_elastic_transform(image, mask, alpha=150, sigma=10, alpha_affine=5)
+                augmented = True
 
         mask_weights = calculate_mask_weights(mask)
 
