@@ -350,7 +350,7 @@ def main():
     contour_set = TrainDataset(val_set_df.images.tolist(), val_set_df.contours.tolist(), augment=False)
     contour_data_loader = DataLoader(contour_set, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=False)
 
-    analyze(mask_model, mask_data_loader, contour_model, contour_data_loader, val_set_df)
+    analyze(contour_model, contour_data_loader, contour_model, contour_data_loader, val_set_df)
 
 
 if __name__ == "__main__":
