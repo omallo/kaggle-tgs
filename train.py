@@ -302,7 +302,7 @@ def main():
         for resnet_layer_parameter in resnet_layer.parameters():
             resnet_layer_parameter.requires_grad = False
 
-    # model.load_state_dict(torch.load("/storage/masks.pth"))
+    model.load_state_dict(torch.load("/storage/masks.pth"))
 
     swa_model = AlbuNet(pretrained=True).to(device)
     swa_model.load_state_dict(model.state_dict())
