@@ -370,7 +370,7 @@ def main():
                     dy = np.random.randint((img_size_target - crop_size) // 2)
                     inputs = inputs[:, :, dx:dx + crop_size, dy:dy + crop_size].contiguous()
                     labels = labels[:, :, dx:dx + crop_size, dy:dy + crop_size].contiguous()
-                    label_weights = label_weights[:, :, dx:crop_size, dy:crop_size].contiguous()
+                    label_weights = label_weights[:, :, dx:dx + crop_size, dy:dy + crop_size].contiguous()
 
             # clr_cycle = np.floor(1 + clr_iterations / (2 * clr_step_size))
             # clr_x = np.abs(clr_iterations / clr_step_size - 2 * clr_cycle + 1)
