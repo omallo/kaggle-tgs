@@ -332,7 +332,7 @@ def main():
     clr_scale_fn = lambda x: 1.0 / (1.1 ** (x - 1))
     clr_iterations = 0
 
-    swa_start_epoch = 20
+    swa_start_epoch = 0
     swa_c_epochs = 4
     swa_n = 0
 
