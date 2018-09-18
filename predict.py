@@ -313,6 +313,9 @@ def analyze(mask_model, mask_data_loader, contour_model, contour_data_loader, va
     val_set_df["precisions_crf"] = [precision(pm, m) for pm, m in
                                     zip(val_set_df.prediction_masks_crf, val_set_df.masks)]
 
+    val_set_df["predictions_confidence"] = [(p * pm).sum() / pm.sum() for p, pm in
+                                            zip(val_set_df.predictions, val_set_df.prediction_masks)]
+
     print()
     print("threshold: %.3f, precision: %.3f, precision_crf: %.3f, precision_otsu: %.3f, precision_contour: %.3f" % (
         threshold_best, val_set_df.precisions.mean(), val_set_df.precisions_crf.mean(),
@@ -328,6 +331,9 @@ def analyze(mask_model, mask_data_loader, contour_model, contour_data_loader, va
         "precisions_contour": "mean",
         "coverage_class": "count"
     }))
+
+    print()
+    print("prediction-confidence correlation: %.3f" % val_set_df.precisions.corr(val_set_df.predictions_confidence))
 
 
 def main():
