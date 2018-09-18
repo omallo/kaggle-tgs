@@ -21,7 +21,7 @@ from models import AlbuNet
 input_dir = "/storage/kaggle/tgs"
 output_dir = "/artifacts"
 img_size_ori = 101
-img_size_target = 256
+img_size_target = 128
 batch_size = 32
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -345,7 +345,7 @@ def main():
     val_summary_writer = SummaryWriter(log_dir="{}/logs/val".format(output_dir))
     val_swa_summary_writer = SummaryWriter(log_dir="{}/logs/val_swa".format(output_dir))
 
-    do_crop_size = True
+    do_crop_size = False
     crop_sizes = [128, 192, 256]
     crop_sizes_p = [0.4, 0.3, 0.3]
 
