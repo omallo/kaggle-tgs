@@ -15,12 +15,12 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 from metrics import precision_batch, LovaszWithLogitsLoss
-from models import ResNetUNet
+from models import AlbuNet
 
 input_dir = "/storage/kaggle/tgs"
 output_dir = "/artifacts"
 img_size_ori = 101
-img_size_target = 224
+img_size_target = 256
 batch_size = 32
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -293,7 +293,7 @@ def main():
     # model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
     # model = AlbuNet(pretrained=True, is_deconv=True).to(device)
 
-    # model = AlbuNet(pretrained=True, is_deconv=True).to(device)
+    model = AlbuNet(pretrained=True, is_deconv=True).to(device)
     # resnet_layer_count_to_freeze = 0
     # resnet_layer_count = 0
     # for resnet_layer in model.encoder.children():
@@ -303,11 +303,11 @@ def main():
     #     for resnet_layer_parameter in resnet_layer.parameters():
     #         resnet_layer_parameter.requires_grad = False
 
-    model = ResNetUNet(n_class=1).to(device)
+    # model = ResNetUNet(n_class=1).to(device)
 
     # model.load_state_dict(torch.load("/storage/masks.pth"))
 
-    swa_model = ResNetUNet(n_class=1).to(device)
+    swa_model = AlbuNet(pretrained=True, is_deconv=True).to(device)
     swa_model.load_state_dict(model.state_dict())
 
     # criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()], [0.7, 0.3])
@@ -347,8 +347,8 @@ def main():
     val_swa_summary_writer = SummaryWriter(log_dir="{}/logs/val_swa".format(output_dir))
 
     do_crop_size = True
-    crop_sizes = [128, 160, 192, 224]
-    crop_sizes_p = [0.25, 0.25, 0.25, 0.25]
+    crop_sizes = [128, 192, 256]
+    crop_sizes_p = [0.4, 0.3, 0.3]
 
     for epoch in range(epochs_to_train):
 
