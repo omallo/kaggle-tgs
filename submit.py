@@ -127,7 +127,7 @@ def main():
     train_df = train_df.join(depths_df)
     test_df = depths_df[~depths_df.index.isin(train_df.index)]
 
-    test_df["images"] = load_images("{}/test/images".format(input_dir), train_df.index)
+    test_df["images"] = load_images("{}/test/images".format(input_dir), test_df.index)
 
     mask_model = AlbuNet(pretrained=True).to(device)
     mask_model.load_state_dict(torch.load("/storage/masks.pth"))
