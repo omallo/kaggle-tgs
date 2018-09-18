@@ -215,6 +215,8 @@ def contour(mask, width=3):
 
 
 def calculate_mask_weights(mask):
+    # TODO: change again
+    # return np.ones_like(mask) + 4 * mask
     return np.ones_like(mask) + 2 * contour(mask)
 
 
@@ -306,7 +308,8 @@ def main():
     # criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()], [0.7, 0.3])
     criterion = nn.BCEWithLogitsLoss()
 
-    train_set = TrainDataset(train_set_x, train_set_y, augment=True)
+    # TODO: enable augmentation again
+    train_set = TrainDataset(train_set_x, train_set_y, augment=False)
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
 
     val_set = TrainDataset(val_set_x, val_set_y, augment=False)
