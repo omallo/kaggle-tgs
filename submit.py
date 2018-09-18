@@ -112,7 +112,7 @@ def predict(model, val_pred_loader):
     val_predictions = []
     with torch.no_grad():
         for _, batch in enumerate(val_pred_loader):
-            inputs = batch[0].to(device)
+            inputs = batch.to(device)
             outputs = model(inputs)
             predictions = torch.sigmoid(outputs)
             val_predictions += [p for p in predictions.cpu().numpy()]
