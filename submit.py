@@ -200,9 +200,11 @@ def analyze(model, data_loader, val_set_df):
         .agg({
         "precisions": "mean",
         "precisions_crf": "mean",
-        "precisions_otsu": "mean",
-        "coverage_class": "count"
+        "precisions_otsu": "mean"
     }))
+
+    print()
+    print(val_set_df.groupby("coverage_class").agg({"coverage_class": "count"}))
 
     return threshold_best
 
