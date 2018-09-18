@@ -300,7 +300,7 @@ def analyze(mask_model, mask_data_loader, contour_model, contour_data_loader, va
     val_set_df["precisions_opt"] = [o[1] for o in optimals]
 
     def calc_max_precision2(y_pred_raw, y_true, contours):
-        isects = [(np.int32(y_pred_raw > t) * contours).sum() for t in thresholds]
+        isects = [(np.int32(y_pred_raw > t) * np.int32(contours > 0.5)).sum() for t in thresholds]
         ious = [precision(np.int32(y_pred_raw > t), y_true) for t in thresholds]
         am = np.argmax(isects)
         return thresholds[am], ious[am]
@@ -350,7 +350,7 @@ def main():
     contour_set = TrainDataset(val_set_df.images.tolist(), val_set_df.contours.tolist(), augment=False)
     contour_data_loader = DataLoader(contour_set, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=False)
 
-    analyze(contour_model, contour_data_loader, contour_model, contour_data_loader, val_set_df)
+    analyze(mask_model, mask_data_loader, contour_model, contour_data_loader, val_set_df)
 
 
 if __name__ == "__main__":
