@@ -276,7 +276,7 @@ def main():
     train_df["coverage_class"] = train_df.coverage.map(coverage_to_class)
 
     # TODO: remove this again
-    train_df = train_df.drop(train_df.index[(train_df.coverage_class < 1) | (train_df.coverage_class > 3)])
+    train_df = train_df.drop(train_df.index[(train_df.coverage_class != 1) | (train_df.coverage_class != 3)])
 
     train_df["contours"] = train_df.masks.map(contour)
     train_df["mask_weights"] = [calculate_mask_weights(m) for m, c in zip(train_df.masks, train_df.coverage_class)]
