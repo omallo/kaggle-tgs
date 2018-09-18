@@ -306,7 +306,7 @@ def main():
 
     # model = ResNetUNet(n_class=1).to(device)
 
-    # model.load_state_dict(torch.load("/storage/masks.pth"))
+    model.load_state_dict(torch.load("/storage/model.pth"))
 
     swa_model = AlbuNet(pretrained=True, is_deconv=True).to(device)
     swa_model.load_state_dict(model.state_dict())
