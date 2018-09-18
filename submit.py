@@ -70,7 +70,7 @@ class TrainDataset(Dataset):
         return len(self.images)
 
     def __getitem__(self, index):
-        return self.images[index]
+        return self.image_transform(self.images[index])
 
 
 def load_image(path, id):
