@@ -289,6 +289,15 @@ def main():
     # model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
     # model = AlbuNet(pretrained=True).to(device)
     model = AlbuNet(pretrained=True).to(device)
+    resnet_layer_count_to_freeze = 8
+    resnet_layer_count = 0
+    for resnet_layer in model.encoder.children():
+        for resnet_layer_parameter in resnet_layer.parameters():
+            resnet_layer_parameter.requires_grad = False
+        resnet_layer_count += 1
+        if resnet_layer_count == resnet_layer_count_to_freeze:
+            break
+
     # model.load_state_dict(torch.load("/storage/masks.pth"))
 
     swa_model = AlbuNet(pretrained=True).to(device)
