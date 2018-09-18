@@ -10,9 +10,10 @@ from scipy.ndimage.interpolation import map_coordinates
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-from metrics import precision_batch, precision, precision_array
+from metrics import precision_batch, precision
 from models import ResNetUNet
 from unet_models import AlbuNet
+from utils import crf
 
 input_dir = "/storage/kaggle/tgs"
 output_dir = "/artifacts"
@@ -216,10 +217,11 @@ def calculate_mask_weights(mask):
 
 # https://www.microsoft.com/developerblog/2018/05/17/using-otsus-method-generate-data-training-deep-learning-image-segmentation-models/
 def compute_otsu_mask(image):
+    image = 255 * image
     image = np.stack((image,) * 3, -1)
     image = image.astype(np.uint8)
     image_grayscale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    return cv2.threshold(image_grayscale, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+    return cv2.threshold(image_grayscale, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1] / 255
 
 
 def adjust_learning_rate(optimizer, lr):
@@ -272,51 +274,60 @@ def predict(model, val_pred_loader):
     return val_predictions
 
 
+def calculate_precision_based_on_contour(prediction, mask, prediction_contour, thresholds):
+    isects = [(contour(np.int32(prediction > t)) * prediction_contour).sum() for t in thresholds]
+    best_isect_index = np.argmax(isects)
+    best_threshold = thresholds[best_isect_index]
+    return precision(np.int32(prediction > best_threshold), mask)
+
+
 def analyze(mask_model, mask_data_loader, contour_model, contour_data_loader, val_set_df):
     val_set_df["predictions"] = predict(mask_model, mask_data_loader)
     val_set_df["predictions_contours"] = predict(contour_model, contour_data_loader)
 
     thresholds = np.linspace(0, 1, 51)
 
-    precisions_per_threshold = np.array(
-        [np.mean(precision_array(np.int32(np.asarray(val_set_df.predictions.tolist()) > t), val_set_df.masks)) for t in
-         tqdm(thresholds)])
+    precisions_per_threshold = []
+    for threshold in tqdm(thresholds, desc="Calculate optimal threshold"):
+        precisions = []
+        for idx in val_set_df.index:
+            mask = val_set_df.loc[idx].masks
+            prediction = val_set_df.loc[idx].predictions
+            prediction_mask = np.int32(prediction > threshold)
+            precisions.append(precision(prediction_mask, mask))
+        precisions_per_threshold.append(np.mean(precisions))
 
-    threshold_best_index = np.argmax(precisions_per_threshold)
-    precision_best = precisions_per_threshold[threshold_best_index]
-    threshold_best = thresholds[threshold_best_index]
+    threshold_best = thresholds[np.argmax(precisions_per_threshold)]
 
     val_set_df["prediction_masks"] = [np.int32(p > threshold_best) for p in val_set_df.predictions]
     val_set_df["precisions"] = [precision(pm, m) for pm, m in zip(val_set_df.prediction_masks, val_set_df.masks)]
 
-    def calc_max_precision(y_pred_raw, y_true):
-        ious = [precision(np.int32(y_pred_raw > t), y_true) for t in thresholds]
-        am = np.argmax(ious)
-        return thresholds[am], ious[am]
+    val_set_df["prediction_masks_otsu"] = [np.int32(compute_otsu_mask(p)) for p in val_set_df.predictions]
+    val_set_df["precisions_otsu"] = [precision(pm, m) for pm, m in
+                                     zip(val_set_df.prediction_masks_otsu, val_set_df.masks)]
 
-    optimals = [calc_max_precision(p, m) for p, m in zip(val_set_df.predictions, val_set_df.masks)]
+    val_set_df["precisions_contour"] = [calculate_precision_based_on_contour(p, m, pc, thresholds) for p, m, pc in
+                                        zip(val_set_df.predictions, val_set_df.masks, val_set_df.predictions_contours)]
 
-    val_set_df["thresholds_opt"] = [o[0] for o in optimals]
-    val_set_df["precisions_opt"] = [o[1] for o in optimals]
-
-    def calc_max_precision2(y_pred_raw, y_true, contours):
-        isects = [(contour(np.int32(y_pred_raw > t)) * contours).sum() for t in thresholds]
-        ious = [precision(np.int32(y_pred_raw > t), y_true) for t in thresholds]
-        am = np.argmax(isects)
-        return thresholds[am], ious[am]
-
-    optimals = [calc_max_precision2(p, m, c) for p, m, c in
-                zip(val_set_df.predictions, val_set_df.masks, val_set_df.predictions_contours)]
-
-    val_set_df["thresholds_opt_2"] = [o[0] for o in optimals]
-    val_set_df["precisions_opt_2"] = [o[1] for o in optimals]
+    val_set_df["prediction_masks_crf"] = [crf(i, pm) for i, pm in zip(val_set_df.images, val_set_df.prediction_masks)]
+    val_set_df["precisions_crf"] = [precision(pm, m) for pm, m in
+                                    zip(val_set_df.prediction_masks_crf, val_set_df.masks)]
 
     print()
-    print("precision_best: %.3f, threshold_best: %.3f" % (precision_best, threshold_best))
-    print("precision_opt: %.3f, threshold_opt_mean: %.3f"
-          % (val_set_df.precisions_opt.mean(), val_set_df.thresholds_opt.mean()))
-    print("precision_opt_2: %.3f, threshold_opt_2_mean: %.3f"
-          % (val_set_df.precisions_opt_2.mean(), val_set_df.thresholds_opt_2.mean()))
+    print("threshold: %.3f, precision: %.3f, precision_crf: %.3f, precision_otsu: %.3f, precision_contour: %.3f" % (
+        threshold_best, val_set_df.precisions.mean(), val_set_df.precisions_crf.mean(),
+        val_set_df.precisions_otsu.mean(), val_set_df.precisions_contour.mean()))
+
+    print()
+    print(val_set_df
+        .groupby("coverage_class")
+        .agg({
+        "precisions": "mean",
+        "precisions_crf": "mean",
+        "precisions_otsu": "mean",
+        "precisions_contour": "mean",
+        "coverage_class": "count"
+    }))
 
 
 def main():

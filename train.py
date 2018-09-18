@@ -220,10 +220,11 @@ def calculate_mask_weights(mask):
 
 # https://www.microsoft.com/developerblog/2018/05/17/using-otsus-method-generate-data-training-deep-learning-image-segmentation-models/
 def compute_otsu_mask(image):
+    image = 255 * image
     image = np.stack((image,) * 3, -1)
     image = image.astype(np.uint8)
     image_grayscale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    return cv2.threshold(image_grayscale, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+    return cv2.threshold(image_grayscale, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1] / 255
 
 
 def adjust_learning_rate(optimizer, lr):

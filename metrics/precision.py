@@ -21,7 +21,3 @@ def precision(outputs, labels):
 def precision_batch(outputs, labels):
     batch_size = labels.shape[0]
     return [precision(outputs[batch], labels[batch]) for batch in range(batch_size)]
-
-
-def precision_array(outputs, labels):
-    return [precision(o, l) for o, l in zip(outputs, labels)]
