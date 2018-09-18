@@ -332,7 +332,7 @@ def main():
     clr_scale_fn = lambda x: 1.0 / (1.1 ** (x - 1))
     clr_iterations = 0
 
-    swa_start_epoch = 32
+    swa_start_epoch = 20
     swa_c_epochs = 4
     swa_n = 0
 
@@ -353,7 +353,7 @@ def main():
 
         epoch_start_time = time.time()
 
-        bce_loss_weight = 0.97 ** epoch
+        bce_loss_weight = 0.98 ** epoch
         criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()],
                                   [bce_loss_weight, 1 - bce_loss_weight])
 
