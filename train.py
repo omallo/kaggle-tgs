@@ -281,8 +281,7 @@ def main():
     train_df["contours"] = train_df.masks.map(contour)
     train_df["mask_weights"] = [calculate_mask_weights(m) for m, c in zip(train_df.masks, train_df.coverage_class)]
 
-    # TODO: change the split again
-    train_val_split = int(0.92 * len(train_df))
+    train_val_split = int(0.8 * len(train_df))
     train_set_ids = train_df.index.tolist()[:train_val_split]
     val_set_ids = train_df.index.tolist()[train_val_split:]
 
@@ -299,7 +298,7 @@ def main():
     # model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
     # model = AlbuNet(pretrained=True).to(device)
     model = ResNetUNet(n_class=1).to(device)
-    # model.load_state_dict(torch.load("/storage/albunet.pth"))
+    model.load_state_dict(torch.load("/storage/masks.pth"))
 
     swa_model = ResNetUNet(n_class=1).to(device)
     swa_model.load_state_dict(model.state_dict())
