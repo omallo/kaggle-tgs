@@ -323,8 +323,8 @@ def main():
     global_val_precision_best_avg = float("-inf")
     global_val_precision_swa_best_avg = float("-inf")
 
-    clr_base_lr = 0.003  # SGD: 0.003, Adam: 0.0001
-    clr_max_lr = 0.04  # SGD: 0.03, Adam: 0.001
+    clr_base_lr = 0.0001  # SGD: 0.003, Adam: 0.0001
+    clr_max_lr = 0.001  # SGD: 0.03, Adam: 0.001
 
     epoch_iterations = len(train_set) // batch_size
     clr_step_size = 2 * epoch_iterations
@@ -336,8 +336,8 @@ def main():
     swa_c_epochs = 4
     swa_n = 0
 
-    # optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
-    optimizer = optim.SGD(model.parameters(), lr=clr_base_lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
+    optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
+    # optimizer = optim.SGD(model.parameters(), lr=clr_base_lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
 
     batch_count = 0
 
@@ -372,12 +372,12 @@ def main():
                     labels = labels[:, :, dx:dx + crop_size, dy:dy + crop_size].contiguous()
                     label_weights = label_weights[:, :, dx:dx + crop_size, dy:dy + crop_size].contiguous()
 
-            # clr_cycle = np.floor(1 + clr_iterations / (2 * clr_step_size))
-            # clr_x = np.abs(clr_iterations / clr_step_size - 2 * clr_cycle + 1)
-            # lr = clr_base_lr + (clr_max_lr - clr_base_lr) * np.maximum(0, (1 - clr_x)) * clr_scale_fn(clr_cycle)
+            clr_cycle = np.floor(1 + clr_iterations / (2 * clr_step_size))
+            clr_x = np.abs(clr_iterations / clr_step_size - 2 * clr_cycle + 1)
+            lr = clr_base_lr + (clr_max_lr - clr_base_lr) * np.maximum(0, (1 - clr_x)) * clr_scale_fn(clr_cycle)
 
-            swa_x = (clr_iterations % clr_cycle_size) / clr_cycle_size
-            lr = (1 - swa_x) * clr_max_lr + swa_x * clr_base_lr
+            # swa_x = (clr_iterations % clr_cycle_size) / clr_cycle_size
+            # lr = (1 - swa_x) * clr_max_lr + swa_x * clr_base_lr
 
             adjust_learning_rate(optimizer, lr)
 
