@@ -250,8 +250,7 @@ def eval(model, data_loader, criterion):
 
             outputs = model(inputs)
             predictions = torch.sigmoid(outputs)
-            # TODO: add again
-            # criterion.weight = label_weights
+            criterion.weight = label_weights
             loss = criterion(outputs, labels)
 
             loss_sum += loss.item()
@@ -278,9 +277,6 @@ def main():
 
     train_df["contours"] = train_df.masks.map(contour)
     train_df["mask_weights"] = [calculate_mask_weights(m) for m, c in zip(train_df.masks, train_df.coverage_class)]
-
-    # TODO: remove
-    train_df["masks"] = train_df.masks.map(contour)
 
     train_val_split = int(0.8 * len(train_df))
     train_set_ids = train_df.index.tolist()[:train_val_split]
@@ -362,8 +358,7 @@ def main():
             optimizer.zero_grad()
             outputs = model(inputs)
             predictions = torch.sigmoid(outputs)
-            # TODO: add again
-            # criterion.weight = label_weights
+            criterion.weight = label_weights
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
