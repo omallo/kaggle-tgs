@@ -15,12 +15,12 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 from metrics import precision_batch, LovaszWithLogitsLoss
-from unet_models import AlbuNet
+from models import ResNetUNet
 
 input_dir = "/storage/kaggle/tgs"
 output_dir = "/artifacts"
 img_size_ori = 101
-img_size_target = 128
+img_size_target = 224
 batch_size = 32
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -292,19 +292,22 @@ def main():
     # model = FusionNet(in_depth=3, out_depth=1, base_channels=32).to(device)
     # model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
     # model = AlbuNet(pretrained=True).to(device)
-    model = AlbuNet(pretrained=True).to(device)
-    resnet_layer_count_to_freeze = 0
-    resnet_layer_count = 0
-    for resnet_layer in model.encoder.children():
-        resnet_layer_count += 1
-        if resnet_layer_count > resnet_layer_count_to_freeze:
-            break
-        for resnet_layer_parameter in resnet_layer.parameters():
-            resnet_layer_parameter.requires_grad = False
 
-    model.load_state_dict(torch.load("/storage/masks.pth"))
+    # model = AlbuNet(pretrained=True).to(device)
+    # resnet_layer_count_to_freeze = 0
+    # resnet_layer_count = 0
+    # for resnet_layer in model.encoder.children():
+    #     resnet_layer_count += 1
+    #     if resnet_layer_count > resnet_layer_count_to_freeze:
+    #         break
+    #     for resnet_layer_parameter in resnet_layer.parameters():
+    #         resnet_layer_parameter.requires_grad = False
 
-    swa_model = AlbuNet(pretrained=True).to(device)
+    model = ResNetUNet(n_class=1).to(device)
+
+    # model.load_state_dict(torch.load("/storage/masks.pth"))
+
+    swa_model = ResNetUNet(n_class=1).to(device)
     swa_model.load_state_dict(model.state_dict())
 
     # criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()], [0.7, 0.3])
@@ -343,6 +346,10 @@ def main():
     val_summary_writer = SummaryWriter(log_dir="{}/logs/val".format(output_dir))
     val_swa_summary_writer = SummaryWriter(log_dir="{}/logs/val_swa".format(output_dir))
 
+    do_crop_size = True
+    crop_sizes = [128, 160, 192, 224]
+    crop_sizes_p = [0.25, 0.25, 0.25, 0.25]
+
     for epoch in range(epochs_to_train):
 
         epoch_start_time = time.time()
@@ -352,6 +359,15 @@ def main():
         train_step_count = 0
         for _, batch in enumerate(train_loader):
             inputs, labels, label_weights = batch[0].to(device), batch[1].to(device), batch[2].to(device)
+
+            if do_crop_size:
+                crop_size = np.random.choice(crop_sizes, p=crop_sizes_p)
+                if crop_size != img_size_target:
+                    dx = np.random.randint((img_size_target - crop_size) // 2)
+                    dy = np.random.randint((img_size_target - crop_size) // 2)
+                    inputs = inputs[:, :, dx:dx + crop_size, dy:dy + crop_size].contiguous()
+                    labels = labels[:, :, dx:dx + crop_size, dy:dy + crop_size].contiguous()
+                    label_weights = label_weights[:, :, dx:crop_size, dy:crop_size].contiguous()
 
             clr_cycle = np.floor(1 + clr_iterations / (2 * clr_step_size))
             clr_x = np.abs(clr_iterations / clr_step_size - 2 * clr_cycle + 1)
