@@ -44,7 +44,7 @@ class TrainDataset(Dataset):
         ])
 
     def __len__(self):
-        return 2 * len(self.images)
+        return 2 * len(self.images) if self.augment else len(self.images)
 
     def __getitem__(self, index):
         image = self.images[index % len(self.images)]
