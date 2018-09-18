@@ -318,7 +318,7 @@ def main():
 
     print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
 
-    epochs_to_train = 20
+    epochs_to_train = 64
     global_val_precision_best_avg = float("-inf")
     global_val_precision_swa_best_avg = float("-inf")
 
