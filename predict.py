@@ -333,6 +333,9 @@ def analyze(mask_model, mask_data_loader, contour_model, contour_data_loader, va
     }))
 
     print()
+    print(val_set_df.predictions_confidence.describe())
+
+    print()
     print("prediction-confidence correlation: %.3f" % val_set_df.precisions.corr(val_set_df.predictions_confidence))
 
 
