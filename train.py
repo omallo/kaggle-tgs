@@ -215,9 +215,7 @@ def contour(mask, width=3):
 
 
 def calculate_mask_weights(mask):
-    # TODO: change again
-    return np.ones_like(mask) + 4 * mask
-    # return np.ones_like(mask) + 2 * contour(mask)
+    return np.ones_like(mask) + 2 * contour(mask)
 
 
 # https://www.microsoft.com/developerblog/2018/05/17/using-otsus-method-generate-data-training-deep-learning-image-segmentation-models/
@@ -277,9 +275,6 @@ def main():
     train_df["coverage"] = train_df.masks.map(np.sum) / pow(img_size_ori, 2)
     train_df["coverage_class"] = train_df.coverage.map(coverage_to_class)
 
-    # TODO: remove this again
-    train_df = train_df.drop(train_df.index[(train_df.coverage_class != 1) | (train_df.coverage_class != 1)])
-
     train_df["contours"] = train_df.masks.map(contour)
     train_df["mask_weights"] = [calculate_mask_weights(m) for m, c in zip(train_df.masks, train_df.coverage_class)]
 
@@ -300,7 +295,7 @@ def main():
     # model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
     # model = AlbuNet(pretrained=True).to(device)
     model = AlbuNet(pretrained=True).to(device)
-    model.load_state_dict(torch.load("/storage/masks.pth"))
+    # model.load_state_dict(torch.load("/storage/masks.pth"))
 
     swa_model = AlbuNet(pretrained=True).to(device)
     swa_model.load_state_dict(model.state_dict())
