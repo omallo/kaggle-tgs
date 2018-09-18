@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import pandas as pd
 import torch
+import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
 from PIL import Image
@@ -14,7 +15,7 @@ from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-from metrics import precision_batch, RobustFocalLoss2d
+from metrics import precision_batch
 from unet_models import AlbuNet
 
 input_dir = "/storage/kaggle/tgs"
@@ -249,7 +250,8 @@ def eval(model, data_loader, criterion):
 
             outputs = model(inputs)
             predictions = torch.sigmoid(outputs)
-            criterion.weight = label_weights
+            #  TODO: uncomment
+            # criterion.weight = label_weights
             loss = criterion(outputs, labels)
 
             loss_sum += loss.item()
@@ -303,7 +305,7 @@ def main():
     swa_model.load_state_dict(model.state_dict())
 
     # criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()], [0.7, 0.3])
-    criterion = RobustFocalLoss2d(gamma=2)
+    criterion = nn.BCEWithLogitsLoss()
 
     train_set = TrainDataset(train_set_x, train_set_y, augment=True)
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
@@ -360,7 +362,8 @@ def main():
             optimizer.zero_grad()
             outputs = model(inputs)
             predictions = torch.sigmoid(outputs)
-            criterion.weight = label_weights
+            #  TODO: uncomment
+            # criterion.weight = label_weights
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
