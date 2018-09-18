@@ -329,6 +329,7 @@ def analyze(mask_model, mask_data_loader, contour_model, contour_data_loader, va
         "precisions_crf": "mean",
         "precisions_otsu": "mean",
         "precisions_contour": "mean",
+        "predictions_confidence": "mean",
         "coverage_class": "count"
     }))
 
