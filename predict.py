@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from metrics import precision_batch, precision
 from models import ResNetUNet
-from unet_models import AlbuNet
+from models import AlbuNet
 from utils import crf
 
 input_dir = "/storage/kaggle/tgs"

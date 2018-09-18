@@ -291,9 +291,9 @@ def main():
 
     # model = FusionNet(in_depth=3, out_depth=1, base_channels=32).to(device)
     # model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
-    # model = AlbuNet(pretrained=True).to(device)
+    # model = AlbuNet(pretrained=True, is_deconv=True).to(device)
 
-    # model = AlbuNet(pretrained=True).to(device)
+    # model = AlbuNet(pretrained=True, is_deconv=True).to(device)
     # resnet_layer_count_to_freeze = 0
     # resnet_layer_count = 0
     # for resnet_layer in model.encoder.children():

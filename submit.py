@@ -6,7 +6,7 @@ from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-from unet_models import AlbuNet
+from models import AlbuNet
 
 input_dir = "/storage/kaggle/tgs"
 output_dir = "/artifacts"
