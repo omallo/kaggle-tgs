@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import pandas as pd
 import torch
+import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
 from PIL import Image
@@ -14,7 +15,7 @@ from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-from metrics import precision_batch, LovaszWithLogitsLoss
+from metrics import precision_batch, LovaszWithLogitsLoss, AggregateLoss
 from models import AlbuNet
 
 input_dir = "/storage/kaggle/tgs"
@@ -310,9 +311,6 @@ def main():
     swa_model = AlbuNet(pretrained=True, is_deconv=True).to(device)
     swa_model.load_state_dict(model.state_dict())
 
-    # criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()], [0.7, 0.3])
-    criterion = LovaszWithLogitsLoss()
-
     train_set = TrainDataset(train_set_df.images.tolist(), train_set_df.masks.tolist(), augment=True)
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=False)
 
@@ -354,6 +352,10 @@ def main():
     for epoch in range(epochs_to_train):
 
         epoch_start_time = time.time()
+
+        bce_loss_weight = 0.97 ** epoch
+        criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()],
+                                  [bce_loss_weight, 1 - bce_loss_weight])
 
         train_loss_sum = 0.0
         train_precision_sum = 0.0
