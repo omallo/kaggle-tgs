@@ -300,7 +300,7 @@ def analyze(mask_model, mask_data_loader, contour_model, contour_data_loader, va
     val_set_df["precisions_opt"] = [o[1] for o in optimals]
 
     def calc_max_precision2(y_pred_raw, y_true, contours):
-        isects = [precision(np.int32(y_pred_raw > t), contours) for t in thresholds]
+        isects = [(contour(np.int32(y_pred_raw > t)) * contours).sum() for t in thresholds]
         ious = [precision(np.int32(y_pred_raw > t), y_true) for t in thresholds]
         am = np.argmax(isects)
         return thresholds[am], ious[am]
