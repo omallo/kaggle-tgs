@@ -334,6 +334,7 @@ def main():
     clr_scale_fn = lambda x: 1.0 / (1.1 ** (x - 1))
     clr_iterations = 0
 
+    swa_start_epoch = 32
     swa_c_epochs = 4
     swa_n = 0
 
@@ -406,7 +407,7 @@ def main():
             ckpt_saved = True
 
         swa_updated = False
-        if model_improved or (epoch + 1) % swa_c_epochs == 0:
+        if epoch + 1 >= swa_start_epoch and (model_improved or (epoch + 1) % swa_c_epochs == 0):
             swa_n += 1
             moving_average(swa_model, model, 1.0 / swa_n)
             swa_updated = True
