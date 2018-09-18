@@ -138,11 +138,11 @@ def compute_otsu_mask(image):
     return cv2.threshold(image_grayscale, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1] / 255
 
 
-def predict(model, val_pred_loader):
+def predict(model, data_loader):
     val_predictions = []
     with torch.no_grad():
-        for _, batch in enumerate(val_pred_loader):
-            inputs = batch[0].to(device)
+        for _, batch in enumerate(data_loader):
+            inputs = batch.to(device)
             outputs = model(inputs)
             predictions = torch.sigmoid(outputs)
             val_predictions += [p for p in predictions.cpu().numpy()]
@@ -158,8 +158,8 @@ def calculate_precision_based_on_contour(prediction, mask, prediction_contour, t
     return precision(np.int32(prediction > best_threshold), mask)
 
 
-def analyze(mask_model, val_data_loader, val_set_df):
-    val_set_df["predictions"] = predict(mask_model, val_data_loader)
+def analyze(model, data_loader, val_set_df):
+    val_set_df["predictions"] = predict(model, data_loader)
 
     thresholds = np.linspace(0, 1, 51)
 
@@ -229,8 +229,8 @@ def main():
     model = AlbuNet(pretrained=True, is_deconv=True).to(device)
     model.load_state_dict(torch.load("/storage/model.pth"))
 
-    mask_set = TrainDataset(val_set_df.images.tolist(), val_set_df.masks.tolist(), augment=False)
-    val_data_loader = DataLoader(mask_set, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=False)
+    val_set = TrainDataset(val_set_df.images.tolist())
+    val_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=False)
 
     mask_threshold = analyze(model, val_data_loader, val_set_df)
 
