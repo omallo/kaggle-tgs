@@ -200,9 +200,6 @@ def analyze(model, data_loader, val_set_df):
     val_set_df["precisions_avg"] = [precision(pm, m) for pm, m in
                                     zip(val_set_df.prediction_masks_avg, val_set_df.masks)]
 
-    val_set_df["predictions_confidence"] = [(p * pm).sum() / pm.sum() for p, pm in
-                                            zip(val_set_df.predictions, val_set_df.prediction_masks)]
-
     best_thresholds_per_coverage_class = {}
     for cc, cc_df in val_set_df.groupby("prediction_coverage_class"):
         best_thresholds_per_coverage_class[cc] = calculate_best_threshold(cc_df)
