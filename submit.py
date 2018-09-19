@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import pandas as pd
 import torch
+import torch.backends.cudnn as cudnn
 import torchvision.transforms as transforms
 from PIL import Image
 from scipy import ndimage
@@ -19,6 +20,7 @@ img_size_target = 128
 batch_size = 32
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+cudnn.benchmark = True
 
 
 class TrainDataset(Dataset):
