@@ -12,6 +12,7 @@ from PIL import Image
 from scipy import ndimage
 from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage.interpolation import map_coordinates
+from sklearn.model_selection import train_test_split
 from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
@@ -77,7 +78,6 @@ class TrainDataset(Dataset):
                     image, mask = apply_elastic_transform(image, mask, alpha=0, sigma=0, alpha_affine=8)
                 elif c == 2:
                     image, mask = apply_elastic_transform(image, mask, alpha=150, sigma=10, alpha_affine=5)
-                augmented = True
 
         mask_weights = calculate_mask_weights(mask)
 
@@ -277,7 +277,6 @@ def main():
     train_df = pd.read_csv("{}/train.csv".format(input_dir), index_col="id", usecols=[0])
     depths_df = pd.read_csv("{}/depths.csv".format(input_dir), index_col="id")
     train_df = train_df.join(depths_df)
-    test_df = depths_df[~depths_df.index.isin(train_df.index)]
 
     train_df["images"] = load_images("{}/train/images".format(input_dir), train_df.index)
     train_df["masks"] = load_images("{}/train/masks".format(input_dir), train_df.index)
@@ -288,9 +287,11 @@ def main():
     train_df["contours"] = train_df.masks.map(contour)
     train_df["mask_weights"] = [calculate_mask_weights(m) for m, c in zip(train_df.masks, train_df.coverage_class)]
 
-    train_val_split = int(0.8 * len(train_df))
-    train_set_ids = train_df.index.tolist()[:train_val_split]
-    val_set_ids = train_df.index.tolist()[train_val_split:]
+    train_set_ids, val_set_ids = train_test_split(
+        sorted(train_df.index.values),
+        test_size=0.2,
+        stratify=train_df.coverage_class,
+        random_state=42)
 
     train_set_df = train_df[train_df.index.isin(train_set_ids)].copy()
     val_set_df = train_df[train_df.index.isin(val_set_ids)].copy()
