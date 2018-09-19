@@ -207,10 +207,10 @@ def analyze(model, data_loader, val_set_df):
     print(val_set_df
         .groupby("coverage_class")
         .agg({
-        "precisions": "mean",
-        "precisions_crf": "mean",
-        "precisions_otsu": "mean",
-        "precisions_max": "mean"
+        "precisions": ["mean", "std"],
+        "precisions_crf": ["mean", "std"],
+        "precisions_otsu": ["mean", "std"],
+        "precisions_max": ["mean", "std"]
     }))
 
     print()
@@ -220,10 +220,10 @@ def analyze(model, data_loader, val_set_df):
     print(val_set_df
         .groupby("prediction_coverage_class")
         .agg({
-        "precisions": "mean",
-        "precisions_crf": "mean",
-        "precisions_otsu": "mean",
-        "precisions_max": "mean"
+        "precisions": ["mean", "std"],
+        "precisions_crf": ["mean", "std"],
+        "precisions_otsu": ["mean", "std"],
+        "precisions_max": ["mean", "std"]
     }))
 
     return threshold_best
