@@ -221,34 +221,34 @@ def analyze(model, data_loader, val_set_df):
     print("threshold/precision per prediction_coverage_class:")
     for cc in best_thresholds_per_coverage_class.keys():
         print(
-            "% 2d: %.3f -> %.3f" % (cc, best_thresholds_per_coverage_class[cc], best_precisions_per_coverage_class[cc]))
+            "% 2d: %.6f -> %.6f" % (cc, best_thresholds_per_coverage_class[cc], best_precisions_per_coverage_class[cc]))
 
     print()
-    print(val_set_df.groupby("coverage_class").count())
+    print(val_set_df.groupby("coverage_class").agg({"coverage_class": "count"}))
 
     print()
     print(val_set_df
         .groupby("coverage_class")
         .agg({
-        "precisions": ["mean", "std"],
-        "precisions_crf": ["mean", "std"],
-        "precisions_otsu": ["mean", "std"],
-        "precisions_max": ["mean", "std"],
-        "precisions_avg": ["mean", "std"]
+        "precisions": "mean",
+        "precisions_crf": "mean",
+        "precisions_otsu": "mean",
+        "precisions_max": "mean",
+        "precisions_avg": "mean"
     }))
 
     print()
-    print(val_set_df.groupby("prediction_coverage_class").count())
+    print(val_set_df.groupby("prediction_coverage_class").agg({"prediction_coverage_class": "count"}))
 
     print()
     print(val_set_df
         .groupby("prediction_coverage_class")
         .agg({
-        "precisions": ["mean", "std"],
-        "precisions_crf": ["mean", "std"],
-        "precisions_otsu": ["mean", "std"],
-        "precisions_max": ["mean", "std"],
-        "precisions_avg": ["mean", "std"]
+        "precisions": "mean",
+        "precisions_crf": "mean",
+        "precisions_otsu": "mean",
+        "precisions_max": "mean",
+        "precisions_avg": "mean"
     }))
 
     return best_threshold
@@ -257,6 +257,7 @@ def analyze(model, data_loader, val_set_df):
 def main():
     pd.set_option("display.max_rows", 500)
     pd.set_option("display.max_columns", 500)
+    pd.set_option("display.width", 160)
 
     train_df = pd.read_csv("{}/train.csv".format(input_dir), index_col="id", usecols=[0])
     depths_df = pd.read_csv("{}/depths.csv".format(input_dir), index_col="id")
