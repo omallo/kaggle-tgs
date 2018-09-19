@@ -228,6 +228,11 @@ def analyze(model, data_loader, val_set_df):
 
 
 def main():
+    pd.set_option("display.height", 1000)
+    pd.set_option("display.max_rows", 500)
+    pd.set_option("display.max_columns", 500)
+    pd.set_option("display.width", 1000)
+
     train_df = pd.read_csv("{}/train.csv".format(input_dir), index_col="id", usecols=[0])
     depths_df = pd.read_csv("{}/depths.csv".format(input_dir), index_col="id")
     train_df = train_df.join(depths_df)
