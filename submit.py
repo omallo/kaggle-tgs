@@ -218,15 +218,6 @@ def analyze(model, data_loader, val_set_df):
             val_set_df.precisions_otsu.mean(), val_set_df.precisions_max.mean(), val_set_df.precisions_avg.mean()))
 
     print()
-    print("threshold/precision per prediction_coverage_class:")
-    for cc in best_thresholds_per_coverage_class.keys():
-        print(
-            "%2d: %.6f -> %.6f" % (cc, best_thresholds_per_coverage_class[cc], best_precisions_per_coverage_class[cc]))
-
-    print()
-    print(val_set_df.groupby("coverage_class").agg({"coverage_class": "count"}))
-
-    print()
     print(val_set_df
         .groupby("coverage_class")
         .agg({
@@ -234,11 +225,9 @@ def analyze(model, data_loader, val_set_df):
         "precisions_crf": "mean",
         "precisions_otsu": "mean",
         "precisions_max": "mean",
-        "precisions_avg": "mean"
+        "precisions_avg": "mean",
+        "coverage_class": "count"
     }))
-
-    print()
-    print(val_set_df.groupby("prediction_coverage_class").agg({"prediction_coverage_class": "count"}))
 
     print()
     print(val_set_df
@@ -248,8 +237,15 @@ def analyze(model, data_loader, val_set_df):
         "precisions_crf": "mean",
         "precisions_otsu": "mean",
         "precisions_max": "mean",
-        "precisions_avg": "mean"
+        "precisions_avg": "mean",
+        "prediction_coverage_class": "count"
     }))
+
+    print()
+    print("threshold/precision per prediction_coverage_class:")
+    for cc in best_thresholds_per_coverage_class.keys():
+        print(
+            "%2d: %.6f -> %.6f" % (cc, best_thresholds_per_coverage_class[cc], best_precisions_per_coverage_class[cc]))
 
     return best_threshold
 
