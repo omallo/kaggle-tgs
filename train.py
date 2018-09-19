@@ -16,8 +16,8 @@ from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-from metrics import precision_batch, LovaszWithLogitsLoss, AggregateLoss
-from models import AlbuNet34, LossBinary
+from metrics import precision_batch, LovaszWithLogitsLoss, AggregateLoss, LossBinary
+from models import AlbuNet34
 
 input_dir = "/storage/kaggle/tgs"
 output_dir = "/artifacts"
