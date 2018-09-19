@@ -312,7 +312,7 @@ def main():
 
     # model = ResNetUNet(n_class=1).to(device)
 
-    # model.load_state_dict(torch.load("/storage/model.pth"))
+    model.load_state_dict(torch.load("/storage/model.pth", map_location=device))
 
     swa_model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=True).to(device)
     swa_model.load_state_dict(model.state_dict())
