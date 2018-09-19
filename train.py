@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import pandas as pd
 import torch
+import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
@@ -25,6 +26,7 @@ img_size_target = 128
 batch_size = 32
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+cudnn.benchmark = True
 
 
 class TrainDataset(Dataset):
@@ -294,7 +296,7 @@ def main():
     # model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
     # model = AlbuNet(pretrained=True, is_deconv=True).to(device)
 
-    model = AlbuNet(pretrained=True, is_deconv=False).to(device)
+    model = AlbuNet(pretrained=True, is_deconv=True).to(device)
     # resnet_layer_count_to_freeze = 0
     # resnet_layer_count = 0
     # for resnet_layer in model.encoder.children():
@@ -308,7 +310,7 @@ def main():
 
     # model.load_state_dict(torch.load("/storage/model.pth"))
 
-    swa_model = AlbuNet(pretrained=True, is_deconv=False).to(device)
+    swa_model = AlbuNet(pretrained=True, is_deconv=True).to(device)
     swa_model.load_state_dict(model.state_dict())
 
     train_set = TrainDataset(train_set_df.images.tolist(), train_set_df.masks.tolist(), augment=True)
