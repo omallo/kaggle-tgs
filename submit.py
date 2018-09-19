@@ -209,7 +209,8 @@ def analyze(model, data_loader, val_set_df):
         .agg({
         "precisions": "mean",
         "precisions_crf": "mean",
-        "precisions_otsu": "mean"
+        "precisions_otsu": "mean",
+        "precisions_max": "mean"
     }))
 
     print()
@@ -221,7 +222,8 @@ def analyze(model, data_loader, val_set_df):
         .agg({
         "precisions": "mean",
         "precisions_crf": "mean",
-        "precisions_otsu": "mean"
+        "precisions_otsu": "mean",
+        "precisions_max": "mean"
     }))
 
     return threshold_best
