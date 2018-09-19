@@ -12,7 +12,7 @@ virtualenv env --python=python3
 
 pip -q install -r requirements.txt
 
-echo "commit: $(git rev-parse HEAD)" >/artifacts/out.log
+printf "commit: $(git rev-parse HEAD)\n\n" | tee -a /artifacts/out.log
 
 python train.py | tee -a /artifacts/out.log
 
