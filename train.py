@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 from metrics import precision_batch, LovaszWithLogitsLoss, AggregateLoss
-from models import AlbuNet34
+from models import AlbuNet34, LossBinary
 
 input_dir = "/storage/kaggle/tgs"
 output_dir = "/artifacts"
@@ -308,7 +308,7 @@ def main():
 
     # model = ResNetUNet(n_class=1).to(device)
 
-    model.load_state_dict(torch.load("/storage/angiodysplasia-model.pth")["model"])
+    # model.load_state_dict(torch.load("/storage/model.pth"))
 
     swa_model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=False).to(device)
     swa_model.load_state_dict(model.state_dict())
@@ -359,6 +359,7 @@ def main():
         criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()],
                                   [bce_loss_weight, 1 - bce_loss_weight])
         criterion = LovaszWithLogitsLoss()
+        criterion = LossBinary(jaccard_weight=0.3)
 
         train_loss_sum = 0.0
         train_precision_sum = 0.0
