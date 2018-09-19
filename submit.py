@@ -192,13 +192,18 @@ def analyze(model, data_loader, val_set_df):
     val_set_df["precisions_max"] = [max(p1, p2, p3) for p1, p2, p3 in
                                     zip(val_set_df.precisions, val_set_df.precisions_otsu, val_set_df.precisions_crf)]
 
+    val_set_df["prediction_masks_avg"] = [np.int32((p1 + p2 + p3) >= 2) for p1, p2, p3 in
+                                          zip(val_set_df.prediction_masks, val_set_df.prediction_masks_otsu, val_set_df.prediction_masks_crf)]
+    val_set_df["precisions_avg"] = [precision(pm, m) for pm, m in
+                                    zip(val_set_df.prediction_masks_avg, val_set_df.masks)]
+
     val_set_df["predictions_confidence"] = [(p * pm).sum() / pm.sum() for p, pm in
                                             zip(val_set_df.predictions, val_set_df.prediction_masks)]
 
     print()
-    print("threshold: %.3f, precision: %.3f, precision_crf: %.3f, precision_otsu: %.3f, precision_max: %.3f" % (
+    print("threshold: %.3f, precision: %.3f, precision_crf: %.3f, precision_otsu: %.3f, precision_max: %.3f, precision_avg: %.3f" % (
         threshold_best, val_set_df.precisions.mean(), val_set_df.precisions_crf.mean(),
-        val_set_df.precisions_otsu.mean(), val_set_df.precisions_max.mean()))
+        val_set_df.precisions_otsu.mean(), val_set_df.precisions_max.mean(), val_set_df.precisions_avg.mean()))
 
     print()
     print(val_set_df.groupby("coverage_class").agg({"coverage_class": "count"}))
@@ -210,7 +215,8 @@ def analyze(model, data_loader, val_set_df):
         "precisions": ["mean", "std"],
         "precisions_crf": ["mean", "std"],
         "precisions_otsu": ["mean", "std"],
-        "precisions_max": ["mean", "std"]
+        "precisions_max": ["mean", "std"],
+        "precisions_avg": ["mean", "std"]
     }))
 
     print()
@@ -223,7 +229,8 @@ def analyze(model, data_loader, val_set_df):
         "precisions": ["mean", "std"],
         "precisions_crf": ["mean", "std"],
         "precisions_otsu": ["mean", "std"],
-        "precisions_max": ["mean", "std"]
+        "precisions_max": ["mean", "std"],
+        "precisions_avg": ["mean", "std"]
     }))
 
     return threshold_best
