@@ -221,7 +221,7 @@ def analyze(model, data_loader, val_set_df):
     print("threshold/precision per prediction_coverage_class:")
     for cc in best_thresholds_per_coverage_class.keys():
         print(
-            "% 2d: %.6f -> %.6f" % (cc, best_thresholds_per_coverage_class[cc], best_precisions_per_coverage_class[cc]))
+            "%2d: %.6f -> %.6f" % (cc, best_thresholds_per_coverage_class[cc], best_precisions_per_coverage_class[cc]))
 
     print()
     print(val_set_df.groupby("coverage_class").agg({"coverage_class": "count"}))
