@@ -356,7 +356,10 @@ def main():
         bce_loss_weight = 0.98 ** epoch
         criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()],
                                   [bce_loss_weight, 1 - bce_loss_weight])
-        criterion = LovaszWithLogitsLoss()
+        if epoch % 2 == 0:
+            criterion = LovaszWithLogitsLoss()
+        else:
+            criterion = nn.BCEWithLogitsLoss()
 
         train_loss_sum = 0.0
         train_precision_sum = 0.0
