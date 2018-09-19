@@ -204,18 +204,18 @@ def analyze(model, data_loader, val_set_df):
                                             zip(val_set_df.predictions, val_set_df.prediction_masks)]
 
     best_thresholds_per_coverage_class = {}
-    best_precisions_per_coverage_class = {}
     for cc, cc_df in val_set_df.groupby("prediction_coverage_class"):
-        threshold = calculate_best_threshold(cc_df)
-        prec = np.mean([precision(np.int32(p > threshold), m) for p, m in zip(cc_df.predictions, cc_df.masks)])
-        best_thresholds_per_coverage_class[cc] = threshold
-        best_precisions_per_coverage_class[cc] = prec
+        best_thresholds_per_coverage_class[cc] = calculate_best_threshold(cc_df)
+
+    val_set_df["precisions_cc"] = [precision(np.int32(p > best_thresholds_per_coverage_class[cc]), m) for p, m, cc in
+                                   zip(val_set_df.predictions, val_set_df.masks, val_set_df.prediction_coverage_class)]
 
     print()
     print(
-        "threshold: %.3f, precision: %.3f, precision_crf: %.3f, precision_otsu: %.3f, precision_max: %.3f, precision_avg: %.3f" % (
+        "threshold: %.3f, precision: %.3f, precision_crf: %.3f, precision_otsu: %.3f, precision_max: %.3f, precision_avg: %.3f, precision_cc: %.3f" % (
             best_threshold, val_set_df.precisions.mean(), val_set_df.precisions_crf.mean(),
-            val_set_df.precisions_otsu.mean(), val_set_df.precisions_max.mean(), val_set_df.precisions_avg.mean()))
+            val_set_df.precisions_otsu.mean(), val_set_df.precisions_max.mean(), val_set_df.precisions_avg.mean(),
+            val_set_df.precisions_cc.mean()))
 
     print()
     print(val_set_df
@@ -226,6 +226,7 @@ def analyze(model, data_loader, val_set_df):
         "precisions_otsu": "mean",
         "precisions_max": "mean",
         "precisions_avg": "mean",
+        "precisions_cc": "mean",
         "coverage_class": "count"
     }))
 
@@ -238,14 +239,9 @@ def analyze(model, data_loader, val_set_df):
         "precisions_otsu": "mean",
         "precisions_max": "mean",
         "precisions_avg": "mean",
+        "precisions_cc": "mean",
         "prediction_coverage_class": "count"
     }))
-
-    print()
-    print("threshold/precision per prediction_coverage_class:")
-    for cc in best_thresholds_per_coverage_class.keys():
-        print(
-            "%2d: %.6f -> %.6f" % (cc, best_thresholds_per_coverage_class[cc], best_precisions_per_coverage_class[cc]))
 
     return best_threshold
 
