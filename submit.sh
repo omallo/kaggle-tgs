@@ -4,7 +4,7 @@ apt-get update >/dev/null
 apt-get -y install python3-dev libsm-dev libxrender1 libxext6 zip >/dev/null
 rm -rf /var/lib/apt/lists/*
 
-pip -q --no-color install virtualenv
+pip -q install virtualenv
 virtualenv env --python=python3
 . env/bin/activate
 
