@@ -308,7 +308,7 @@ def main():
 
     # model = ResNetUNet(n_class=1).to(device)
 
-    # model.load_state_dict(torch.load("/storage/model.pth"))
+    model.load_state_dict(torch.load("/storage/angiodysplasia-model.pth"))
 
     swa_model = AlbuNet(pretrained=True, is_deconv=False).to(device)
     swa_model.load_state_dict(model.state_dict())
