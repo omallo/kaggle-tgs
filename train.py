@@ -333,7 +333,7 @@ def main():
     clr_iterations = 0
 
     swa_start_epoch = 0
-    swa_c_epochs = 1
+    swa_c_epochs = 4
     swa_n = 0
 
     optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
