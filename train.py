@@ -296,7 +296,7 @@ def main():
     # model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
     # model = AlbuNet(pretrained=True, is_deconv=True).to(device)
 
-    model = AlbuNet(pretrained=True, is_deconv=True).to(device)
+    model = AlbuNet(pretrained=True, is_deconv=False).to(device)
     # resnet_layer_count_to_freeze = 0
     # resnet_layer_count = 0
     # for resnet_layer in model.encoder.children():
@@ -310,7 +310,7 @@ def main():
 
     # model.load_state_dict(torch.load("/storage/model.pth"))
 
-    swa_model = AlbuNet(pretrained=True, is_deconv=True).to(device)
+    swa_model = AlbuNet(pretrained=True, is_deconv=False).to(device)
     swa_model.load_state_dict(model.state_dict())
 
     train_set = TrainDataset(train_set_df.images.tolist(), train_set_df.masks.tolist(), augment=True)
