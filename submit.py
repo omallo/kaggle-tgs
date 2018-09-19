@@ -213,7 +213,7 @@ def main():
     train_df = pd.read_csv("{}/train.csv".format(input_dir), index_col="id", usecols=[0])
     depths_df = pd.read_csv("{}/depths.csv".format(input_dir), index_col="id")
     train_df = train_df.join(depths_df)
-    test_df = depths_df[~depths_df.index.isin(train_df.index)]
+    test_df = depths_df[~depths_df.index.isin(train_df.index)].copy()
 
     train_df["images"] = load_images("{}/train/images".format(input_dir), train_df.index)
     train_df["masks"] = load_images("{}/train/masks".format(input_dir), train_df.index)
