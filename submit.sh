@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 apt-get update >/dev/null
 apt-get -y install python3-dev libsm-dev libxrender1 libxext6 zip git >/dev/null
 rm -rf /var/lib/apt/lists/*
