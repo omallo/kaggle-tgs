@@ -8,7 +8,7 @@ pip -q --no-color install virtualenv
 virtualenv env --python=python3
 . env/bin/activate
 
-pip -q --no-color install -r requirements.txt
+pip -q install -r requirements.txt
 
 python train.py | tee -a /artifacts/out.log
 
