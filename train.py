@@ -363,7 +363,7 @@ def main():
         criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()],
                                   [bce_loss_weight, 1 - bce_loss_weight])
         criterion = LovaszWithLogitsLoss()
-        criterion = LossBinary(jaccard_weight=1.0)
+        criterion = LossBinary(jaccard_weight=0.3)
 
         train_loss_sum = 0.0
         train_precision_sum = 0.0
