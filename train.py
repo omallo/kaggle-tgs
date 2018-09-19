@@ -311,11 +311,14 @@ def main():
 
     # model = ResNetUNet(n_class=1).to(device)
 
-    model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=False).to(device)
-    dpmodel = nn.DataParallel(model)
-    dpmodel.load_state_dict(torch.load("/storage/angiodysplasia-model.pth", map_location=device)["model"])
+    # model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=False).to(device)
+    # dpmodel = nn.DataParallel(model)
+    # dpmodel.load_state_dict(torch.load("/storage/angiodysplasia-model.pth", map_location=device)["model"])
 
-    swa_model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=False).to(device)
+    model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=True).to(device)
+    # model.load_state_dict(torch.load("/storage/model.pth", map_location=device))
+
+    swa_model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=True).to(device)
     swa_model.load_state_dict(model.state_dict())
 
     train_set = TrainDataset(train_set_df.images.tolist(), train_set_df.masks.tolist(), augment=True)
