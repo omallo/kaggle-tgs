@@ -243,6 +243,7 @@ def main():
 
     test_df["predictions"] = predict(model, test_data_loader)
     test_df["prediction_masks"] = [np.int32(p > mask_threshold) for p in test_df.predictions]
+    test_df["prediction_masks_crf"] = [crf(i, pm) for i, pm in zip(test_df.images, test_df.prediction_masks)]
 
     pred_dict = {idx: RLenc(test_df.loc[idx].prediction_masks) for i, idx in tqdm(enumerate(test_df.index.values))}
     sub = pd.DataFrame.from_dict(pred_dict, orient='index')
