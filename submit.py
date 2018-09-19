@@ -178,6 +178,9 @@ def analyze(model, data_loader, val_set_df):
     val_set_df["prediction_masks"] = [np.int32(p > threshold_best) for p in val_set_df.predictions]
     val_set_df["precisions"] = [precision(pm, m) for pm, m in zip(val_set_df.prediction_masks, val_set_df.masks)]
 
+    val_set_df["prediction_coverage"] = val_set_df.prediction_masks.map(np.sum) / pow(img_size_ori, 2)
+    val_set_df["prediction_coverage_class"] = val_set_df.prediction_coverage.map(coverage_to_class)
+
     val_set_df["prediction_masks_otsu"] = [np.int32(compute_otsu_mask(p)) for p in val_set_df.predictions]
     val_set_df["precisions_otsu"] = [precision(pm, m) for pm, m in
                                      zip(val_set_df.prediction_masks_otsu, val_set_df.masks)]
