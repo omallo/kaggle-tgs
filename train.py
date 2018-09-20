@@ -288,11 +288,15 @@ def main():
     train_df["contours"] = train_df.masks.map(contour)
     train_df["mask_weights"] = [calculate_mask_weights(m) for m, c in zip(train_df.masks, train_df.coverage_class)]
 
-    train_set_ids, val_set_ids = train_test_split(
-        sorted(train_df.index.values),
-        test_size=0.2,
-        stratify=train_df.coverage_class,
-        random_state=42)
+    # train_set_ids, val_set_ids = train_test_split(
+    #     sorted(train_df.index.values),
+    #     test_size=0.2,
+    #     stratify=train_df.coverage_class,
+    #     random_state=42)
+
+    train_val_split = int(0.8 * len(train_df))
+    train_set_ids = train_df.index.tolist()[:train_val_split]
+    val_set_ids = train_df.index.tolist()[train_val_split:]
 
     train_set_df = train_df[train_df.index.isin(train_set_ids)].copy()
     val_set_df = train_df[train_df.index.isin(val_set_ids)].copy()
