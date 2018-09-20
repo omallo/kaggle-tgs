@@ -48,13 +48,13 @@ class TrainDataset(Dataset):
         ])
 
     def __len__(self):
-        return 4 * len(self.images) if self.augment else len(self.images)
+        return len(self.images) if self.augment else len(self.images)
 
     def __getitem__(self, index):
-        image = self.images[index % len(self.images)]
-        mask = self.masks[index % len(self.images)]
+        image = self.images[index]
+        mask = self.masks[index]
 
-        if index >= len(self.images) and self.augment:
+        if self.augment and np.random.rand() < 0.75:
             augmented = False
 
             if np.random.rand() < 0.5:
