@@ -289,7 +289,7 @@ def main():
 
     train_set_ids, val_set_ids = train_test_split(
         sorted(train_df.index.values),
-        test_size=0.5,
+        test_size=0.2,
         stratify=train_df.coverage_class,
         random_state=42)
 
