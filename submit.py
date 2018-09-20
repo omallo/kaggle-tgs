@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from metrics import precision
 from models import AlbuNet34
-from utils import crf
+from processing import crf, rlenc
 
 input_dir = "/storage/kaggle/tgs"
 output_dir = "/artifacts"
@@ -39,45 +39,6 @@ class TrainDataset(Dataset):
 
     def __getitem__(self, index):
         return self.image_transform(self.images[index])
-
-
-# Source https://www.kaggle.com/bguberfain/unet-with-depth
-def RLenc(img, order='F', format=True):
-    """
-    img is binary mask image, shape (r,c)
-    order is down-then-right, i.e. Fortran
-    format determines if the order needs to be preformatted (according to submission rules) or not
-
-    returns run length as an array or string (if format is True)
-    """
-    bytes = img.reshape(img.shape[0] * img.shape[1], order=order)
-    runs = []  ## list of run lengths
-    r = 0  ## the current run length
-    pos = 1  ## count starts from 1 per WK
-    for c in bytes:
-        if (c == 0):
-            if r != 0:
-                runs.append((pos, r))
-                pos += r
-                r = 0
-            pos += 1
-        else:
-            r += 1
-
-    # if last run is unsaved (i.e. data ends with 1)
-    if r != 0:
-        runs.append((pos, r))
-        pos += r
-        r = 0
-
-    if format:
-        z = ''
-
-        for rr in runs:
-            z += '{} {} '.format(rr[0], rr[1])
-        return z[:-1]
-    else:
-        return runs
 
 
 def load_image(path, id):
@@ -289,13 +250,13 @@ def main():
     test_df["prediction_masks"] = [np.int32(p > mask_threshold) for p in test_df.predictions]
     test_df["prediction_masks_crf"] = [crf(i, pm) for i, pm in zip(test_df.images, test_df.prediction_masks)]
 
-    pred_dict = {idx: RLenc(test_df.loc[idx].prediction_masks) for i, idx in tqdm(enumerate(test_df.index.values))}
+    pred_dict = {idx: rlenc(test_df.loc[idx].prediction_masks) for i, idx in tqdm(enumerate(test_df.index.values))}
     sub = pd.DataFrame.from_dict(pred_dict, orient='index')
     sub.index.names = ['id']
     sub.columns = ['rle_mask']
     sub.to_csv("{}/submission.csv".format(output_dir))
 
-    pred_dict = {idx: RLenc(test_df.loc[idx].prediction_masks_crf) for i, idx in tqdm(enumerate(test_df.index.values))}
+    pred_dict = {idx: rlenc(test_df.loc[idx].prediction_masks_crf) for i, idx in tqdm(enumerate(test_df.index.values))}
     sub = pd.DataFrame.from_dict(pred_dict, orient='index')
     sub.index.names = ['id']
     sub.columns = ['rle_mask']
