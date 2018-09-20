@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import pandas as pd
+import torch
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
 from tqdm import tqdm
@@ -33,11 +34,8 @@ class TrainDataset(Dataset):
     def __init__(self, df, image_size_target, augment):
         super().__init__()
         self.df = df
-        self.image_size_original = df.images.shape[0]
         self.image_size_target = image_size_target
         self.augment = augment
-        self.image_transform = lambda i: prepare_image(i, image_size_target)
-        self.mask_transform = lambda m: prepare_mask(m, image_size_target)
 
     def __len__(self):
         return len(self.df)
@@ -51,9 +49,13 @@ class TrainDataset(Dataset):
 
         mask_weights = calculate_mask_weights(mask)
 
-        image = self.image_transform(image)
-        mask = self.mask_transform(mask)
-        mask_weights = self.mask_transform(mask_weights)
+        image = upsample(image, self.image_size_target)
+        mask = upsample(mask, self.image_size_target)
+        mask_weights = upsample(mask_weights, self.image_size_target)
+
+        image = image_to_tensor(image)
+        mask = mask_to_tensor(mask)
+        mask_weights = mask_to_tensor(mask_weights)
 
         return image, mask, mask_weights
 
@@ -112,3 +114,11 @@ def calculate_coverage_class(mask):
     for i in range(0, 11):
         if coverage * 10 <= i:
             return i
+
+
+def image_to_tensor(image):
+    return torch.from_numpy(np.moveaxis(image, -1, 0) / 255).float()
+
+
+def mask_to_tensor(mask):
+    return torch.from_numpy(np.expand_dims(mask, 0)).float()
