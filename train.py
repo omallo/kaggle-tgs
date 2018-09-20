@@ -48,7 +48,7 @@ class TrainDataset(Dataset):
         ])
 
     def __len__(self):
-        return 2 * len(self.images) if self.augment else len(self.images)
+        return 4 * len(self.images) if self.augment else len(self.images)
 
     def __getitem__(self, index):
         image = self.images[index % len(self.images)]
@@ -289,7 +289,7 @@ def main():
 
     train_set_ids, val_set_ids = train_test_split(
         sorted(train_df.index.values),
-        test_size=0.2,
+        test_size=0.5,
         stratify=train_df.coverage_class,
         random_state=42)
 
