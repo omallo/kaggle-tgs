@@ -6,6 +6,7 @@ import torch.backends.cudnn as cudnn
 import torchvision.transforms as transforms
 from PIL import Image
 from scipy import ndimage
+from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
@@ -263,8 +264,11 @@ def main():
 
     train_df["contours"] = train_df.masks.map(contour)
 
-    train_val_split = int(0.8 * len(train_df))
-    val_set_ids = train_df.index.tolist()[train_val_split:]
+    _, val_set_ids = train_test_split(
+        sorted(train_df.index.values),
+        test_size=0.2,
+        stratify=train_df.coverage_class,
+        random_state=42)
 
     val_set_df = train_df[train_df.index.isin(val_set_ids)].copy()
 

@@ -288,37 +288,14 @@ def main():
     train_df["contours"] = train_df.masks.map(contour)
     train_df["mask_weights"] = [calculate_mask_weights(m) for m, c in zip(train_df.masks, train_df.coverage_class)]
 
-    # train_set_ids, val_set_ids = train_test_split(
-    #     sorted(train_df.index.values),
-    #     test_size=0.2,
-    #     stratify=train_df.coverage_class,
-    #     random_state=42)
-
-    train_val_split = int(0.8 * len(train_df))
-    train_set_ids = train_df.index.tolist()[:train_val_split]
-    val_set_ids = train_df.index.tolist()[train_val_split:]
+    train_set_ids, val_set_ids = train_test_split(
+        sorted(train_df.index.values),
+        test_size=0.2,
+        stratify=train_df.coverage_class,
+        random_state=42)
 
     train_set_df = train_df[train_df.index.isin(train_set_ids)].copy()
     val_set_df = train_df[train_df.index.isin(val_set_ids)].copy()
-
-    # model = FusionNet(in_depth=3, out_depth=1, base_channels=32).to(device)
-    # model = UNet(in_depth=3, out_depth=1, base_channels=32).to(device)
-    # model = AlbuNet(pretrained=True, is_deconv=True).to(device)
-
-    # resnet_layer_count_to_freeze = 0
-    # resnet_layer_count = 0
-    # for resnet_layer in model.encoder.children():
-    #     resnet_layer_count += 1
-    #     if resnet_layer_count > resnet_layer_count_to_freeze:
-    #         break
-    #     for resnet_layer_parameter in resnet_layer.parameters():
-    #         resnet_layer_parameter.requires_grad = False
-
-    # model = ResNetUNet(n_class=1).to(device)
-
-    # model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=False).to(device)
-    # dpmodel = nn.DataParallel(model)
-    # dpmodel.load_state_dict(torch.load("/storage/angiodysplasia-model.pth", map_location=device)["model"])
 
     model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=True).to(device)
     # model.load_state_dict(torch.load("/storage/model.pth", map_location=device))
