@@ -17,7 +17,7 @@ from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-from metrics import precision_batch, LovaszWithLogitsLoss, AggregateLoss
+from metrics import precision_batch, LovaszWithLogitsLoss, AggregateLoss, LossBinary
 from models import AlbuNet34
 
 input_dir = "/storage/kaggle/tgs"
@@ -78,6 +78,7 @@ class TrainDataset(Dataset):
                     image, mask = apply_elastic_transform(image, mask, alpha=0, sigma=0, alpha_affine=8)
                 elif c == 2:
                     image, mask = apply_elastic_transform(image, mask, alpha=150, sigma=10, alpha_affine=5)
+                augmented = True
 
         mask_weights = calculate_mask_weights(mask)
 
@@ -363,11 +364,11 @@ def main():
 
         epoch_start_time = time.time()
 
-        bce_loss_weight = 0.97 ** epoch
+        bce_loss_weight = 0.98 ** epoch
         criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()],
                                   [bce_loss_weight, 1 - bce_loss_weight])
-        # criterion = LovaszWithLogitsLoss()
-        # criterion = LossBinary(jaccard_weight=0.6)
+        criterion = LovaszWithLogitsLoss()
+        criterion = LossBinary(jaccard_weight=0.6)
 
         train_loss_sum = 0.0
         train_precision_sum = 0.0
