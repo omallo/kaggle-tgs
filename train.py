@@ -341,11 +341,11 @@ def main():
 
         epoch_start_time = time.time()
 
-        bce_loss_weight = 0.98 ** epoch
-        criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()],
-                                  [bce_loss_weight, 1 - bce_loss_weight])
+        # bce_loss_weight = 0.98 ** epoch
+        # criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()],
+        #                           [bce_loss_weight, 1 - bce_loss_weight])
         criterion = LovaszWithLogitsLoss()
-        criterion = LossBinary(jaccard_weight=0.6)
+        # criterion = LossBinary(jaccard_weight=0.6)
 
         train_loss_sum = 0.0
         train_precision_sum = 0.0
