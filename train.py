@@ -17,7 +17,7 @@ from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-from metrics import precision_batch, LovaszWithLogitsLoss, AggregateLoss, LossBinary
+from metrics import precision_batch, LovaszWithLogitsLoss, AggregateLoss
 from models import AlbuNet34
 
 input_dir = "/storage/kaggle/tgs"
@@ -363,11 +363,11 @@ def main():
 
         epoch_start_time = time.time()
 
-        bce_loss_weight = 0.98 ** epoch
+        bce_loss_weight = 0.97 ** epoch
         criterion = AggregateLoss([nn.BCEWithLogitsLoss(), LovaszWithLogitsLoss()],
                                   [bce_loss_weight, 1 - bce_loss_weight])
-        criterion = LovaszWithLogitsLoss()
-        criterion = LossBinary(jaccard_weight=0.6)
+        # criterion = LovaszWithLogitsLoss()
+        # criterion = LossBinary(jaccard_weight=0.6)
 
         train_loss_sum = 0.0
         train_precision_sum = 0.0
