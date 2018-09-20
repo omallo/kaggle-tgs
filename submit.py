@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 from metrics import precision
-from models import AlbuNet
+from models import AlbuNet34
 from utils import crf
 
 input_dir = "/storage/kaggle/tgs"
