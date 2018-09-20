@@ -272,7 +272,7 @@ def main():
 
     val_set_df = train_df[train_df.index.isin(val_set_ids)].copy()
 
-    model = AlbuNet(pretrained=True, is_deconv=False).to(device)
+    model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=True).to(device)
     model.load_state_dict(torch.load("/storage/model.pth", map_location=device))
 
     val_set = TrainDataset(val_set_df.images.tolist())
