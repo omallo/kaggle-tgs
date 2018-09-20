@@ -250,7 +250,7 @@ def moving_average(net1, net2, alpha):
         param1.data += param2.data * alpha
 
 
-def eval(model, data_loader, criterion):
+def evaluate(model, data_loader, criterion):
     loss_sum = 0.0
     precision_sum = 0.0
     step_count = 0
@@ -356,10 +356,6 @@ def main():
     val_summary_writer = SummaryWriter(log_dir="{}/logs/val".format(output_dir))
     val_swa_summary_writer = SummaryWriter(log_dir="{}/logs/val_swa".format(output_dir))
 
-    do_crop_size = False
-    crop_sizes = [128, 192, 256]
-    crop_sizes_p = [0.4, 0.3, 0.3]
-
     for epoch in range(epochs_to_train):
 
         epoch_start_time = time.time()
@@ -375,15 +371,6 @@ def main():
         train_step_count = 0
         for _, batch in enumerate(train_loader):
             inputs, labels, label_weights = batch[0].to(device), batch[1].to(device), batch[2].to(device)
-
-            if do_crop_size:
-                crop_size = np.random.choice(crop_sizes, p=crop_sizes_p)
-                if crop_size != img_size_target:
-                    dx = np.random.randint((img_size_target - crop_size) // 2)
-                    dy = np.random.randint((img_size_target - crop_size) // 2)
-                    inputs = inputs[:, :, dx:dx + crop_size, dy:dy + crop_size].contiguous()
-                    labels = labels[:, :, dx:dx + crop_size, dy:dy + crop_size].contiguous()
-                    label_weights = label_weights[:, :, dx:dx + crop_size, dy:dy + crop_size].contiguous()
 
             clr_cycle = np.floor(1 + clr_iterations / (2 * clr_step_size))
             clr_x = np.abs(clr_iterations / clr_step_size - 2 * clr_cycle + 1)
@@ -412,7 +399,7 @@ def main():
 
         train_loss_avg = train_loss_sum / train_step_count
         train_precision_avg = train_precision_sum / train_step_count
-        val_loss_avg, val_precision_avg = eval(model, val_loader, criterion)
+        val_loss_avg, val_precision_avg = evaluate(model, val_loader, criterion)
 
         model_improved = val_precision_avg > global_val_precision_best_avg
         ckpt_saved = False
@@ -427,7 +414,7 @@ def main():
             moving_average(swa_model, model, 1.0 / swa_n)
             swa_updated = True
 
-        val_loss_swa_avg, val_precision_swa_avg = eval(swa_model, val_loader, criterion)
+        val_loss_swa_avg, val_precision_swa_avg = evaluate(swa_model, val_loader, criterion)
 
         swa_model_improved = val_precision_swa_avg > global_val_precision_swa_best_avg
         swa_ckpt_saved = False
