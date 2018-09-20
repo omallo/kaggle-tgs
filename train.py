@@ -298,7 +298,7 @@ def main():
     val_set_df = train_df[train_df.index.isin(val_set_ids)].copy()
 
     model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=True).to(device)
-    # model.load_state_dict(torch.load("/storage/model.pth", map_location=device))
+    model.load_state_dict(torch.load("/storage/model.pth", map_location=device))
 
     swa_model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=True).to(device)
     swa_model.load_state_dict(model.state_dict())
