@@ -37,13 +37,13 @@ class TrainDataset(Dataset):
         self.augment = augment
 
     def __len__(self):
-        return 2 * len(self.df)
+        return 2 * len(self.df) if self.augment else len(self.df)
 
     def __getitem__(self, index):
         image = self.df.images[index % len(self.df)]
         mask = self.df.masks[index % len(self.df)]
 
-        if self.augment:
+        if self.augment and index < len(self.df):
             image, mask = augment(image, mask)
 
         mask_weights = calculate_mask_weights(mask)
