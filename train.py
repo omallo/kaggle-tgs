@@ -206,7 +206,8 @@ def main():
                 int(swa_updated),
                 int(ckpt_saved),
                 int(swa_ckpt_saved),
-                int(trainig_reset)))
+                int(trainig_reset)),
+            flush=True)
 
         print('{"chart": "precision", "x": %d, "y": %.3f}' % (epoch + 1, global_val_precision_overall_avg))
 
