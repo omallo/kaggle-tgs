@@ -99,6 +99,8 @@ def main():
     epoch_since_reset = 0
     epoch_of_last_improval = 0
 
+    print('{"chart": "precision", "axis": "epoch"}')
+
     for epoch in range(epochs_to_train):
         epoch_start_time = time.time()
 
@@ -205,6 +207,8 @@ def main():
                 int(ckpt_saved),
                 int(swa_ckpt_saved),
                 int(trainig_reset)))
+
+        print('{"chart": "precision", "x": %d, "y": %.3f}' % (epoch + 1, global_val_precision_overall_avg))
 
         if min(epoch - epoch_of_last_improval, epoch_since_reset) >= train_abort_epochs_without_improval:
             print("early abort")
