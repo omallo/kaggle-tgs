@@ -64,7 +64,7 @@ def main():
     val_set_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
 
     model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=True).to(device)
-    model.load_state_dict(torch.load("/storage/model.pth", map_location=device))
+    # model.load_state_dict(torch.load("/storage/model.pth", map_location=device))
 
     swa_model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=True).to(device)
     swa_model.load_state_dict(model.state_dict())
