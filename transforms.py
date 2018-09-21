@@ -533,15 +533,15 @@ class CLAHE:
         return img_output
 
 
-def augment(x, mask=None, prob=0.5):
+def augment(image, mask):
     return DualCompose([
+        HorizontalFlip(prob=0.5),
         OneOrOther(
-            *(OneOf([
-                Distort1(distort_limit=0.05, shift_limit=0.05),
-                Distort2(num_steps=2, distort_limit=0.05)]),
-              ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.10, rotate_limit=45)), prob=prob),
-        RandomFlip(prob=0.5),
-        Transpose(prob=0.5),
+            Distort1(distort_limit=0.05, shift_limit=0.05),
+            Distort2(num_steps=2, distort_limit=0.05),
+            prob=0.5),
         ImageOnly(RandomContrast(limit=0.2, prob=0.5)),
-        ImageOnly(RandomFilter(limit=0.5, prob=0.2)),
-    ])(x, mask)
+        ImageOnly(
+            RandomHueSaturationValue(hue_shift_limit=(-10, 10), sat_shift_limit=(-15, 15), val_shift_limit=(-15, 15),
+                                     prob=0.5))
+    ])(image, mask)
