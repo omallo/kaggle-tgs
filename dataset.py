@@ -52,7 +52,7 @@ class TrainDataset(Dataset):
         mask = upsample(mask, self.image_size_target)
         mask_weights = upsample(mask_weights, self.image_size_target)
 
-        image = Normalize()(image_to_tensor(image))
+        image = image_to_tensor(Normalize()(image))
         mask = mask_to_tensor(mask)
         mask_weights = mask_to_tensor(mask_weights)
 
