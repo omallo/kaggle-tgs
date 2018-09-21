@@ -46,7 +46,7 @@ def main():
     output_dir = "/artifacts"
     image_size_target = 128
     batch_size = 32
-    epochs_to_train = 300
+    epochs_to_train = 128
     bce_loss_weight_gamma = 0.98
     clr_base_lr = 0.0001
     clr_max_lr = 0.001
@@ -216,7 +216,7 @@ def main():
 
         print('{"chart": "precision", "x": %d, "y": %.3f}' % (epoch + 1, global_val_precision_overall_avg))
 
-        if min(epoch - epoch_of_last_improval, epoch_since_reset) >= train_abort_epochs_without_improval:
+        if epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
             print("early abort")
             break
 
