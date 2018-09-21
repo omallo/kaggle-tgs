@@ -184,7 +184,6 @@ def main():
             epoch_since_reset += 1
             trainig_reset = False
 
-        optim_summary_writer.add_scalar("precision", global_val_precision_overall_avg, epoch + 1)
         optim_summary_writer.add_scalar("reset_count", reset_count, epoch + 1)
 
         train_summary_writer.add_scalar("loss", train_loss_avg, epoch + 1)
