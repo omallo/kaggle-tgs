@@ -4,7 +4,6 @@ import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
-from tqdm import tqdm
 
 from processing import calculate_mask_weights
 from transforms import augment
@@ -61,7 +60,7 @@ class TrainDataset(Dataset):
 
 
 def load_images(path, ids):
-    return [load_image(path, id) for id in tqdm(ids)]
+    return [load_image(path, id) for id in ids]
 
 
 def load_image(path, id):
@@ -70,7 +69,7 @@ def load_image(path, id):
 
 
 def load_masks(path, ids):
-    return [load_mask(path, id) for id in tqdm(ids)]
+    return [load_mask(path, id) for id in ids]
 
 
 def load_mask(path, id):
