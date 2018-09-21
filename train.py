@@ -66,10 +66,10 @@ def main():
     val_set = TrainDataset(train_data.val_set_df, image_size_target, augment=False)
     val_set_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
 
-    model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=True).to(device)
+    model = AlbuNet34(num_filters=64, pretrained=True, is_deconv=True).to(device)
     # model.load_state_dict(torch.load("/storage/model.pth", map_location=device))
 
-    swa_model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=True).to(device)
+    swa_model = AlbuNet34(num_filters=64, pretrained=True, is_deconv=True).to(device)
     swa_model.load_state_dict(model.state_dict())
 
     print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
