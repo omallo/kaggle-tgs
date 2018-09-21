@@ -89,6 +89,7 @@ def main():
 
     optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
 
+    optim_summary_writer = SummaryWriter(log_dir="{}/logs/optim".format(output_dir))
     train_summary_writer = SummaryWriter(log_dir="{}/logs/train".format(output_dir))
     val_summary_writer = SummaryWriter(log_dir="{}/logs/val".format(output_dir))
     val_swa_summary_writer = SummaryWriter(log_dir="{}/logs/val_swa".format(output_dir))
@@ -97,6 +98,7 @@ def main():
     swa_update_count = 0
     batch_count = 0
     epoch_since_reset = 0
+    reset_count = 0
     epoch_of_last_improval = 0
 
     print('{"chart": "precision", "axis": "epoch"}')
@@ -164,16 +166,6 @@ def main():
         epoch_end_time = time.time()
         epoch_duration_time = epoch_end_time - epoch_start_time
 
-        train_summary_writer.add_scalar("loss", train_loss_avg, epoch + 1)
-        train_summary_writer.add_scalar("precision", train_precision_avg, epoch + 1)
-
-        val_summary_writer.add_scalar("loss", val_loss_avg, epoch + 1)
-        val_summary_writer.add_scalar("precision", val_precision_avg, epoch + 1)
-
-        if swa_updated:
-            val_swa_summary_writer.add_scalar("loss", val_loss_swa_avg, epoch + 1)
-            val_swa_summary_writer.add_scalar("precision", val_precision_swa_avg, epoch + 1)
-
         if global_val_precision_best_avg > global_val_precision_overall_avg \
                 or global_val_precision_swa_best_avg > global_val_precision_overall_avg:
             global_val_precision_overall_avg = max(global_val_precision_best_avg, global_val_precision_swa_best_avg)
@@ -186,10 +178,24 @@ def main():
                 unfreeze(model_freezed_layers.pop())
             if len(swa_model_freezed_layers) > 0:
                 unfreeze(swa_model_freezed_layers.pop())
+            reset_count += 1
             trainig_reset = True
         else:
             epoch_since_reset += 1
             trainig_reset = False
+
+        optim_summary_writer.add_scalar("precision", global_val_precision_overall_avg, epoch + 1)
+        optim_summary_writer.add_scalar("reset_count", reset_count, epoch + 1)
+
+        train_summary_writer.add_scalar("loss", train_loss_avg, epoch + 1)
+        train_summary_writer.add_scalar("precision", train_precision_avg, epoch + 1)
+
+        val_summary_writer.add_scalar("loss", val_loss_avg, epoch + 1)
+        val_summary_writer.add_scalar("precision", val_precision_avg, epoch + 1)
+
+        if swa_updated:
+            val_swa_summary_writer.add_scalar("loss", val_loss_swa_avg, epoch + 1)
+            val_swa_summary_writer.add_scalar("precision", val_precision_swa_avg, epoch + 1)
 
         print(
             "[%03d/%03d] %ds, lr: %.6f, loss: %.3f, val_loss: %.3f|%.3f, prec: %.3f, val_prec: %.3f|%.3f, swa: %d, ckpt: %d|%d, rst: %d" % (
