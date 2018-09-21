@@ -68,14 +68,7 @@ class UNetUp(nn.Module):
 
     def forward(self, x, x_skip):
         up_out = self.up(x)
-        print(x.shape)
-        print(x_skip.shape)
-        print(up_out.shape)
-        print("foo")
-        v = torch.cat([up_out, x_skip], dim=1)
-        print(v.shape)
-        print("bar")
-        conv_out = self.conv(v)
+        conv_out = self.conv(torch.cat([up_out, x_skip], dim=1))
         return conv_out
 
 
