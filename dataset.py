@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
 
 from processing import calculate_mask_weights
-from transforms import augment
+from transforms import augment, Normalize
 
 
 class TrainData:
@@ -52,7 +52,7 @@ class TrainDataset(Dataset):
         mask = upsample(mask, self.image_size_target)
         mask_weights = upsample(mask_weights, self.image_size_target)
 
-        image = image_to_tensor(image)
+        image = Normalize()(image_to_tensor(image))
         mask = mask_to_tensor(mask)
         mask_weights = mask_to_tensor(mask_weights)
 
