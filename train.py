@@ -168,7 +168,7 @@ def main():
         if model_improved or swa_model_improved:
             epoch_of_last_improval = epoch
 
-        if epoch - epoch_of_last_improval >= train_reset_epochs_without_improval:
+        if min(epoch - epoch_of_last_improval, epoch_since_reset) >= train_reset_epochs_without_improval:
             clr_iterations = 0
             epoch_since_reset = 0
             trainig_reset = True
@@ -193,7 +193,7 @@ def main():
                 int(swa_ckpt_saved),
                 int(trainig_reset)))
 
-        if epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
+        if min(epoch - epoch_of_last_improval, epoch_since_reset) >= train_abort_epochs_without_improval:
             print("early abort")
             break
 
