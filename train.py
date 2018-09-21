@@ -46,14 +46,17 @@ def main():
     output_dir = "/artifacts"
     image_size_target = 128
     batch_size = 32
-    epochs_to_train = 64
+    epochs_to_train = 128
     bce_loss_weight_gamma = 0.98
     clr_base_lr = 0.0001
     clr_max_lr = 0.001
     clr_cycle_epochs = 4
     clr_scale_factor = 1.1
+    clr_scale_fn = lambda x: 1.0 / (clr_scale_factor ** (x - 1))
     swa_start_epoch = 20
     swa_cycle_epochs = 4
+    train_reset_epochs_without_improval = 10
+    train_abort_epochs_without_improval = 20
 
     train_data = TrainData(input_dir)
 
@@ -76,23 +79,23 @@ def main():
 
     epoch_iterations = len(train_set) // batch_size
     clr_step_size = (clr_cycle_epochs // 2) * epoch_iterations
-    clr_scale_fn = lambda x: 1.0 / (clr_scale_factor ** (x - 1))
-    clr_iterations = 0
-
-    swa_update_count = 0
 
     optimizer = optim.Adam(model.parameters(), lr=clr_base_lr)
-
-    batch_count = 0
 
     train_summary_writer = SummaryWriter(log_dir="{}/logs/train".format(output_dir))
     val_summary_writer = SummaryWriter(log_dir="{}/logs/val".format(output_dir))
     val_swa_summary_writer = SummaryWriter(log_dir="{}/logs/val_swa".format(output_dir))
 
+    clr_iterations = 0
+    swa_update_count = 0
+    batch_count = 0
+    epoch_since_reset = 0
+    epoch_of_last_improval = 0
+
     for epoch in range(epochs_to_train):
         epoch_start_time = time.time()
 
-        bce_loss_weight = bce_loss_weight_gamma ** epoch
+        bce_loss_weight = bce_loss_weight_gamma ** epoch_since_reset
         criterion = BCELovaszLoss(bce_loss_weight)
 
         train_loss_sum = 0.0
@@ -135,7 +138,7 @@ def main():
             ckpt_saved = True
 
         swa_updated = False
-        if epoch + 1 >= swa_start_epoch and (model_improved or (epoch + 1) % swa_cycle_epochs == 0):
+        if epoch + 1 >= swa_start_epoch and (model_improved or (epoch_since_reset + 1) % swa_cycle_epochs == 0):
             swa_update_count += 1
             moving_parameter_average(swa_model, model, 1.0 / swa_update_count)
             swa_updated = True
@@ -162,8 +165,19 @@ def main():
             val_swa_summary_writer.add_scalar("loss", val_loss_swa_avg, epoch + 1)
             val_swa_summary_writer.add_scalar("precision", val_precision_swa_avg, epoch + 1)
 
+        if model_improved or swa_model_improved:
+            epoch_of_last_improval = epoch
+
+        if epoch - epoch_of_last_improval >= train_reset_epochs_without_improval:
+            clr_iterations = 0
+            epoch_since_reset = 0
+            trainig_reset = True
+        else:
+            epoch_since_reset += 1
+            trainig_reset = False
+
         print(
-            "[%03d/%03d] %ds, lr: %.6f, loss: %.3f, val_loss: %.3f|%.3f, prec: %.3f, val_prec: %.3f|%.3f, swa: %d, ckpt: %d|%d" % (
+            "[%03d/%03d] %ds, lr: %.6f, loss: %.3f, val_loss: %.3f|%.3f, prec: %.3f, val_prec: %.3f|%.3f, swa: %d, ckpt: %d|%d, reset: %d" % (
                 epoch + 1,
                 epochs_to_train,
                 epoch_duration_time,
@@ -176,7 +190,12 @@ def main():
                 val_precision_swa_avg,
                 int(swa_updated),
                 int(ckpt_saved),
-                int(swa_ckpt_saved)))
+                int(swa_ckpt_saved),
+                int(trainig_reset)))
+
+        if epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
+            print("early abort")
+            break
 
     train_summary_writer.close()
     val_summary_writer.close()
