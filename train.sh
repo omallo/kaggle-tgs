@@ -14,7 +14,7 @@ pip -q install -r requirements.txt
 
 printf "commit: $(git rev-parse HEAD)\n\n" | tee -a /artifacts/out.log
 
-python train.py | tee -a /artifacts/out.log
+stdbuf -oL python train.py | tee -a /artifacts/out.log
 
 ( cd /artifacts && zip -r logs.zip logs )
 rm -rf /artifacts/logs

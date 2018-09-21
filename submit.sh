@@ -14,4 +14,4 @@ pip -q install -r requirements.txt
 
 printf "commit: $(git rev-parse HEAD)\n\n" | tee -a /artifacts/out.log
 
-python submit.py | tee -a /artifacts/out.log
+stdbuf -oL python submit.py | tee -a /artifacts/out.log
