@@ -12,9 +12,9 @@ virtualenv env --python=python3
 
 pip -q install -r requirements.txt
 
-printf "commit: $(git rev-parse HEAD)\n\n" | tee -a /artifacts/out.log
+printf "commit: $(git rev-parse HEAD)\n\n"
 
-stdbuf -oL python train.py | tee -a /artifacts/out.log
+stdbuf -oL python train.py
 
 ( cd /artifacts && zip -r logs.zip logs )
 rm -rf /artifacts/logs
