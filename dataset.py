@@ -78,27 +78,17 @@ def load_mask(path, id):
     return (mask > 0).astype(np.uint8)
 
 
-def upsample(img, image_size_target):
-    if image_size_target >= 2 * img.shape[0]:
-        return upsample(
-            np.pad(np.pad(img, ((0, 0), (0, img.shape[0])), "reflect"), ((0, img.shape[0]), (0, 0)), "reflect"),
-            image_size_target)
-    p = (image_size_target - img.shape[0]) / 2
-    return np.pad(img, (int(np.ceil(p)), int(np.floor(p))), mode='reflect')
+def upsample(image, image_size_target):
+    padding = (image_size_target - image.shape[0]) / 2
+    padding_start = int(np.ceil(padding))
+    padding_end = int(np.floor(padding))
+    return cv2.copyMakeBorder(image, padding_start, padding_end, padding_start, padding_end, cv2.BORDER_REFLECT_101)
 
 
-def downsample(img, image_size_original):
-    if img.shape[0] >= 2 * image_size_original:
-        p = (img.shape[0] - 2 * image_size_original) / 2
-    else:
-        p = (img.shape[0] - image_size_original) / 2
-    s = int(np.ceil(p))
-    e = s + image_size_original
-    unpadded = img[s:e, s:e]
-    if img.shape[0] >= 2 * image_size_original:
-        return unpadded[0:image_size_original, 0:image_size_original]
-    else:
-        return unpadded
+def downsample(image, image_size_original):
+    padding = (image_size_original - image.shape[0]) / 2
+    padding_start = int(np.ceil(padding))
+    return image[padding_start:padding_start + image_size_original, padding_start:padding_start + image_size_original]
 
 
 def prepare_image(image, image_size_target):
