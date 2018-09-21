@@ -74,6 +74,7 @@ def main():
 
     print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
 
+    global_val_precision_overall_avg = float("-inf")
     global_val_precision_best_avg = float("-inf")
     global_val_precision_swa_best_avg = float("-inf")
 
@@ -165,7 +166,9 @@ def main():
             val_swa_summary_writer.add_scalar("loss", val_loss_swa_avg, epoch + 1)
             val_swa_summary_writer.add_scalar("precision", val_precision_swa_avg, epoch + 1)
 
-        if model_improved or swa_model_improved:
+        if global_val_precision_best_avg > global_val_precision_overall_avg \
+                or global_val_precision_swa_best_avg > global_val_precision_overall_avg:
+            global_val_precision_overall_avg = max(global_val_precision_best_avg, global_val_precision_swa_best_avg)
             epoch_of_last_improval = epoch
 
         if min(epoch - epoch_of_last_improval, epoch_since_reset) >= train_reset_epochs_without_improval:
