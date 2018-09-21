@@ -46,7 +46,7 @@ def main():
     output_dir = "/artifacts"
     image_size_target = 128
     batch_size = 32
-    epochs_to_train = 2
+    epochs_to_train = 64
     bce_loss_weight_gamma = 0.98
     clr_base_lr = 0.0001
     clr_max_lr = 0.001
@@ -64,7 +64,7 @@ def main():
     val_set_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
 
     model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=True).to(device)
-    model.load_state_dict(torch.load("/storage/model.pth", map_location=device))
+    # model.load_state_dict(torch.load("/storage/model.pth", map_location=device))
 
     swa_model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=True).to(device)
     swa_model.load_state_dict(model.state_dict())
