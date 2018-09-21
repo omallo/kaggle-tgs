@@ -11,7 +11,7 @@ from dataset import TrainData, TrainDataset
 from losses import BCELovaszLoss
 from metrics import precision_batch
 from models import AlbuNet34
-from utils import moving_parameter_average, adjust_learning_rate
+from utils import moving_parameter_average, adjust_learning_rate, freeze, unfreeze
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
@@ -68,9 +68,19 @@ def main():
 
     model = AlbuNet34(num_filters=64, pretrained=True, is_deconv=True).to(device)
     # model.load_state_dict(torch.load("/storage/model.pth", map_location=device))
+    model_freezed_layers = [model.conv1, model.conv2, model.conv3, model.conv4, model.conv5]
+    for layer in model_freezed_layers:
+        freeze(layer)
+    # TODO: check why custom pool layer is mixed with resnet encoder
+    unfreeze(model.pool)
 
     swa_model = AlbuNet34(num_filters=64, pretrained=True, is_deconv=True).to(device)
     swa_model.load_state_dict(model.state_dict())
+    swa_model_freezed_layers = [swa_model.conv1, swa_model.conv2, swa_model.conv3, swa_model.conv4, swa_model.conv5]
+    for layer in swa_model_freezed_layers:
+        freeze(layer)
+    # TODO: check why custom pool layer is mixed with resnet encoder
+    unfreeze(swa_model.pool)
 
     print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
 
@@ -174,6 +184,10 @@ def main():
         if min(epoch - epoch_of_last_improval, epoch_since_reset) >= train_reset_epochs_without_improval:
             clr_iterations = 0
             epoch_since_reset = 0
+            if len(model_freezed_layers) > 0:
+                unfreeze(model_freezed_layers.pop())
+            if len(swa_model_freezed_layers) > 0:
+                unfreeze(swa_model_freezed_layers.pop())
             trainig_reset = True
         else:
             epoch_since_reset += 1
