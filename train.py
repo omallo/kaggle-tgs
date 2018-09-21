@@ -3,6 +3,7 @@ import time
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
+import torch.nn as nn
 import torch.optim as optim
 from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader
@@ -108,6 +109,7 @@ def main():
 
         bce_loss_weight = bce_loss_weight_gamma ** epoch
         criterion = BCELovaszLoss(bce_loss_weight)
+        criterion = nn.BCEWithLogitsLoss()
 
         train_loss_sum = 0.0
         train_precision_sum = 0.0
