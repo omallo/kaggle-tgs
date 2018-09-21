@@ -46,7 +46,7 @@ def main():
     output_dir = "/artifacts"
     image_size_target = 128
     batch_size = 32
-    epochs_to_train = 64
+    epochs_to_train = 300
     bce_loss_weight_gamma = 0.98
     clr_base_lr = 0.0001
     clr_max_lr = 0.001
@@ -68,13 +68,13 @@ def main():
 
     model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=True).to(device)
     # model.load_state_dict(torch.load("/storage/model.pth", map_location=device))
-    model_freezed_layers = []
+    model_freezed_layers = [model.conv1, model.conv2, model.conv3, model.conv4, model.conv5]
     for layer in model_freezed_layers:
         freeze(layer)
 
     swa_model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=True).to(device)
     swa_model.load_state_dict(model.state_dict())
-    swa_model_freezed_layers = []
+    swa_model_freezed_layers = [swa_model.conv1, swa_model.conv2, swa_model.conv3, swa_model.conv4, swa_model.conv5]
     for layer in swa_model_freezed_layers:
         freeze(layer)
 
