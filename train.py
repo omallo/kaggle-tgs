@@ -49,7 +49,7 @@ def main():
     batch_size = 32
     epochs_to_train = 160
     swa_start_epoch = 20
-    swa_cycle_epochs = 4
+    swa_cycle_epochs = 20
     sgdr_min_lr = 0.001
     sgdr_max_lr = 0.03
     sgdr_cycle_epochs = 20
