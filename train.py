@@ -51,8 +51,8 @@ def main():
     bce_loss_weight_gamma = 0.98
     swa_start_epoch = 20
     swa_cycle_epochs = 20
-    sgdr_min_lr = 0.001
-    sgdr_max_lr = 0.03
+    sgdr_min_lr = 0.0001  # 0.001
+    sgdr_max_lr = 0.001  # 0.03
     sgdr_cycle_epochs = 20
     train_abort_epochs_without_improval = 20
 
@@ -78,7 +78,8 @@ def main():
 
     epoch_iterations = len(train_set) // batch_size
 
-    optimizer = optim.SGD(model.parameters(), lr=sgdr_max_lr, weight_decay=1e-4, momentum=0.9, nesterov=True)
+    # optimizer = optim.SGD(model.parameters(), lr=sgdr_max_lr, weight_decay=1e-4, momentum=0.9, nesterov=True)
+    optimizer = optim.Adam(model.parameters(), lr=sgdr_max_lr)
     lr_scheduler = CosineAnnealingLR(optimizer, T_max=sgdr_cycle_epochs, eta_min=sgdr_min_lr)
 
     optim_summary_writer = SummaryWriter(log_dir="{}/logs/optim".format(output_dir))
