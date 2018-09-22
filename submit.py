@@ -3,15 +3,12 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.backends.cudnn as cudnn
-import torchvision.transforms as transforms
-from PIL import Image
-from scipy import ndimage
-from sklearn.model_selection import train_test_split
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from dataset import TrainData, TrainDataset
 from metrics import precision
-from models import AlbuNet34
+from models import UNetResNet
 from processing import crf, rlenc
 
 input_dir = "/storage/kaggle/tgs"
@@ -22,75 +19,6 @@ batch_size = 32
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
-
-
-class TrainDataset(Dataset):
-    def __init__(self, images):
-        super().__init__()
-        self.images = images
-        self.image_transform = transforms.Compose([
-            prepare_input,
-            transforms.ToTensor(),
-            lambda t: t.type(torch.FloatTensor)
-        ])
-
-    def __len__(self):
-        return len(self.images)
-
-    def __getitem__(self, index):
-        return self.image_transform(self.images[index])
-
-
-def load_image(path, id):
-    image = np.array(Image.open("{}/{}.png".format(path, id)))
-    return np.squeeze(image[:, :, 0:1]) / 255 if len(image.shape) == 3 else image / 65535
-
-
-def load_images(path, ids):
-    return [load_image(path, id) for id in tqdm(ids)]
-
-
-def upsample(img):
-    if img_size_target >= 2 * img.shape[0]:
-        return upsample(
-            np.pad(np.pad(img, ((0, 0), (0, img.shape[0])), "reflect"), ((0, img.shape[0]), (0, 0)), "reflect"))
-    p = (img_size_target - img.shape[0]) / 2
-    return np.pad(img, (int(np.ceil(p)), int(np.floor(p))), mode='reflect')
-
-
-def downsample(img):
-    if img.shape[0] >= 2 * img_size_ori:
-        p = (img.shape[0] - 2 * img_size_ori) / 2
-    else:
-        p = (img.shape[0] - img_size_ori) / 2
-    s = int(np.ceil(p))
-    e = s + img_size_ori
-    unpadded = img[s:e, s:e]
-    if img.shape[0] >= 2 * img_size_ori:
-        return unpadded[0:img_size_ori, 0:img_size_ori]
-    else:
-        return unpadded
-
-
-def coverage_to_class(coverage):
-    for i in range(0, 11):
-        if coverage * 10 <= i:
-            return i
-
-
-def prepare_input(image):
-    return np.expand_dims(upsample(image), axis=2).repeat(3, axis=2)
-
-
-def contour(mask, width=3):
-    edge_x = ndimage.convolve(mask, np.array([[-1, 0, +1], [-1, 0, +1], [-1, 0, +1]]))
-    edge_y = ndimage.convolve(mask, np.array([[-1, -1, -1], [0, 0, 0], [+1, +1, +1]]))
-    contour = np.abs(edge_x) + np.abs(edge_y)
-
-    for _ in range(width - 1):
-        contour = ndimage.convolve(contour, np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]]))
-
-    return np.int32(contour != 0)
 
 
 # https://www.microsoft.com/developerblog/2018/05/17/using-otsus-method-generate-data-training-deep-learning-image-segmentation-models/
@@ -113,13 +41,6 @@ def predict(model, data_loader):
     val_predictions = np.asarray(val_predictions).reshape(-1, img_size_target, img_size_target)
     val_predictions = [downsample(p) for p in val_predictions]
     return val_predictions
-
-
-def calculate_precision_based_on_contour(prediction, mask, prediction_contour, thresholds):
-    isects = [(contour(np.int32(prediction > t)) * prediction_contour).sum() for t in thresholds]
-    best_isect_index = np.argmax(isects)
-    best_threshold = thresholds[best_isect_index]
-    return precision(np.int32(prediction > best_threshold), mask)
 
 
 def calculate_best_threshold(df):
@@ -212,32 +133,20 @@ def main():
     pd.set_option("display.max_columns", 500)
     pd.set_option("display.width", 160)
 
-    train_df = pd.read_csv("{}/train.csv".format(input_dir), index_col="id", usecols=[0])
-    depths_df = pd.read_csv("{}/depths.csv".format(input_dir), index_col="id")
-    train_df = train_df.join(depths_df)
-    test_df = depths_df[~depths_df.index.isin(train_df.index)].copy()
+    input_dir = "/storage/kaggle/tgs"
+    output_dir = "/artifacts"
+    image_size_target = 128
 
-    train_df["images"] = load_images("{}/train/images".format(input_dir), train_df.index)
-    train_df["masks"] = load_images("{}/train/masks".format(input_dir), train_df.index)
+    train_data = TrainData(input_dir)
 
-    train_df["coverage"] = train_df.masks.map(np.sum) / pow(img_size_ori, 2)
-    train_df["coverage_class"] = train_df.coverage.map(coverage_to_class)
+    train_set = TrainDataset(train_data.train_set_df, image_size_target, augment=True)
+    train_set_data_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=8)
 
-    train_df["contours"] = train_df.masks.map(contour)
+    val_set = TrainDataset(train_data.val_set_df, image_size_target, augment=False)
+    val_set_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=2)
 
-    _, val_set_ids = train_test_split(
-        sorted(train_df.index.values),
-        test_size=0.2,
-        stratify=train_df.coverage_class,
-        random_state=42)
-
-    val_set_df = train_df[train_df.index.isin(val_set_ids)].copy()
-
-    model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=True).to(device)
+    model = UNetResNet(101, 1, num_filters=32, dropout_2d=0.2, pretrained=False, is_deconv=False).to(device)
     model.load_state_dict(torch.load("/storage/model.pth", map_location=device))
-
-    val_set = TrainDataset(val_set_df.images.tolist())
-    val_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=False)
 
     mask_threshold = analyze(model, val_data_loader, val_set_df)
 
