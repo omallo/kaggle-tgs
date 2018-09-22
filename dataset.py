@@ -9,6 +9,8 @@ from torchvision.transforms.functional import normalize
 from processing import calculate_mask_weights
 from transforms import augment
 
+max_depth = 1010
+
 
 class TrainData:
     def __init__(self, base_dir):
@@ -43,8 +45,9 @@ class TrainDataset(Dataset):
     def __getitem__(self, index):
         image = self.df.images[index % len(self.df)]
         mask = self.df.masks[index % len(self.df)]
+        depth = self.df.z[index % len(self.df)]
 
-        image = set_depth_channels(image)
+        image = set_depth_channels(image, depth)
 
         if self.augment and index >= len(self.df):
             image, mask = augment(image, mask)
@@ -59,7 +62,12 @@ class TrainDataset(Dataset):
         mask = mask_to_tensor(mask)
         mask_weights = mask_to_tensor(mask_weights)
 
-        image = normalize(image, (0.4719, 0.5, 0.4719), (0.1610, 0.2915, 0.1610))
+        image_mean = 0.4719
+        image_std = 0.4719
+        depth_mean = 506.45 / max_depth
+        depth_std = 208.60 / max_depth
+
+        image = normalize(image, (image_mean, depth_mean, image_mean), (image_std, depth_std, image_std))
 
         return image, mask, mask_weights
 
@@ -118,10 +126,10 @@ def mask_to_tensor(mask):
     return torch.from_numpy(np.expand_dims(mask, 0)).float()
 
 
-def set_depth_channels(image):
+def set_depth_channels(image, depth):
     image = image.copy()
     h, w, _ = image.shape
     for row, const in enumerate(np.linspace(0, 1, h)):
-        image[row, :, 1] = int(np.round(255 * const))
+        image[row, :, 1] = int(np.round(255 * (depth - 50 + row) / max_depth))
         image[row, :, 2] = np.round(const * image[row, :, 0]).astype(image.dtype)
     return image
