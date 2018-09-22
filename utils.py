@@ -4,6 +4,11 @@ def adjust_learning_rate(optimizer, lr):
     return lr
 
 
+def get_learning_rate(optimizer):
+    for param_group in optimizer.param_groups:
+        return param_group["lr"]
+
+
 def freeze(model):
     for param in model.parameters():
         param.requires_grad = False
