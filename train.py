@@ -100,7 +100,7 @@ def main():
     for epoch in range(epochs_to_train):
         epoch_start_time = time.time()
 
-        criterion = BCELovaszLoss(bce_weight=0.0)
+        criterion = BCELovaszLoss(bce_weight=bce_loss_weight_gamma ** epoch)
 
         train_loss_sum = 0.0
         train_precision_sum = 0.0
