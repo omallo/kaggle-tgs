@@ -61,7 +61,7 @@ def main():
     train_set_data_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=8)
 
     val_set = TrainDataset(train_data.val_set_df, image_size_target, augment=False)
-    val_set_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
+    val_set_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=1)
 
     model = AlbuNet34(num_filters=32, pretrained=True, is_deconv=True).to(device)
     # model.load_state_dict(torch.load("/storage/model.pth", map_location=device))
