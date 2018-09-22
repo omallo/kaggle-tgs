@@ -93,6 +93,7 @@ def main():
 
     print('{"chart": "best_val_precision", "axis": "epoch"}')
     print('{"chart": "val_precision", "axis": "epoch"}')
+    print('{"chart": "val_loss", "axis": "epoch"}')
 
     for epoch in range(epochs_to_train):
         epoch_start_time = time.time()
@@ -187,6 +188,7 @@ def main():
 
         print('{"chart": "best_val_precision", "x": %d, "y": %.3f}' % (epoch + 1, global_val_precision_overall_avg))
         print('{"chart": "val_precision", "x": %d, "y": %.3f}' % (epoch + 1, val_precision_avg))
+        print('{"chart": "val_loss", "x": %d, "y": %.3f}' % (epoch + 1, val_loss_avg))
 
         if epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
             print("early abort")
