@@ -44,6 +44,8 @@ class TrainDataset(Dataset):
         image = self.df.images[index % len(self.df)]
         mask = self.df.masks[index % len(self.df)]
 
+        image = set_depth_channels(image)
+
         if self.augment and index >= len(self.df):
             image, mask = augment(image, mask)
 
@@ -53,9 +55,11 @@ class TrainDataset(Dataset):
         mask = upsample(mask, self.image_size_target)
         mask_weights = upsample(mask_weights, self.image_size_target)
 
-        image = normalize(image_to_tensor(image), (0.4719, 0.4719, 0.4719), (0.1610, 0.1610, 0.1610))
+        image = image_to_tensor(image)
         mask = mask_to_tensor(mask)
         mask_weights = mask_to_tensor(mask_weights)
+
+        image = normalize(image, (0.4719, 0.5, 0.4719), (0.1610, 0.2915, 0.1610))
 
         return image, mask, mask_weights
 
@@ -112,3 +116,12 @@ def image_to_tensor(image):
 
 def mask_to_tensor(mask):
     return torch.from_numpy(np.expand_dims(mask, 0)).float()
+
+
+def set_depth_channels(image):
+    image = image.copy()
+    h, w, _ = image.shape
+    for row, const in enumerate(np.linspace(0, 1, h)):
+        image[row, :, 1] = int(np.round(255 * const))
+        image[row, :, 2] = np.round(const * image[row, :, 0]).astype(image.dtype)
+    return image
