@@ -51,7 +51,7 @@ def main():
     swa_start_epoch = 20
     swa_cycle_epochs = 20
     sgdr_min_lr = 0.001
-    sgdr_max_lr = 0.01
+    sgdr_max_lr = 0.03
     sgdr_cycle_epochs = 20
     train_abort_epochs_without_improval = 20
 
