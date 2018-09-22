@@ -58,7 +58,7 @@ def main():
     train_data = TrainData(input_dir)
 
     train_set = TrainDataset(train_data.train_set_df, image_size_target, augment=True)
-    train_set_data_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=16)
+    train_set_data_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=4)
 
     val_set = TrainDataset(train_data.val_set_df, image_size_target, augment=False)
     val_set_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
