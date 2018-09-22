@@ -91,7 +91,8 @@ def main():
     batch_count = 0
     epoch_of_last_improval = 0
 
-    print('{"chart": "precision", "axis": "epoch"}')
+    print('{"chart": "best_val_precision", "axis": "epoch"}')
+    print('{"chart": "val_precision", "axis": "epoch"}')
 
     for epoch in range(epochs_to_train):
         epoch_start_time = time.time()
@@ -184,7 +185,8 @@ def main():
                 int(swa_ckpt_saved)),
             flush=True)
 
-        print('{"chart": "precision", "x": %d, "y": %.3f}' % (epoch + 1, global_val_precision_overall_avg))
+        print('{"chart": "best_val_precision", "x": %d, "y": %.3f}' % (epoch + 1, global_val_precision_overall_avg))
+        print('{"chart": "val_precision", "x": %d, "y": %.3f}' % (epoch + 1, val_precision_avg))
 
         if epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
             print("early abort")
