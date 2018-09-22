@@ -3,13 +3,13 @@ import time
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
-import torch.nn as nn
 import torch.optim as optim
 from tensorboardX import SummaryWriter
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
 
 from dataset import TrainData, TrainDataset
+from losses import BCELovaszLoss
 from metrics import precision_batch
 from models import UNetResNet
 from utils import moving_parameter_average, get_learning_rate
@@ -48,6 +48,7 @@ def main():
     image_size_target = 128
     batch_size = 32
     epochs_to_train = 160
+    bce_loss_weight_gamma = 0.98
     swa_start_epoch = 20
     swa_cycle_epochs = 20
     sgdr_min_lr = 0.001
@@ -79,7 +80,6 @@ def main():
 
     optimizer = optim.SGD(model.parameters(), lr=sgdr_max_lr, weight_decay=1e-4, momentum=0.9, nesterov=True)
     lr_scheduler = CosineAnnealingLR(optimizer, T_max=sgdr_cycle_epochs, eta_min=sgdr_min_lr)
-    criterion = nn.BCEWithLogitsLoss()
 
     optim_summary_writer = SummaryWriter(log_dir="{}/logs/optim".format(output_dir))
     train_summary_writer = SummaryWriter(log_dir="{}/logs/train".format(output_dir))
@@ -97,6 +97,8 @@ def main():
 
     for epoch in range(epochs_to_train):
         epoch_start_time = time.time()
+
+        criterion = BCELovaszLoss(bce_weight=bce_loss_weight_gamma ** epoch)
 
         train_loss_sum = 0.0
         train_precision_sum = 0.0
