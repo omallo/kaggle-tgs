@@ -72,7 +72,7 @@ class AlbuNet34(nn.Module):
         self.conv1 = nn.Sequential(self.encoder.conv1,
                                    self.encoder.bn1,
                                    self.encoder.relu,
-                                   self.encoder.maxpool)
+                                   self.pool)
 
         self.conv2 = self.encoder.layer1
 
