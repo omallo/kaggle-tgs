@@ -5,7 +5,7 @@ from torch.nn import functional as F
 
 
 def conv3x3(in_, out):
-    return nn.Conv2d(in_, out, 3, padding=1)
+    return with_he_normal_weights(nn.Conv2d(in_, out, 3, padding=1))
 
 
 class ConvRelu(nn.Module):
@@ -115,3 +115,8 @@ class AlbuNet34(nn.Module):
             x_out = self.final(dec0)
 
         return x_out
+
+
+def with_he_normal_weights(layer):
+    nn.init.kaiming_normal_(layer.weight, a=0, mode="fan_in")
+    return layer
