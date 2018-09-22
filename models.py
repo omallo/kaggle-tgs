@@ -7,10 +7,11 @@ from torch.nn import functional as F
 class ConvBnRelu(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
-        self.conv = nn.Sequential(nn.Conv2d(in_channels, out_channels, 3, padding=1),
-                                  nn.BatchNorm2d(out_channels),
-                                  nn.ReLU(inplace=True)
-                                  )
+        self.conv = nn.Sequential(
+            with_he_normal_weights(nn.Conv2d(in_channels, out_channels, 3, padding=1)),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
+        )
 
     def forward(self, x):
         return self.conv(x)
