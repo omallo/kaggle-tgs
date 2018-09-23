@@ -8,10 +8,11 @@ import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from dataset import TrainData, TrainDataset, calculate_coverage_class, downsample
+from dataset import TrainData, TrainDataset, calculate_coverage_class
 from metrics import precision
 from models import create_model
 from processing import crf
+from transforms import downsample
 
 input_dir = "/storage/kaggle/tgs"
 image_size_original = 101

@@ -4,6 +4,22 @@ from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage.interpolation import map_coordinates
 
 
+def upsample(image, image_size_target):
+    padding0 = (image_size_target - image.shape[0]) / 2
+    padding1 = (image_size_target - image.shape[1]) / 2
+    padding_start0 = int(np.ceil(padding0))
+    padding_end0 = int(np.floor(padding0))
+    padding_start1 = int(np.ceil(padding1))
+    padding_end1 = int(np.floor(padding1))
+    return cv2.copyMakeBorder(image, padding_start0, padding_end0, padding_start1, padding_end1, cv2.BORDER_REFLECT_101)
+
+
+def downsample(image, image_size_original):
+    padding = (image.shape[0] - image_size_original) / 2
+    padding_start = int(np.ceil(padding))
+    return image[padding_start:padding_start + image_size_original, padding_start:padding_start + image_size_original]
+
+
 def augment(image, mask):
     augmented = False
 
@@ -28,6 +44,10 @@ def augment(image, mask):
             image, mask = apply_elastic_transform(image, mask, alpha=0, sigma=0, alpha_affine=8)
         elif c == 2:
             image, mask = apply_elastic_transform(image, mask, alpha=150, sigma=10, alpha_affine=5)
+        augmented = True
+
+    if np.random.rand() < 0.5 or not augmented:
+        image, mask = random_crop_and_pad(image, mask)
 
     return image, mask
 
@@ -92,3 +112,23 @@ def apply_elastic_transform(image, mask, alpha, sigma, alpha_affine):
     mask_result = result[..., 3]
     mask_result = (mask_result > 0.5).astype(mask.dtype)
     return image_result, mask_result
+
+
+def random_crop_and_pad(image, mask):
+    max_crop = 40
+
+    crop_x_total = np.random.randint(max_crop)
+    crop_x0 = np.random.randint(crop_x_total + 1)
+    crop_x1 = crop_x_total - crop_x0
+
+    crop_y_total = np.random.randint(max_crop)
+    crop_y0 = np.random.randint(crop_y_total + 1)
+    crop_y1 = crop_y_total - crop_y0
+
+    cropped_image = image[crop_x0:image.shape[0] - crop_x1, crop_y0:image.shape[1] - crop_y1, :]
+    cropped_mask = mask[crop_x0:mask.shape[0] - crop_x1, crop_y0:mask.shape[1] - crop_y1]
+
+    cropped_padded_image = upsample(cropped_image, image.shape[0])
+    cropped_padded_mask = upsample(cropped_mask, mask.shape[0])
+
+    return cropped_padded_image, cropped_padded_mask

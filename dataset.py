@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 from torchvision.transforms.functional import normalize
 
 from processing import calculate_mask_weights
-from transforms import augment
+from transforms import augment, upsample
 
 
 class TrainData:
@@ -91,19 +91,6 @@ def load_mask(path, id):
     return (mask > 0).astype(np.uint8)
 
 
-def upsample(image, image_size_target):
-    padding = (image_size_target - image.shape[0]) / 2
-    padding_start = int(np.ceil(padding))
-    padding_end = int(np.floor(padding))
-    return cv2.copyMakeBorder(image, padding_start, padding_end, padding_start, padding_end, cv2.BORDER_REFLECT_101)
-
-
-def downsample(image, image_size_original):
-    padding = (image.shape[0] - image_size_original) / 2
-    padding_start = int(np.ceil(padding))
-    return image[padding_start:padding_start + image_size_original, padding_start:padding_start + image_size_original]
-
-
 def prepare_image(image, image_size_target):
     return np.expand_dims(upsample(image, image_size_target), axis=2).repeat(3, axis=2)
 
@@ -128,6 +115,7 @@ def mask_to_tensor(mask):
 
 
 def set_depth_channels(image, depth):
+    max_depth = 1010
     image = image.copy()
     h, w, _ = image.shape
     for row, const in enumerate(np.linspace(0, 1, h)):
