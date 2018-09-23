@@ -106,7 +106,6 @@ def main():
         criterion = BCELovaszLoss(bce_weight=bce_loss_weight_gamma ** epoch)
 
         model.train()
-        swa_model.train()
 
         train_loss_sum = 0.0
         train_precision_sum = 0.0
