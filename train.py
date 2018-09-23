@@ -214,10 +214,15 @@ def main():
     val_summary_writer.close()
     val_swa_summary_writer.close()
 
+    print()
+    print("evaluation of the training model")
     model.load_state_dict(torch.load("{}/model.pth".format(output_dir), map_location=device))
-    model.eval()
-
     analyze(model, val_set_data_loader, train_data.val_set_df)
+
+    print()
+    print("evaluation of the SWA model")
+    swa_model.load_state_dict(torch.load("{}/swa_model.pth".format(output_dir), map_location=device))
+    analyze(swa_model, val_set_data_loader, train_data.val_set_df)
 
 
 if __name__ == "__main__":

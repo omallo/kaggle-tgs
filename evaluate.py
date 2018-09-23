@@ -31,6 +31,7 @@ def compute_otsu_mask(image):
 
 
 def predict(model, data_loader):
+    model.eval()
     val_predictions = []
     with torch.no_grad():
         for _, batch in enumerate(data_loader):
