@@ -99,7 +99,7 @@ def upsample(image, image_size_target):
 
 
 def downsample(image, image_size_original):
-    padding = (image_size_original - image.shape[0]) / 2
+    padding = (image.shape[0] - image_size_original) / 2
     padding_start = int(np.ceil(padding))
     return image[padding_start:padding_start + image_size_original, padding_start:padding_start + image_size_original]
 
