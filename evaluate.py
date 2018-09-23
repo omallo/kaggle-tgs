@@ -1,5 +1,3 @@
-import sys
-
 import cv2
 import numpy as np
 import pandas as pd
@@ -14,8 +12,6 @@ from transforms import downsample
 
 image_size_original = 101
 image_size_target = 128
-
-model_dir = sys.argv[1]
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
