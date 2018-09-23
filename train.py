@@ -93,6 +93,7 @@ def main():
     val_swa_summary_writer = SummaryWriter(log_dir="{}/logs/val_swa".format(output_dir))
 
     sgdr_iterations = 0
+    sgdr_reset_count = 0
     swa_update_count = 0
     batch_count = 0
     epoch_of_last_improval = 0
@@ -103,6 +104,8 @@ def main():
     print('{"chart": "val_loss", "axis": "epoch"}')
     print('{"chart": "val_precision_swa", "axis": "epoch"}')
     print('{"chart": "val_loss_swa", "axis": "epoch"}')
+    print('{"chart": "sgdr_reset", "axis": "epoch"}')
+    print('{"chart": "swa_update", "axis": "epoch"}')
 
     train_start_time = time.time()
 
@@ -173,9 +176,15 @@ def main():
             global_val_precision_overall_avg = max(global_val_precision_best_avg, global_val_precision_swa_best_avg)
             epoch_of_last_improval = epoch
 
+        sgdr_reset = False
         if (epoch + 1 >= sgdr_next_cycle_end_epoch) and (epoch - epoch_of_last_improval >= sgdr_cycle_end_patience):
             sgdr_iterations = 0
             sgdr_next_cycle_end_epoch = epoch + sgdr_cycle_epochs
+            sgdr_reset_count += 1
+            sgdr_reset = True
+
+        optim_summary_writer.add_scalar("sgdr_reset", sgdr_reset_count, epoch + 1)
+        optim_summary_writer.add_scalar("swa_update", swa_update_count, epoch + 1)
 
         train_summary_writer.add_scalar("loss", train_loss_avg, epoch + 1)
         train_summary_writer.add_scalar("precision", train_precision_avg, epoch + 1)
@@ -188,7 +197,7 @@ def main():
             val_swa_summary_writer.add_scalar("precision", val_precision_swa_avg, epoch + 1)
 
         print(
-            "[%03d/%03d] %ds, lr: %.6f, loss: %.3f, val_loss: %.3f|%.3f, prec: %.3f, val_prec: %.3f|%.3f, swa: %d, ckpt: %d|%d" % (
+            "[%03d/%03d] %ds, lr: %.6f, loss: %.3f, val_loss: %.3f|%.3f, prec: %.3f, val_prec: %.3f|%.3f, swa: %d, ckpt: %d|%d, rst: %d" % (
                 epoch + 1,
                 epochs_to_train,
                 epoch_duration_time,
@@ -201,7 +210,8 @@ def main():
                 val_precision_swa_avg,
                 int(swa_updated),
                 int(ckpt_saved),
-                int(swa_ckpt_saved)),
+                int(swa_ckpt_saved),
+                int(sgdr_reset)),
             flush=True)
 
         print('{"chart": "best_val_precision", "x": %d, "y": %.3f}' % (epoch + 1, global_val_precision_overall_avg))
@@ -209,6 +219,8 @@ def main():
         print('{"chart": "val_loss", "x": %d, "y": %.3f}' % (epoch + 1, val_loss_avg))
         print('{"chart": "val_precision_swa", "x": %d, "y": %.3f}' % (epoch + 1, val_precision_swa_avg))
         print('{"chart": "val_loss_swa", "x": %d, "y": %.3f}' % (epoch + 1, val_loss_swa_avg))
+        print('{"chart": "sgdr_reset", "x": %d, "y": %.3f}' % (epoch + 1, sgdr_reset_count))
+        print('{"chart": "swa_update", "x": %d, "y": %.3f}' % (epoch + 1, swa_update_count))
 
         if epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
             print("early abort")
