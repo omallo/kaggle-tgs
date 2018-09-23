@@ -158,7 +158,7 @@ def main():
 
         val_loss_swa_avg, val_precision_swa_avg = evaluate(swa_model, val_set_data_loader, criterion)
 
-        swa_model_improved = val_precision_swa_avg > global_val_precision_swa_best_avg
+        swa_model_improved = epoch + 1 >= swa_start_epoch and val_precision_swa_avg > global_val_precision_swa_best_avg
         swa_ckpt_saved = False
         if swa_model_improved:
             torch.save(swa_model.state_dict(), "{}/swa_model.pth".format(output_dir))
