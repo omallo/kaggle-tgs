@@ -149,6 +149,7 @@ def main():
         swa_updated = False
         if epoch + 1 >= swa_start_epoch and (model_improved or (epoch + 1) % swa_cycle_epochs == 0):
             swa_update_count += 1
+            swa_model.train()
             moving_parameter_average(swa_model, model, 1.0 / swa_update_count)
             swa_updated = True
 
