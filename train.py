@@ -103,7 +103,7 @@ def main():
     for epoch in range(epochs_to_train):
         epoch_start_time = time.time()
 
-        criterion = BCELovaszLoss(bce_weight=0.6)
+        criterion = BCELovaszLoss(bce_weight=bce_loss_weight_gamma ** epoch)
 
         model.train()
         swa_model.train()
