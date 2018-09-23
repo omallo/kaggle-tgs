@@ -101,6 +101,8 @@ def main():
     print('{"chart": "val_precision_swa", "axis": "epoch"}')
     print('{"chart": "val_loss_swa", "axis": "epoch"}')
 
+    train_start_time = time.time()
+
     for epoch in range(epochs_to_train):
         epoch_start_time = time.time()
 
@@ -214,6 +216,11 @@ def main():
     val_summary_writer.close()
     val_swa_summary_writer.close()
 
+    train_end_time = time.time()
+    print("Train time: %ds" % (train_end_time - train_start_time))
+
+    eval_start_time = time.time()
+
     print()
     print("evaluation of the training model")
     model.load_state_dict(torch.load("{}/model.pth".format(output_dir), map_location=device))
@@ -223,6 +230,9 @@ def main():
     print("evaluation of the SWA model")
     swa_model.load_state_dict(torch.load("{}/swa_model.pth".format(output_dir), map_location=device))
     analyze(swa_model, val_set_data_loader, train_data.val_set_df)
+
+    eval_end_time = time.time()
+    print("Eval time: %ds" % (eval_end_time - eval_start_time))
 
 
 if __name__ == "__main__":
