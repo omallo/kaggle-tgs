@@ -58,6 +58,7 @@ def main():
     sgdr_min_lr = 0.0001  # 0.001
     sgdr_max_lr = 0.001  # 0.03
     sgdr_cycle_epochs = 20
+    sgdr_cycle_end_patience = 3
     train_abort_epochs_without_improval = 20
 
     train_data = TrainData(input_dir)
@@ -95,6 +96,7 @@ def main():
     swa_update_count = 0
     batch_count = 0
     epoch_of_last_improval = 0
+    sgdr_next_cycle_end_epoch = sgdr_cycle_epochs
 
     print('{"chart": "best_val_precision", "axis": "epoch"}')
     print('{"chart": "val_precision", "axis": "epoch"}')
@@ -117,7 +119,7 @@ def main():
         for _, batch in enumerate(train_set_data_loader):
             images, masks, mask_weights = batch[0].to(device), batch[1].to(device), batch[2].to(device)
 
-            lr_scheduler.step(epoch=sgdr_iterations / epoch_iterations)
+            lr_scheduler.step(epoch=min(sgdr_cycle_epochs, sgdr_iterations / epoch_iterations))
 
             optimizer.zero_grad()
             prediction_logits = model(images)
@@ -147,9 +149,6 @@ def main():
             global_val_precision_best_avg = val_precision_avg
             ckpt_saved = True
 
-        if (epoch + 1) % sgdr_cycle_epochs == 0:
-            sgdr_iterations = 0
-
         swa_updated = False
         if epoch + 1 >= swa_start_epoch and (model_improved or ((epoch + 1) % swa_cycle_epochs == 0)):
             swa_update_count += 1
@@ -173,6 +172,10 @@ def main():
         if model_improved_overall or swa_model_improved_overall:
             global_val_precision_overall_avg = max(global_val_precision_best_avg, global_val_precision_swa_best_avg)
             epoch_of_last_improval = epoch
+
+        if (epoch + 1 >= sgdr_next_cycle_end_epoch) and (epoch - epoch_of_last_improval >= sgdr_cycle_end_patience):
+            sgdr_iterations = 0
+            sgdr_next_cycle_end_epoch = epoch + sgdr_cycle_epochs
 
         train_summary_writer.add_scalar("loss", train_loss_avg, epoch + 1)
         train_summary_writer.add_scalar("precision", train_precision_avg, epoch + 1)
