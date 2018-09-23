@@ -9,6 +9,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
 
 from dataset import TrainData, TrainDataset
+from evaluate import analyze
 from losses import BCELovaszLoss
 from metrics import precision_batch
 from models import create_model
@@ -209,6 +210,11 @@ def main():
     train_summary_writer.close()
     val_summary_writer.close()
     val_swa_summary_writer.close()
+
+    model.load_state_dict(torch.load("{}/model.pth".format(output_dir), map_location=device))
+    model.eval()
+
+    analyze(model, val_set_data_loader, train_data.val_set_df)
 
 
 if __name__ == "__main__":
