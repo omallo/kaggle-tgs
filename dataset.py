@@ -64,7 +64,7 @@ class TrainDataset(Dataset):
         image[2, :, :] = depth / max_depth
 
         image_mean = 0.4719
-        image_std = 0.4719
+        image_std = 0.1610
         depth_mean = 506.45 / max_depth
         depth_std = 208.60 / max_depth
 
