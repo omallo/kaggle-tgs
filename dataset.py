@@ -9,8 +9,6 @@ from torchvision.transforms.functional import normalize
 from processing import calculate_mask_weights
 from transforms import augment
 
-max_depth = 1010
-
 
 class TrainData:
     def __init__(self, base_dir):
@@ -47,7 +45,7 @@ class TrainDataset(Dataset):
         mask = self.df.masks[index % len(self.df)]
         depth = self.df.z[index % len(self.df)]
 
-        image = set_depth_channels(image, depth)
+        # image = set_depth_channels(image, depth)
 
         if self.augment and index >= len(self.df):
             image, mask = augment(image, mask)
@@ -62,12 +60,15 @@ class TrainDataset(Dataset):
         mask = mask_to_tensor(mask)
         mask_weights = mask_to_tensor(mask_weights)
 
+        max_depth = 959
+        image[2, :, :] = depth / max_depth
+
         image_mean = 0.4719
         image_std = 0.4719
         depth_mean = 506.45 / max_depth
         depth_std = 208.60 / max_depth
 
-        image = normalize(image, (image_mean, depth_mean, image_mean), (image_std, depth_std, image_std))
+        image = normalize(image, (image_mean, image_mean, depth_mean), (image_std, image_std, depth_std))
 
         return image, mask, mask_weights
 
