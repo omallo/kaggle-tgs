@@ -1,3 +1,5 @@
+import sys
+
 import cv2
 import numpy as np
 import pandas as pd
@@ -12,10 +14,11 @@ from models import create_model
 from processing import crf
 
 input_dir = "/storage/kaggle/tgs"
-output_dir = "/artifacts"
 image_size_original = 101
 image_size_target = 128
 batch_size = 32
+
+model_dir = sys.argv[1]
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
@@ -138,7 +141,7 @@ def main():
     val_set_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=2)
 
     model = create_model(pretrained=False).to(device)
-    model.load_state_dict(torch.load("/storage/model.pth", map_location=device))
+    model.load_state_dict(torch.load("{}/model.pth".format(model_dir), map_location=device))
     model.eval()
 
     analyze(model, val_set_data_loader, train_data.val_set_df)

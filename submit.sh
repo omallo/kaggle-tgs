@@ -14,4 +14,4 @@ pip -q install -r requirements.txt
 
 printf "commit: $(git rev-parse HEAD)\n\n" | tee -a /artifacts/out.log
 
-python submit.py | tee -a /artifacts/out.log
+python submit.py /storage/models/tgs/$1 | tee -a /artifacts/out.log

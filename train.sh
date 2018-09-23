@@ -18,3 +18,7 @@ python train.py | tee -a /artifacts/out.log
 
 ( cd /artifacts && zip -r logs.zip logs )
 rm -rf /artifacts/logs
+
+rm -rf /storage/models/tgs/$1
+mkdir -p /storage/models/tgs/$1
+cp -r * /storage/models/tgs/$1
