@@ -47,7 +47,7 @@ class TrainDataset(Dataset):
 
         # image = set_depth_channels(image, depth)
 
-        if self.augment and index >= len(self.df):
+        if self.augment and index < len(self.df):
             image, mask = augment(image, mask)
 
         mask_weights = calculate_mask_weights(mask)
