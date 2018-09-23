@@ -1,3 +1,4 @@
+import datetime
 import time
 
 import numpy as np
@@ -215,7 +216,8 @@ def main():
     val_swa_summary_writer.close()
 
     train_end_time = time.time()
-    print("Train time: %ds" % (train_end_time - train_start_time))
+    print()
+    print("Train time: %s" % str(datetime.timedelta(seconds=train_end_time - train_start_time)))
 
     eval_start_time = time.time()
 
@@ -230,7 +232,8 @@ def main():
     analyze(swa_model, val_set_data_loader, train_data.val_set_df)
 
     eval_end_time = time.time()
-    print("Eval time: %ds" % (eval_end_time - eval_start_time))
+    print()
+    print("Eval time: %s" % str(datetime.timedelta(seconds=eval_end_time - eval_start_time)))
 
 
 if __name__ == "__main__":
