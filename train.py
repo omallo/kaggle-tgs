@@ -19,6 +19,8 @@ cudnn.benchmark = True
 
 
 def evaluate(model, data_loader, criterion):
+    model.eval()
+
     loss_sum = 0.0
     precision_sum = 0.0
     step_count = 0
@@ -103,6 +105,9 @@ def main():
 
         criterion = BCELovaszLoss(bce_weight=bce_loss_weight_gamma ** epoch)
 
+        model.train()
+        swa_model.train()
+
         train_loss_sum = 0.0
         train_precision_sum = 0.0
         train_step_count = 0
@@ -129,6 +134,7 @@ def main():
 
         train_loss_avg = train_loss_sum / train_step_count
         train_precision_avg = train_precision_sum / train_step_count
+
         val_loss_avg, val_precision_avg = evaluate(model, val_set_data_loader, criterion)
 
         model_improved = val_precision_avg > global_val_precision_best_avg
