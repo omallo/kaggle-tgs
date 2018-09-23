@@ -68,7 +68,7 @@ def main():
     val_set_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=2)
 
     model = create_model(pretrained=True).to(device)
-    model.load_state_dict(torch.load("/storage/models/tgs/random-crop/model.pth", map_location=device))
+    model.load_state_dict(torch.load("/storage/models/tgs/random-crop-round2/model.pth", map_location=device))
 
     swa_model = create_model(pretrained=True).to(device)
     swa_model.load_state_dict(model.state_dict())
@@ -150,11 +150,8 @@ def main():
             sgdr_iterations = 0
 
         swa_updated = False
-        if epoch + 1 >= swa_start_epoch and (model_improved or (epoch + 1) % swa_cycle_epochs == 0):
+        if epoch + 1 >= swa_start_epoch and (model_improved or ((epoch + 1) % swa_cycle_epochs == 0)):
             swa_update_count += 1
-            # TODO: is this necessary?
-            model.train()
-            swa_model.train()
             moving_parameter_average(swa_model, model, 1.0 / swa_update_count)
             swa_updated = True
 
@@ -170,8 +167,9 @@ def main():
         epoch_end_time = time.time()
         epoch_duration_time = epoch_end_time - epoch_start_time
 
-        if global_val_precision_best_avg > global_val_precision_overall_avg \
-                or global_val_precision_swa_best_avg > global_val_precision_overall_avg:
+        model_improved_overall = global_val_precision_best_avg > global_val_precision_overall_avg
+        swa_model_improved_overall = swa_updated and global_val_precision_swa_best_avg > global_val_precision_overall_avg
+        if model_improved_overall or swa_model_improved_overall:
             global_val_precision_overall_avg = max(global_val_precision_best_avg, global_val_precision_swa_best_avg)
             epoch_of_last_improval = epoch
 
