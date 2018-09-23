@@ -6,15 +6,15 @@ import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from dataset import TrainData, TrainDataset
+from dataset import TrainData, TrainDataset, calculate_coverage_class, downsample
 from metrics import precision
 from models import UNetResNet
-from processing import crf, rlenc
+from processing import crf
 
 input_dir = "/storage/kaggle/tgs"
 output_dir = "/artifacts"
-img_size_ori = 101
-img_size_target = 128
+image_size_original = 101
+image_size_target = 128
 batch_size = 32
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -38,8 +38,8 @@ def predict(model, data_loader):
             outputs = model(inputs)
             predictions = torch.sigmoid(outputs)
             val_predictions += [p for p in predictions.cpu().numpy()]
-    val_predictions = np.asarray(val_predictions).reshape(-1, img_size_target, img_size_target)
-    val_predictions = [downsample(p) for p in val_predictions]
+    val_predictions = np.asarray(val_predictions).reshape(-1, image_size_target, image_size_target)
+    val_predictions = [downsample(p, image_size_original) for p in val_predictions]
     return val_predictions
 
 
@@ -65,8 +65,7 @@ def analyze(model, data_loader, val_set_df):
     val_set_df["prediction_masks"] = [np.int32(p > best_threshold) for p in val_set_df.predictions]
     val_set_df["precisions"] = [precision(pm, m) for pm, m in zip(val_set_df.prediction_masks, val_set_df.masks)]
 
-    val_set_df["prediction_coverage"] = val_set_df.prediction_masks.map(np.sum) / pow(img_size_ori, 2)
-    val_set_df["prediction_coverage_class"] = val_set_df.prediction_coverage.map(coverage_to_class)
+    val_set_df["prediction_coverage_class"] = val_set_df.prediction_masks.map(calculate_coverage_class)
 
     val_set_df["prediction_masks_otsu"] = [np.int32(compute_otsu_mask(p)) for p in val_set_df.predictions]
     val_set_df["precisions_otsu"] = [precision(pm, m) for pm, m in
@@ -133,43 +132,16 @@ def main():
     pd.set_option("display.max_columns", 500)
     pd.set_option("display.width", 160)
 
-    input_dir = "/storage/kaggle/tgs"
-    output_dir = "/artifacts"
-    image_size_target = 128
-
     train_data = TrainData(input_dir)
-
-    train_set = TrainDataset(train_data.train_set_df, image_size_target, augment=True)
-    train_set_data_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=8)
 
     val_set = TrainDataset(train_data.val_set_df, image_size_target, augment=False)
     val_set_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=2)
 
-    model = UNetResNet(101, 1, num_filters=32, dropout_2d=0.2, pretrained=False, is_deconv=False).to(device)
+    model = UNetResNet(34, 1, num_filters=32, dropout_2d=0.5, pretrained=True, is_deconv=False).to(device)
     model.load_state_dict(torch.load("/storage/model.pth", map_location=device))
+    model.eval()
 
-    mask_threshold = analyze(model, val_data_loader, val_set_df)
-
-    test_df["images"] = load_images("{}/test/images".format(input_dir), test_df.index)
-
-    test_set = TrainDataset(test_df.images.tolist())
-    test_data_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=False)
-
-    test_df["predictions"] = predict(model, test_data_loader)
-    test_df["prediction_masks"] = [np.int32(p > mask_threshold) for p in test_df.predictions]
-    test_df["prediction_masks_crf"] = [crf(i, pm) for i, pm in zip(test_df.images, test_df.prediction_masks)]
-
-    pred_dict = {idx: rlenc(test_df.loc[idx].prediction_masks) for i, idx in tqdm(enumerate(test_df.index.values))}
-    sub = pd.DataFrame.from_dict(pred_dict, orient='index')
-    sub.index.names = ['id']
-    sub.columns = ['rle_mask']
-    sub.to_csv("{}/submission.csv".format(output_dir))
-
-    pred_dict = {idx: rlenc(test_df.loc[idx].prediction_masks_crf) for i, idx in tqdm(enumerate(test_df.index.values))}
-    sub = pd.DataFrame.from_dict(pred_dict, orient='index')
-    sub.index.names = ['id']
-    sub.columns = ['rle_mask']
-    sub.to_csv("{}/submission_crf.csv".format(output_dir))
+    analyze(model, val_set_data_loader, train_data.val_set_df)
 
 
 if __name__ == "__main__":
