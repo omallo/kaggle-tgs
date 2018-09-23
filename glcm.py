@@ -1,7 +1,8 @@
 from multiprocessing import Pool
 
-import matplotlib.pyplot as plt
+import cv2
 import numpy as np
+import pandas as pd
 import tqdm
 from skimage.feature import greycomatrix, greycoprops
 from skimage.io import imread
@@ -19,7 +20,8 @@ def read_mask(imgid):
 
 def glcm_props(patch):
     lf = []
-    props = ['dissimilarity', 'contrast', 'homogeneity', 'energy', 'correlation']
+    # props = ['dissimilarity', 'contrast', 'homogeneity', 'energy', 'correlation']
+    props = ['dissimilarity', 'contrast', 'homogeneity', 'energy']
 
     # left nearest neighbor
     glcm = greycomatrix(patch, [1], [0], 256, symmetric=True, normed=True)
@@ -30,6 +32,9 @@ def glcm_props(patch):
     glcm = greycomatrix(patch, [1], [np.pi / 2], 256, symmetric=True, normed=True)
     for f in props:
         lf.append(greycoprops(glcm, f)[0, 0])
+
+    # for i in range(len(props)):
+    #     lf.append(0.5 * (lf[i] + lf[i + len(props)]))
 
     return lf
 
@@ -54,41 +59,59 @@ def patch_gen(img, PAD=4):
 
 
 def glcm_feature(img, verbose=False):
-    W, NF, PAD = 101, 10, 4
+    W, NF, PAD = 101, 8, 4
 
     if img.sum() == 0:
         return np.zeros((W, W, NF), dtype=np.float32)
 
-    l = []
-    with Pool(3) as pool:
-        for p in tqdm.tqdm(pool.imap(glcm_props, patch_gen(img, PAD)), total=W * W, disable=not verbose):
-            l.append(p)
+    # l = []
+    # with Pool(3) as pool:
+    #     for p in tqdm.tqdm(pool.imap(glcm_props, patch_gen(img, PAD)), total=W * W, disable=not verbose):
+    #         l.append(p)
+    l = [glcm_props(p) for p in patch_gen(img, PAD)]
 
     fimg = np.array(l, dtype=np.float32).reshape(101, 101, -1)
     return fimg
 
 
-def visualize_glcm(imgid):
-    img = read_image(imgid)
-    mask = read_mask(imgid)
-
-    fimg = glcm_feature(img, verbose=1)
-
-    _, (ax0, ax1) = plt.subplots(1, 2, figsize=(6, 3))
-    ax0.imshow(img)
-    ax1.imshow(mask)
-    plt.show()
+def calculate_glcm_features(img, verbose=False):
+    fimg = glcm_feature(img, verbose)
 
     amin = np.amin(fimg, axis=(0, 1))
     amax = np.amax(fimg, axis=(0, 1))
     fimg = (fimg - amin) / (amax - amin)
 
-    fimg[..., 4] = np.power(fimg[..., 4], 3)
-    fimg[..., 9] = np.power(fimg[..., 9], 3)
+    # fimg[..., 4] = np.power(fimg[..., 4], 3)
+    # fimg[..., 9] = np.power(fimg[..., 9], 3)
 
-    _, axs = plt.subplots(2, 5, figsize=(15, 6))
-    axs = axs.flatten()
+    return fimg
 
-    for k in range(fimg.shape[-1]):
-        axs[k].imshow(fimg[..., k])
-    plt.show()
+
+def calculate_and_save_glcm_features(imgid, verbose=False):
+    fimg = calculate_glcm_features(read_image(imgid), verbose)
+
+    cv2.imwrite("../salt/input/glcm/dissimilarity-0/{}.png".format(imgid), (255 * fimg[..., 0]).astype(np.uint8))
+    cv2.imwrite("../salt/input/glcm/dissimilarity-90/{}.png".format(imgid), (255 * fimg[..., 1]).astype(np.uint8))
+
+    cv2.imwrite("../salt/input/glcm/contrast-0/{}.png".format(imgid), (255 * fimg[..., 2]).astype(np.uint8))
+    cv2.imwrite("../salt/input/glcm/contrast-90/{}.png".format(imgid), (255 * fimg[..., 3]).astype(np.uint8))
+
+    cv2.imwrite("../salt/input/glcm/homogeneity-0/{}.png".format(imgid), (255 * fimg[..., 4]).astype(np.uint8))
+    cv2.imwrite("../salt/input/glcm/homogeneity-90/{}.png".format(imgid), (255 * fimg[..., 5]).astype(np.uint8))
+
+    cv2.imwrite("../salt/input/glcm/energy-0/{}.png".format(imgid), (255 * fimg[..., 6]).astype(np.uint8))
+    cv2.imwrite("../salt/input/glcm/energy-90/{}.png".format(imgid), (255 * fimg[..., 7]).astype(np.uint8))
+
+
+def main():
+    train_df = pd.read_csv("{}/train.csv".format("../salt/input"), index_col="id", usecols=[0])
+    depths_df = pd.read_csv("{}/depths.csv".format("../salt/input"), index_col="id")
+    train_df = train_df.join(depths_df)
+
+    with Pool(4) as pool:
+        for _ in tqdm.tqdm(pool.imap(calculate_and_save_glcm_features, train_df.index), total=len(train_df.index)):
+            pass
+
+
+if __name__ == "__main__":
+    main()
