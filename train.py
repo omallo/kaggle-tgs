@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from dataset import TrainData, TrainDataset
 from losses import BCELovaszLoss
 from metrics import precision_batch
-from models import UNetResNet
+from models import create_model
 from utils import moving_parameter_average, get_learning_rate
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -66,10 +66,10 @@ def main():
     val_set = TrainDataset(train_data.val_set_df, image_size_target, augment=False)
     val_set_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=2)
 
-    model = UNetResNet(34, 1, num_filters=32, dropout_2d=0.5, pretrained=True, is_deconv=False).to(device)
+    model = create_model(pretrained=True).to(device)
     # model.load_state_dict(torch.load("/storage/model.pth", map_location=device))
 
-    swa_model = UNetResNet(34, 1, num_filters=32, dropout_2d=0.5, pretrained=True, is_deconv=False).to(device)
+    swa_model = create_model(pretrained=True).to(device)
     swa_model.load_state_dict(model.state_dict())
 
     print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))

@@ -4,6 +4,10 @@ from torch import nn
 from torch.nn import functional as F
 
 
+def create_model(pretrained):
+    return UNetResNet(34, 1, num_filters=32, dropout_2d=0.5, pretrained=pretrained, is_deconv=False)
+
+
 class ConvBnRelu(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()

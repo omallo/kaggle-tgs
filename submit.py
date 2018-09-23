@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 from dataset import TrainData, TrainDataset, calculate_coverage_class, downsample
 from metrics import precision
-from models import UNetResNet
+from models import create_model
 from processing import crf
 
 input_dir = "/storage/kaggle/tgs"
@@ -137,7 +137,7 @@ def main():
     val_set = TrainDataset(train_data.val_set_df, image_size_target, augment=False)
     val_set_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=2)
 
-    model = UNetResNet(34, 1, num_filters=32, dropout_2d=0.5, pretrained=True, is_deconv=False).to(device)
+    model = create_model(pretrained=False).to(device)
     model.load_state_dict(torch.load("/storage/model.pth", map_location=device))
     model.eval()
 
