@@ -74,21 +74,23 @@ def glcm_feature(img, verbose=False):
     return fimg
 
 
-def calculate_glcm_features(img, verbose=False):
+def calculate_glcm_features(imgid, img, verbose=False):
     fimg = glcm_feature(img, verbose)
 
-    amin = np.amin(fimg, axis=(0, 1))
-    amax = np.amax(fimg, axis=(0, 1))
-    fimg = (fimg - amin) / (amax - amin)
-
-    # fimg[..., 4] = np.power(fimg[..., 4], 3)
-    # fimg[..., 9] = np.power(fimg[..., 9], 3)
+    for i in range(8):
+        minv = np.min(fimg[..., i])
+        maxv = np.max(fimg[..., i])
+        if maxv != minv:
+            fimg[..., i] = (fimg[..., i] - minv) / (maxv - minv)
+        else:
+            print("maxv == minv for img '%s' and feature %d" % (imgid, i))
+            fimg[..., i] = 0
 
     return fimg
 
 
 def calculate_and_save_glcm_features(imgid, verbose=False):
-    fimg = calculate_glcm_features(read_image(imgid), verbose)
+    fimg = calculate_glcm_features(imgid, read_image(imgid), verbose)
 
     cv2.imwrite("../salt/input/glcm/dissimilarity-0/{}.png".format(imgid), (255 * fimg[..., 0]).astype(np.uint8))
     cv2.imwrite("../salt/input/glcm/dissimilarity-90/{}.png".format(imgid), (255 * fimg[..., 1]).astype(np.uint8))
@@ -108,7 +110,7 @@ def main():
     depths_df = pd.read_csv("{}/depths.csv".format("../salt/input"), index_col="id")
     train_df = train_df.join(depths_df)
 
-    with Pool(4) as pool:
+    with Pool(32) as pool:
         for _ in tqdm.tqdm(pool.imap(calculate_and_save_glcm_features, train_df.index), total=len(train_df.index)):
             pass
 
