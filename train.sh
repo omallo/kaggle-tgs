@@ -21,4 +21,4 @@ rm -rf /artifacts/logs
 
 rm -rf /storage/models/tgs/$1
 mkdir -p /storage/models/tgs/$1
-cp -r * /storage/models/tgs/$1
+cp -r /artifacts/* /storage/models/tgs/$1
