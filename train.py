@@ -202,11 +202,11 @@ def main():
                 int(swa_ckpt_saved)),
             flush=True)
 
-        print('{"chart": "best_val_precision", "x": %d, "y": %.5f}' % (epoch + 1, global_val_precision_overall_avg))
-        print('{"chart": "val_precision", "x": %d, "y": %.5f}' % (epoch + 1, val_precision_avg))
-        print('{"chart": "val_loss", "x": %d, "y": %.5f}' % (epoch + 1, val_loss_avg))
-        print('{"chart": "val_precision_swa", "x": %d, "y": %.5f}' % (epoch + 1, val_precision_swa_avg))
-        print('{"chart": "val_loss_swa", "x": %d, "y": %.5f}' % (epoch + 1, val_loss_swa_avg))
+        print('{"chart": "best_val_precision", "x": %d, "y": %.3f}' % (epoch + 1, global_val_precision_overall_avg))
+        print('{"chart": "val_precision", "x": %d, "y": %.3f}' % (epoch + 1, val_precision_avg))
+        print('{"chart": "val_loss", "x": %d, "y": %.3f}' % (epoch + 1, val_loss_avg))
+        print('{"chart": "val_precision_swa", "x": %d, "y": %.3f}' % (epoch + 1, val_precision_swa_avg))
+        print('{"chart": "val_loss_swa", "x": %d, "y": %.3f}' % (epoch + 1, val_loss_swa_avg))
 
         if epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
             print("early abort")
