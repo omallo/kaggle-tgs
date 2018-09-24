@@ -54,8 +54,7 @@ def main():
     epochs_to_train = 160
     bce_loss_weight_gamma = 0.98
     swa_start_epoch = 20
-    # TODO: increase again
-    swa_cycle_epochs = 5
+    swa_cycle_epochs = 20
     sgdr_min_lr = 0.0001  # 0.001
     sgdr_max_lr = 0.001  # 0.03
     sgdr_cycle_epochs = 20
