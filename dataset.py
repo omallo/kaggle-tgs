@@ -21,9 +21,11 @@ class TrainData:
         train_df["coverage_class"] = train_df.masks.map(calculate_coverage_class)
 
         train_df["glcm_contrast"] = load_glcm_features("{}/train/glcm".format(base_dir), "contrast", train_df.index)
-        train_df["glcm_dissimilarity"] = load_glcm_features("{}/train/glcm".format(base_dir), "dissimilarity", train_df.index)
+        train_df["glcm_dissimilarity"] = load_glcm_features("{}/train/glcm".format(base_dir), "dissimilarity",
+                                                            train_df.index)
         train_df["glcm_energy"] = load_glcm_features("{}/train/glcm".format(base_dir), "energy", train_df.index)
-        train_df["glcm_homogeneity"] = load_glcm_features("{}/train/glcm".format(base_dir), "homogeneity", train_df.index)
+        train_df["glcm_homogeneity"] = load_glcm_features("{}/train/glcm".format(base_dir), "homogeneity",
+                                                          train_df.index)
 
         train_set_ids, val_set_ids = train_test_split(
             sorted(train_df.index.values),
@@ -81,7 +83,7 @@ class TrainDataset(Dataset):
 
         image = normalize(image, (image_mean, image_mean, image_mean), (image_std, image_std, image_std))
 
-        add_depth_channels(image)
+        # add_depth_channels(image)
 
         return image, mask, mask_weights
 
@@ -145,6 +147,7 @@ def set_depth_channels(image, depth):
         image[row, :, 1] = int(np.round(255 * (depth - 50 + row) / max_depth))
         image[row, :, 2] = np.round(const * image[row, :, 0]).astype(image.dtype)
     return image
+
 
 def add_depth_channels(image_tensor):
     _, h, w = image_tensor.size()
