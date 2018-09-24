@@ -3,14 +3,17 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.backends.cudnn as cudnn
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from dataset import calculate_coverage_class
+from dataset import calculate_coverage_class, TestDataset
 from metrics import precision
 from processing import crf
+from transforms import downsample
 
 image_size_original = 101
-image_size_target = 96
+image_size_target = 128
+batch_size = 32
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
@@ -29,14 +32,12 @@ def predict(model, data_loader):
     model.eval()
     val_predictions = []
     with torch.no_grad():
-        for _, batch in enumerate(data_loader):
-            inputs = batch[0].to(device)
-            outputs = model(inputs)
-            predictions = torch.sigmoid(outputs)
+        for _, image in enumerate(data_loader):
+            image = image.to(device)
+            predictions = torch.sigmoid(model(image))
             val_predictions += [p for p in predictions.cpu().numpy()]
     val_predictions = np.asarray(val_predictions).reshape(-1, image_size_target, image_size_target)
-    val_predictions = [p for p in val_predictions]
-    # val_predictions = [downsample(p, image_size_original) for p in val_predictions]
+    val_predictions = [downsample(p, image_size_original) for p in val_predictions]
     return val_predictions
 
 
@@ -54,53 +55,55 @@ def calculate_best_threshold(df):
     return thresholds[np.argmax(precisions_per_threshold)]
 
 
-def analyze(model, data_loader, val_set_df):
+def analyze(model, df):
     pd.set_option("display.max_rows", 500)
     pd.set_option("display.max_columns", 500)
     pd.set_option("display.width", 160)
 
-    val_set_df["predictions"] = predict(model, data_loader)
+    data_set = TestDataset(df, image_size_target)
+    data_loader = DataLoader(data_set, batch_size=batch_size, shuffle=False, num_workers=4)
 
-    best_threshold = calculate_best_threshold(val_set_df)
+    df["predictions"] = predict(model, data_loader)
 
-    val_set_df["prediction_masks"] = [np.int32(p > best_threshold) for p in val_set_df.predictions]
-    val_set_df["precisions"] = [precision(pm, m) for pm, m in zip(val_set_df.prediction_masks, val_set_df.masks)]
+    best_threshold = calculate_best_threshold(df)
 
-    val_set_df["prediction_coverage_class"] = val_set_df.prediction_masks.map(calculate_coverage_class)
+    df["prediction_masks"] = [np.int32(p > best_threshold) for p in df.predictions]
+    df["precisions"] = [precision(pm, m) for pm, m in zip(df.prediction_masks, df.masks)]
 
-    val_set_df["prediction_masks_otsu"] = [np.int32(compute_otsu_mask(p)) for p in val_set_df.predictions]
-    val_set_df["precisions_otsu"] = [precision(pm, m) for pm, m in
-                                     zip(val_set_df.prediction_masks_otsu, val_set_df.masks)]
+    df["prediction_coverage_class"] = df.prediction_masks.map(calculate_coverage_class)
 
-    val_set_df["prediction_masks_crf"] = [crf(i, pm) for i, pm in zip(val_set_df.images, val_set_df.prediction_masks)]
-    val_set_df["precisions_crf"] = [precision(pm, m) for pm, m in
-                                    zip(val_set_df.prediction_masks_crf, val_set_df.masks)]
+    df["prediction_masks_otsu"] = [np.int32(compute_otsu_mask(p)) for p in df.predictions]
+    df["precisions_otsu"] = [precision(pm, m) for pm, m in zip(df.prediction_masks_otsu, df.masks)]
 
-    val_set_df["precisions_max"] = [max(p1, p2, p3) for p1, p2, p3 in
-                                    zip(val_set_df.precisions, val_set_df.precisions_otsu, val_set_df.precisions_crf)]
+    df["prediction_masks_crf"] = [crf(i, pm) for i, pm in zip(df.images, df.prediction_masks)]
+    df["precisions_crf"] = [precision(pm, m) for pm, m in zip(df.prediction_masks_crf, df.masks)]
 
-    val_set_df["prediction_masks_avg"] = [np.int32((p1 + p2 + p3) >= 2) for p1, p2, p3 in
-                                          zip(val_set_df.prediction_masks, val_set_df.prediction_masks_otsu,
-                                              val_set_df.prediction_masks_crf)]
-    val_set_df["precisions_avg"] = [precision(pm, m) for pm, m in
-                                    zip(val_set_df.prediction_masks_avg, val_set_df.masks)]
+    df["precisions_max"] = [max(p1, p2, p3) for p1, p2, p3 in zip(df.precisions, df.precisions_otsu, df.precisions_crf)]
+
+    df["prediction_masks_avg"] = [np.int32((p1 + p2 + p3) >= 2) for p1, p2, p3 in
+                                  zip(df.prediction_masks, df.prediction_masks_otsu, df.prediction_masks_crf)]
+    df["precisions_avg"] = [precision(pm, m) for pm, m in zip(df.prediction_masks_avg, df.masks)]
 
     best_thresholds_per_coverage_class = {}
-    for cc, cc_df in val_set_df.groupby("prediction_coverage_class"):
+    for cc, cc_df in df.groupby("prediction_coverage_class"):
         best_thresholds_per_coverage_class[cc] = calculate_best_threshold(cc_df)
 
-    val_set_df["precisions_cc"] = [precision(np.int32(p > best_thresholds_per_coverage_class[cc]), m) for p, m, cc in
-                                   zip(val_set_df.predictions, val_set_df.masks, val_set_df.prediction_coverage_class)]
+    df["precisions_cc"] = [precision(np.int32(p > best_thresholds_per_coverage_class[cc]), m) for p, m, cc in
+                           zip(df.predictions, df.masks, df.prediction_coverage_class)]
 
     print()
     print(
         "threshold: %.3f, precision: %.3f, precision_crf: %.3f, precision_otsu: %.3f, precision_max: %.3f, precision_avg: %.3f, precision_cc: %.3f" % (
-            best_threshold, val_set_df.precisions.mean(), val_set_df.precisions_crf.mean(),
-            val_set_df.precisions_otsu.mean(), val_set_df.precisions_max.mean(), val_set_df.precisions_avg.mean(),
-            val_set_df.precisions_cc.mean()))
+            best_threshold,
+            df.precisions.mean(),
+            df.precisions_crf.mean(),
+            df.precisions_otsu.mean(),
+            df.precisions_max.mean(),
+            df.precisions_avg.mean(),
+            df.precisions_cc.mean()))
 
     print()
-    print(val_set_df
+    print(df
         .groupby("coverage_class")
         .agg({
         "precisions": "mean",
@@ -113,7 +116,7 @@ def analyze(model, data_loader, val_set_df):
     }))
 
     print()
-    print(val_set_df
+    print(df
         .groupby("prediction_coverage_class")
         .agg({
         "precisions": "mean",

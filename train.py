@@ -49,7 +49,7 @@ def evaluate(model, data_loader, criterion):
 def main():
     input_dir = "/storage/kaggle/tgs"
     output_dir = "/artifacts"
-    image_size_target = 96
+    image_size_target = 128
     batch_size = 32
     epochs_to_train = 160
     bce_loss_weight_gamma = 0.98
@@ -239,12 +239,7 @@ def main():
     print()
     print("evaluation of the training model")
     model.load_state_dict(torch.load("{}/model.pth".format(output_dir), map_location=device))
-    analyze(model, val_set_data_loader, train_data.val_set_df)
-
-    print()
-    print("evaluation of the SWA model")
-    swa_model.load_state_dict(torch.load("{}/swa_model.pth".format(output_dir), map_location=device))
-    analyze(swa_model, val_set_data_loader, train_data.val_set_df)
+    analyze(model, train_data.val_set_df)
 
     eval_end_time = time.time()
     print()

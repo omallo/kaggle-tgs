@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 from torchvision.transforms.functional import normalize
 
 from processing import calculate_mask_weights
-from transforms import augment, upsample, random_crop_to_size
+from transforms import augment, upsample
 
 
 class TrainData:
@@ -37,6 +37,18 @@ class TrainData:
         self.val_set_df = train_df[train_df.index.isin(val_set_ids)].copy()
 
 
+class TestData:
+    def __init__(self, base_dir):
+        train_df = pd.read_csv("{}/train.csv".format(base_dir), index_col="id", usecols=[0])
+        depths_df = pd.read_csv("{}/depths.csv".format(base_dir), index_col="id")
+        train_df = train_df.join(depths_df)
+        test_df = depths_df[~depths_df.index.isin(train_df.index)].copy()
+
+        test_df["images"] = load_images("{}/test/images".format(base_dir), train_df.index)
+
+        self.df = test_df
+
+
 class TrainDataset(Dataset):
     def __init__(self, df, image_size_target, augment):
         super().__init__()
@@ -50,7 +62,7 @@ class TrainDataset(Dataset):
     def __getitem__(self, index):
         image = self.df.images[index % len(self.df)]
         mask = self.df.masks[index % len(self.df)]
-        depth = self.df.z[index % len(self.df)]
+        # depth = self.df.z[index % len(self.df)]
         # glcm_contrast = self.df.glcm_contrast[index % len(self.df)]
         # glcm_homogeneity = self.df.glcm_homogeneity[index % len(self.df)]
 
@@ -63,13 +75,13 @@ class TrainDataset(Dataset):
         if self.augment and index < len(self.df):
             image, mask = augment(image, mask)
 
-        image, mask = random_crop_to_size(image, mask, self.image_size_target)
+        # image, mask = random_crop_to_size(image, mask, self.image_size_target)
 
         mask_weights = calculate_mask_weights(mask)
 
-        # image = upsample(image, self.image_size_target)
-        # mask = upsample(mask, self.image_size_target)
-        # mask_weights = upsample(mask_weights, self.image_size_target)
+        image = upsample(image, self.image_size_target)
+        mask = upsample(mask, self.image_size_target)
+        mask_weights = upsample(mask_weights, self.image_size_target)
 
         image = image_to_tensor(image)
         mask = mask_to_tensor(mask)
@@ -88,6 +100,28 @@ class TrainDataset(Dataset):
         # add_depth_channels(image)
 
         return image, mask, mask_weights
+
+
+class TestDataset(Dataset):
+    def __init__(self, df, image_size_target):
+        super().__init__()
+        self.df = df
+        self.image_size_target = image_size_target
+
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, index):
+        image = self.df.images[index % len(self.df)]
+        image = upsample(image, self.image_size_target)
+        image = image_to_tensor(image)
+
+        image_mean = 0.4719
+        image_std = 0.1610
+
+        image = normalize(image, (image_mean, image_mean, image_mean), (image_std, image_std, image_std))
+
+        return image
 
 
 def load_images(path, ids):
