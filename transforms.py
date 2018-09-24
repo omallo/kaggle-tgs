@@ -11,7 +11,7 @@ def upsample(image, image_size_target):
     padding_end0 = int(np.floor(padding0))
     padding_start1 = int(np.ceil(padding1))
     padding_end1 = int(np.floor(padding1))
-    return cv2.copyMakeBorder(image, padding_start0, padding_end0, padding_start1, padding_end1, cv2.BORDER_REPLICATE)
+    return cv2.copyMakeBorder(image, padding_start0, padding_end0, padding_start1, padding_end1, cv2.BORDER_REFLECT_101)
 
 
 def downsample(image, image_size_original):
