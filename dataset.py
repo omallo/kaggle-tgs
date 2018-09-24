@@ -109,7 +109,7 @@ def load_glcm_features(path, feature_name, ids):
 def load_glcm_feature(path, feature_name, id):
     feature_0 = cv2.imread("{}/{}-0/{}.png".format(path, feature_name, id), 0)
     feature_90 = cv2.imread("{}/{}-90/{}.png".format(path, feature_name, id), 0)
-    cv2.addWeighted(feature_0, 0.5, feature_90, 0.5, 0)
+    return cv2.addWeighted(feature_0, 0.5, feature_90, 0.5, 0)
 
 
 def prepare_image(image, image_size_target):
