@@ -44,7 +44,7 @@ class TestData:
         train_df = train_df.join(depths_df)
         test_df = depths_df[~depths_df.index.isin(train_df.index)].copy()
 
-        test_df["images"] = load_images("{}/test/images".format(base_dir), train_df.index)
+        test_df["images"] = load_images("{}/test/images".format(base_dir), test_df.index)
 
         self.df = test_df
 
