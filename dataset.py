@@ -112,7 +112,7 @@ class TestDataset(Dataset):
         return len(self.df)
 
     def __getitem__(self, index):
-        image = self.df.images[index % len(self.df)]
+        image = self.df.images[index]
         image = upsample(image, self.image_size_target)
         image = image_to_tensor(image)
 
