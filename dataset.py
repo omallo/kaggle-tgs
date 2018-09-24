@@ -134,11 +134,11 @@ def calculate_coverage_class(mask):
 
 
 def image_to_tensor(image):
-    return torch.from_numpy(np.moveaxis(image, -1, 0) / 255).float()
+    return torch.from_numpy((np.moveaxis(image, -1, 0) / 255).copy()).float()
 
 
 def mask_to_tensor(mask):
-    return torch.from_numpy(np.expand_dims(mask, 0)).float()
+    return torch.from_numpy(np.expand_dims(mask, 0).copy()).float()
 
 
 def set_depth_channels(image, depth):
