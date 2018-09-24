@@ -70,7 +70,7 @@ def main():
     val_set_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=2)
 
     model = create_model(pretrained=True).to(device)
-    # model.load_state_dict(torch.load("/storage/models/tgs/random-crop-round3/model.pth", map_location=device))
+    model.load_state_dict(torch.load("/storage/models/tgs/random-crop-round3/model.pth", map_location=device))
 
     swa_model = create_model(pretrained=True).to(device)
     swa_model.load_state_dict(model.state_dict())
