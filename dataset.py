@@ -81,6 +81,8 @@ class TrainDataset(Dataset):
 
         image = normalize(image, (image_mean, image_mean, image_mean), (image_std, image_std, image_std))
 
+        add_depth_channels(image)
+
         return image, mask, mask_weights
 
 
@@ -143,3 +145,10 @@ def set_depth_channels(image, depth):
         image[row, :, 1] = int(np.round(255 * (depth - 50 + row) / max_depth))
         image[row, :, 2] = np.round(const * image[row, :, 0]).astype(image.dtype)
     return image
+
+def add_depth_channels(image_tensor):
+    _, h, w = image_tensor.size()
+    for row, const in enumerate(np.linspace(0, 1, h)):
+        image_tensor[1, row, :] = const
+    image_tensor[2] = image_tensor[0] * image_tensor[1]
+    return image_tensor
