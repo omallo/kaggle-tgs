@@ -132,3 +132,15 @@ def random_crop_and_pad(image, mask):
     cropped_padded_mask = upsample(cropped_mask, mask.shape[0])
 
     return cropped_padded_image, cropped_padded_mask
+
+
+def random_crop_to_size(image, mask, size):
+    dmax = image.shape[0] - size
+
+    dx = np.random.randint(dmax + 1)
+    dy = np.random.randint(dmax + 1)
+
+    cropped_image = image[dx:dx + size, dy:dy + size, :]
+    cropped_mask = mask[dx:dx + size, dy:dy + size]
+
+    return cropped_image, cropped_mask

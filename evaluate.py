@@ -8,10 +8,9 @@ from tqdm import tqdm
 from dataset import calculate_coverage_class
 from metrics import precision
 from processing import crf
-from transforms import downsample
 
 image_size_original = 101
-image_size_target = 128
+image_size_target = 96
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
@@ -36,7 +35,8 @@ def predict(model, data_loader):
             predictions = torch.sigmoid(outputs)
             val_predictions += [p for p in predictions.cpu().numpy()]
     val_predictions = np.asarray(val_predictions).reshape(-1, image_size_target, image_size_target)
-    val_predictions = [downsample(p, image_size_original) for p in val_predictions]
+    val_predictions = [p for p in val_predictions]
+    # val_predictions = [downsample(p, image_size_original) for p in val_predictions]
     return val_predictions
 
 

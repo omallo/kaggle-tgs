@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 from torchvision.transforms.functional import normalize
 
 from processing import calculate_mask_weights
-from transforms import augment, upsample
+from transforms import augment, upsample, random_crop_to_size
 
 
 class TrainData:
@@ -63,11 +63,13 @@ class TrainDataset(Dataset):
         if self.augment and index < len(self.df):
             image, mask = augment(image, mask)
 
+        image, mask = random_crop_to_size(image, mask, self.image_size_target)
+
         mask_weights = calculate_mask_weights(mask)
 
-        image = upsample(image, self.image_size_target)
-        mask = upsample(mask, self.image_size_target)
-        mask_weights = upsample(mask_weights, self.image_size_target)
+        # image = upsample(image, self.image_size_target)
+        # mask = upsample(mask, self.image_size_target)
+        # mask_weights = upsample(mask_weights, self.image_size_target)
 
         image = image_to_tensor(image)
         mask = mask_to_tensor(mask)
