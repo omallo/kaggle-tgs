@@ -20,6 +20,11 @@ class TrainData:
         train_df["masks"] = load_masks("{}/train/masks".format(base_dir), train_df.index)
         train_df["coverage_class"] = train_df.masks.map(calculate_coverage_class)
 
+        train_df["glcm_contrast"] = load_glcm_features("{}/train/glcm".format(base_dir), "contrast", train_df.index)
+        train_df["glcm_dissimilarity"] = load_glcm_features("{}/train/glcm".format(base_dir), "dissimilarity", train_df.index)
+        train_df["glcm_energy"] = load_glcm_features("{}/train/glcm".format(base_dir), "energy", train_df.index)
+        train_df["glcm_homogeneity"] = load_glcm_features("{}/train/glcm".format(base_dir), "homogeneity", train_df.index)
+
         train_set_ids, val_set_ids = train_test_split(
             sorted(train_df.index.values),
             test_size=0.2,
@@ -44,6 +49,12 @@ class TrainDataset(Dataset):
         image = self.df.images[index % len(self.df)]
         mask = self.df.masks[index % len(self.df)]
         depth = self.df.z[index % len(self.df)]
+        glcm_contrast = self.df.glcm_contrast[index % len(self.df)]
+        glcm_homogeneity = self.df.glcm_homogeneity[index % len(self.df)]
+
+        image = image.copy()
+        image[:, :, 1] = glcm_contrast
+        image[:, :, 2] = glcm_homogeneity
 
         # image = set_depth_channels(image, depth)
 
@@ -89,6 +100,16 @@ def load_masks(path, ids):
 def load_mask(path, id):
     mask = cv2.imread("{}/{}.png".format(path, id), 0)
     return (mask > 0).astype(np.uint8)
+
+
+def load_glcm_features(path, feature_name, ids):
+    return [load_glcm_feature(path, feature_name, id) for id in ids]
+
+
+def load_glcm_feature(path, feature_name, id):
+    feature_0 = cv2.imread("{}/{}-0/{}.png".format(path, feature_name, id), 0)
+    feature_90 = cv2.imread("{}/{}-90/{}.png".format(path, feature_name, id), 0)
+    cv2.addWeighted(feature_0, 0.5, feature_90, 0.5, 0)
 
 
 def prepare_image(image, image_size_target):
