@@ -42,6 +42,7 @@ def predict(model, data_loader):
 
 
 def calculate_best_threshold(df):
+    return 0.540
     thresholds = np.linspace(0, 1, 51)
     precisions_per_threshold = []
     for threshold in tqdm(thresholds, desc="Calculate optimal threshold"):
