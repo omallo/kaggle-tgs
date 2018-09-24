@@ -49,12 +49,12 @@ class TrainDataset(Dataset):
         image = self.df.images[index % len(self.df)]
         mask = self.df.masks[index % len(self.df)]
         depth = self.df.z[index % len(self.df)]
-        glcm_contrast = self.df.glcm_contrast[index % len(self.df)]
-        glcm_homogeneity = self.df.glcm_homogeneity[index % len(self.df)]
+        # glcm_contrast = self.df.glcm_contrast[index % len(self.df)]
+        # glcm_homogeneity = self.df.glcm_homogeneity[index % len(self.df)]
 
-        image = image.copy()
-        image[:, :, 1] = glcm_contrast
-        image[:, :, 2] = glcm_homogeneity
+        # image = image.copy()
+        # image[:, :, 1] = glcm_contrast
+        # image[:, :, 2] = glcm_homogeneity
 
         # image = set_depth_channels(image, depth)
 
@@ -79,7 +79,7 @@ class TrainDataset(Dataset):
         # depth_mean = 506.45 / max_depth
         # depth_std = 208.60 / max_depth
 
-        image = normalize(image, (image_mean, 0, 0), (image_std, 1, 1))
+        image = normalize(image, (image_mean, image_mean, image_mean), (image_std, image_std, image_std))
 
         return image, mask, mask_weights
 
