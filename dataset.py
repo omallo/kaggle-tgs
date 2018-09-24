@@ -76,10 +76,14 @@ class TrainDataset(Dataset):
 
         image_mean = 0.4719
         image_std = 0.1610
+        glcm_contrast_mean = np.mean(glcm_contrast)
+        glcm_contrast_std = np.std(glcm_contrast)
+        glcm_homogeneity_mean = np.mean(glcm_homogeneity)
+        glcm_homogeneity_std = np.std(glcm_homogeneity)
         # depth_mean = 506.45 / max_depth
         # depth_std = 208.60 / max_depth
 
-        image = normalize(image, (image_mean, image_mean, image_mean), (image_std, image_std, image_std))
+        image = normalize(image, (image_mean, glcm_contrast_mean, glcm_homogeneity_mean), (image_std, glcm_contrast_std, glcm_homogeneity_std))
 
         return image, mask, mask_weights
 
