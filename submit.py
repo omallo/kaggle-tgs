@@ -10,7 +10,7 @@ from tqdm import tqdm
 from dataset import TrainData, TestData, TestDataset, calculate_coverage_class
 from evaluate import analyze, predict
 from models import create_model
-from processing import rlenc
+from processing import rlenc, crf
 
 input_dir = "/storage/kaggle/tgs"
 output_dir = "/artifacts"
