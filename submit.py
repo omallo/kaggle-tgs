@@ -10,7 +10,7 @@ from tqdm import tqdm
 from dataset import TrainData, TestData, TestDataset, calculate_coverage_class
 from evaluate import analyze, predict
 from models import create_model
-from processing import rlenc, crf
+from processing import rle_encode, crf
 
 input_dir = "/storage/kaggle/tgs"
 output_dir = "/artifacts"
@@ -45,21 +45,21 @@ def main():
 
     test_data.df["prediction_masks_crf"] = [crf(i, pm) for i, pm in zip(test_data.df.images, test_data.df.prediction_masks)]
 
-    pred_dict = {idx: rlenc(test_data.df.loc[idx].prediction_masks) for i, idx in
+    pred_dict = {idx: rle_encode(test_data.df.loc[idx].prediction_masks) for i, idx in
                  tqdm(enumerate(test_data.df.index.values))}
     sub = pd.DataFrame.from_dict(pred_dict, orient='index')
     sub.index.names = ['id']
     sub.columns = ['rle_mask']
     sub.to_csv("{}/submission.csv".format(output_dir))
 
-    pred_dict = {idx: rlenc(test_data.df.loc[idx].prediction_masks_cc) for i, idx in
+    pred_dict = {idx: rle_encode(test_data.df.loc[idx].prediction_masks_cc) for i, idx in
                  tqdm(enumerate(test_data.df.index.values))}
     sub = pd.DataFrame.from_dict(pred_dict, orient='index')
     sub.index.names = ['id']
     sub.columns = ['rle_mask']
     sub.to_csv("{}/submission_cc.csv".format(output_dir))
 
-    pred_dict = {idx: rlenc(test_data.df.loc[idx].prediction_masks_crf) for i, idx in
+    pred_dict = {idx: rle_encode(test_data.df.loc[idx].prediction_masks_crf) for i, idx in
                  tqdm(enumerate(test_data.df.index.values))}
     sub = pd.DataFrame.from_dict(pred_dict, orient='index')
     sub.index.names = ['id']
