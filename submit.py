@@ -23,6 +23,11 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
 
 
+def crf_batch(images, masks):
+    with Pool(16) as pool:
+        return [c for c in pool.starmap(crf, zip(images, masks))]
+
+
 def write_submission(df, mask_name, file_name):
     with Pool(16) as pool:
         rlenc_results = [r for r in pool.map(rlenc, df[mask_name])]
@@ -53,8 +58,7 @@ def main():
     test_data.df["prediction_masks_cc"] = [np.int32(p > mask_threshold_per_cc[cc]) for p, cc in
                                            zip(test_data.df.predictions, test_data.df.predictions_cc)]
 
-    test_data.df["prediction_masks_crf"] = [crf(i, pm) for i, pm in
-                                            zip(test_data.df.images, test_data.df.prediction_masks)]
+    test_data.df["prediction_masks_crf"] = crf_batch(test_data.df.images, test_data.df.prediction_masks)
 
     write_submission(test_data.df, "prediction_masks", "submission.csv")
     write_submission(test_data.df, "prediction_masks_cc", "submission_cc.csv")
