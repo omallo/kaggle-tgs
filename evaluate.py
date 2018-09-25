@@ -117,7 +117,7 @@ def analyze(model, df):
 
     print()
     print(df
-        .groupby("prediction_coverage_class")
+        .groupby("predictions_cc")
         .agg({
         "precisions": "mean",
         "precisions_crf": "mean",
@@ -125,7 +125,7 @@ def analyze(model, df):
         "precisions_max": "mean",
         "precisions_avg": "mean",
         "precisions_cc": "mean",
-        "prediction_coverage_class": "count"
+        "predictions_cc": "count"
     }))
 
     return mask_threshold_global, mask_threshold_per_cc
