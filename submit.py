@@ -1,8 +1,6 @@
 import sys
-from multiprocessing import Pool
 
 import numpy as np
-import pandas as pd
 import torch
 import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
@@ -10,7 +8,8 @@ from torch.utils.data import DataLoader
 from dataset import TrainData, TestData, TestDataset, calculate_coverage_class
 from evaluate import analyze, predict
 from models import create_model
-from processing import crf, rlenc
+from processing import crf_batch
+from utils import write_submission
 
 input_dir = "/storage/kaggle/tgs"
 output_dir = "/artifacts"
@@ -21,21 +20,6 @@ model_dir = sys.argv[1]
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
-
-
-def crf_batch(images, masks):
-    with Pool(16) as pool:
-        return [c for c in pool.starmap(crf, zip(images, masks))]
-
-
-def write_submission(df, mask_name, file_name):
-    with Pool(16) as pool:
-        rlenc_results = [r for r in pool.map(rlenc, df[mask_name])]
-    pred_dict = {idx: r for idx, r in zip(df.index.values, rlenc_results)}
-    sub = pd.DataFrame.from_dict(pred_dict, orient='index')
-    sub.index.names = ["id"]
-    sub.columns = ["rle_mask"]
-    sub.to_csv("{}/{}".format(output_dir, file_name))
 
 
 def main():
@@ -60,9 +44,9 @@ def main():
 
     test_data.df["prediction_masks_crf"] = crf_batch(test_data.df.images, test_data.df.prediction_masks)
 
-    write_submission(test_data.df, "prediction_masks", "submission.csv")
-    write_submission(test_data.df, "prediction_masks_cc", "submission_cc.csv")
-    write_submission(test_data.df, "prediction_masks_crf", "submission_crf.csv")
+    write_submission(test_data.df, "prediction_masks", "{}/{}".format(output_dir, "submission.csv"))
+    write_submission(test_data.df, "prediction_masks_cc", "{}/{}".format(output_dir, "submission_cc.csv"))
+    write_submission(test_data.df, "prediction_masks_crf", "{}/{}".format(output_dir, "submission_crf.csv"))
 
 
 if __name__ == "__main__":
