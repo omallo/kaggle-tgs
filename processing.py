@@ -65,18 +65,6 @@ def crf(image, mask):
     return MAP.reshape((image.shape[0], image.shape[1]))
 
 
-def rle_encode(im):
-    '''
-    im: numpy array, 1 - mask, 0 - background
-    Returns run length as string formated
-    '''
-    pixels = im.flatten()
-    pixels = np.concatenate([[0], pixels, [0]])
-    runs = np.where(pixels[1:] != pixels[:-1])[0] + 1
-    runs[1::2] -= runs[::2]
-    return ' '.join(str(x) for x in runs)
-
-
 # Source https://www.kaggle.com/bguberfain/unet-with-depth
 def rlenc(img, order='F', format=True):
     """
