@@ -43,6 +43,8 @@ def main():
     test_data.df["prediction_masks_cc"] = [np.int32(p > mask_threshold_per_cc[cc]) for p, cc in
                                            zip(test_data.df.predictions, test_data.df.predictions_cc)]
 
+    test_data.df["prediction_masks_crf"] = [crf(i, pm) for i, pm in zip(test_data.df.images, test_data.df.prediction_masks)]
+
     pred_dict = {idx: rlenc(test_data.df.loc[idx].prediction_masks) for i, idx in
                  tqdm(enumerate(test_data.df.index.values))}
     sub = pd.DataFrame.from_dict(pred_dict, orient='index')
@@ -56,6 +58,13 @@ def main():
     sub.index.names = ['id']
     sub.columns = ['rle_mask']
     sub.to_csv("{}/submission_cc.csv".format(output_dir))
+
+    pred_dict = {idx: rlenc(test_data.df.loc[idx].prediction_masks_crf) for i, idx in
+                 tqdm(enumerate(test_data.df.index.values))}
+    sub = pd.DataFrame.from_dict(pred_dict, orient='index')
+    sub.index.names = ['id']
+    sub.columns = ['rle_mask']
+    sub.to_csv("{}/submission_crf.csv".format(output_dir))
 
 
 if __name__ == "__main__":
