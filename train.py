@@ -73,8 +73,8 @@ def main():
     model = create_model(pretrained=True).to(device)
     # model.load_state_dict(torch.load("/storage/models/tgs/random-crop-round3/model.pth", map_location=device))
 
-    swa_model = create_model(pretrained=True).to(device)
-    swa_model.load_state_dict(model.state_dict())
+    swa_model = create_model(pretrained=False).to(device)
+    # swa_model.load_state_dict(model.state_dict())
 
     print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
 
