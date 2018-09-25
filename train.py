@@ -51,7 +51,7 @@ def main():
     input_dir = "/storage/kaggle/tgs"
     output_dir = "/artifacts"
     image_size_target = 128
-    batch_size = 16
+    batch_size = 32
     epochs_to_train = 160
     bce_loss_weight_gamma = 0.98
     swa_start_epoch = 20
@@ -84,7 +84,7 @@ def main():
 
     epoch_iterations = len(train_set) // batch_size
 
-    # optimizer = optim.SGD(model.parameters(), lr=sgdr_max_lr, weight_decay=1e-4, momentum=0.9, nesterov=True)
+    # optimizer = optim.SGD(model.parameters(), lr=sgdr_max_lr, weight_decay=0, momentum=0.9, nesterov=True)
     optimizer = optim.Adam(model.parameters(), lr=sgdr_max_lr)
     lr_scheduler = CosineAnnealingLR(optimizer, T_max=sgdr_cycle_epochs, eta_min=sgdr_min_lr)
 
