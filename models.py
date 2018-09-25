@@ -2,6 +2,11 @@ import torch
 import torchvision
 from torch import nn
 from torch.nn import functional as F
+from torch.utils import model_zoo
+from torchvision.models import ResNet
+from torchvision.models.resnet import model_urls
+
+from se_models import SEBasicBlock
 
 
 def create_model(pretrained):
@@ -73,7 +78,11 @@ class UNetResNet(nn.Module):
         self.dropout_2d = dropout_2d
 
         if encoder_depth == 34:
-            self.encoder = torchvision.models.resnet34(pretrained=pretrained)
+            # self.encoder = torchvision.models.resnet34(pretrained=pretrained)
+            self.encoder = ResNet(SEBasicBlock, [3, 4, 6, 3])
+            if pretrained:
+                self.encoder.load_state_dict(model_zoo.load_url(model_urls["resnet34"]), strict=False)
+
             bottom_channel_nr = 512
         elif encoder_depth == 101:
             self.encoder = torchvision.models.resnet101(pretrained=pretrained)
