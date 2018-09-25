@@ -51,7 +51,7 @@ def main():
     input_dir = "/storage/kaggle/tgs"
     output_dir = "/artifacts"
     image_size_target = 128
-    batch_size = 32
+    batch_size = 64
     epochs_to_train = 160
     bce_loss_weight_gamma = 0.98
     swa_start_epoch = 20
