@@ -65,12 +65,12 @@ def analyze(model, df):
 
     df["predictions"] = predict(model, data_loader)
 
-    best_threshold = calculate_best_threshold(df)
+    mask_threshold_global = calculate_best_threshold(df)
 
-    df["prediction_masks"] = [np.int32(p > best_threshold) for p in df.predictions]
+    df["prediction_masks"] = [np.int32(p > mask_threshold_global) for p in df.predictions]
     df["precisions"] = [precision(pm, m) for pm, m in zip(df.prediction_masks, df.masks)]
 
-    df["prediction_coverage_class"] = df.prediction_masks.map(calculate_coverage_class)
+    df["predictions_cc"] = df.prediction_masks.map(calculate_coverage_class)
 
     df["prediction_masks_otsu"] = [np.int32(compute_otsu_mask(p)) for p in df.predictions]
     df["precisions_otsu"] = [precision(pm, m) for pm, m in zip(df.prediction_masks_otsu, df.masks)]
@@ -84,12 +84,12 @@ def analyze(model, df):
                                   zip(df.prediction_masks, df.prediction_masks_otsu, df.prediction_masks_crf)]
     df["precisions_avg"] = [precision(pm, m) for pm, m in zip(df.prediction_masks_avg, df.masks)]
 
-    best_thresholds_per_coverage_class = {}
-    for cc, cc_df in df.groupby("prediction_coverage_class"):
-        best_thresholds_per_coverage_class[cc] = calculate_best_threshold(cc_df)
+    mask_threshold_global_per_cc = {}
+    for cc, cc_df in df.groupby("predictions_cc"):
+        mask_threshold_global_per_cc[cc] = calculate_best_threshold(cc_df)
 
-    df["precisions_cc"] = [precision(np.int32(p > best_thresholds_per_coverage_class[cc]), m) for p, m, cc in
-                           zip(df.predictions, df.masks, df.prediction_coverage_class)]
+    df["precisions_cc"] = [precision(np.int32(p > mask_threshold_global_per_cc[cc]), m) for p, m, cc in
+                           zip(df.predictions, df.masks, df.predictions_cc)]
 
     print()
     print(
@@ -128,4 +128,4 @@ def analyze(model, df):
         "prediction_coverage_class": "count"
     }))
 
-    return best_threshold
+    return mask_threshold_global, mask_threshold_global_per_cc
