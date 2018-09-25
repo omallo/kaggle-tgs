@@ -31,20 +31,20 @@ def main():
 
     mask_threshold = analyze(model, train_data.val_set_df)
 
-    # test_data = TestData(input_dir)
+    test_data = TestData(input_dir)
 
-    # test_set = TestDataset(test_data.df, image_size_target)
-    # test_data_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=4)
+    test_set = TestDataset(test_data.df, image_size_target)
+    test_data_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=4)
 
-    # test_data.df["predictions"] = predict(model, test_data_loader)
-    # test_data.df["prediction_masks"] = [np.int32(p > mask_threshold) for p in test_data.df.predictions]
+    test_data.df["predictions"] = predict(model, test_data_loader)
+    test_data.df["prediction_masks"] = [np.int32(p > mask_threshold) for p in test_data.df.predictions]
 
-    # pred_dict = {idx: rlenc(test_data.df.loc[idx].prediction_masks) for i, idx in
-    #              tqdm(enumerate(test_data.df.index.values))}
-    # sub = pd.DataFrame.from_dict(pred_dict, orient='index')
-    # sub.index.names = ['id']
-    # sub.columns = ['rle_mask']
-    # sub.to_csv("{}/submission.csv".format(output_dir))
+    pred_dict = {idx: rlenc(test_data.df.loc[idx].prediction_masks) for i, idx in
+                 tqdm(enumerate(test_data.df.index.values))}
+    sub = pd.DataFrame.from_dict(pred_dict, orient='index')
+    sub.index.names = ['id']
+    sub.columns = ['rle_mask']
+    sub.to_csv("{}/submission.csv".format(output_dir))
 
 
 if __name__ == "__main__":
