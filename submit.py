@@ -5,7 +5,6 @@ import pandas as pd
 import torch
 import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
-from tqdm import tqdm
 
 from dataset import TrainData, TestData, TestDataset, calculate_coverage_class
 from evaluate import analyze, predict
@@ -21,6 +20,14 @@ model_dir = sys.argv[1]
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
+
+
+def write_submission(df, mask_name, file_name):
+    pred_dict = {idx: rlenc(df.loc[idx][mask_name]) for idx in df.index.values}
+    sub = pd.DataFrame.from_dict(pred_dict, orient='index')
+    sub.index.names = ["id"]
+    sub.columns = ["rle_mask"]
+    sub.to_csv("{}/{}".format(output_dir, file_name))
 
 
 def main():
@@ -46,26 +53,9 @@ def main():
     test_data.df["prediction_masks_crf"] = [crf(i, pm) for i, pm in
                                             zip(test_data.df.images, test_data.df.prediction_masks)]
 
-    pred_dict = {idx: rlenc(test_data.df.loc[idx].prediction_masks) for i, idx in
-                 tqdm(enumerate(test_data.df.index.values))}
-    sub = pd.DataFrame.from_dict(pred_dict, orient='index')
-    sub.index.names = ['id']
-    sub.columns = ['rle_mask']
-    sub.to_csv("{}/submission.csv".format(output_dir))
-
-    pred_dict = {idx: rlenc(test_data.df.loc[idx].prediction_masks_cc) for i, idx in
-                 tqdm(enumerate(test_data.df.index.values))}
-    sub = pd.DataFrame.from_dict(pred_dict, orient='index')
-    sub.index.names = ['id']
-    sub.columns = ['rle_mask']
-    sub.to_csv("{}/submission_cc.csv".format(output_dir))
-
-    pred_dict = {idx: rlenc(test_data.df.loc[idx].prediction_masks_crf) for i, idx in
-                 tqdm(enumerate(test_data.df.index.values))}
-    sub = pd.DataFrame.from_dict(pred_dict, orient='index')
-    sub.index.names = ['id']
-    sub.columns = ['rle_mask']
-    sub.to_csv("{}/submission_crf.csv".format(output_dir))
+    write_submission(test_data.df, "prediction_masks", "submission.csv")
+    write_submission(test_data.df, "prediction_masks_cc", "submission_cc.csv")
+    write_submission(test_data.df, "prediction_masks_crf", "submission_crf.csv")
 
 
 if __name__ == "__main__":
