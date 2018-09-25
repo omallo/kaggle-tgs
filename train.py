@@ -9,12 +9,13 @@ from tensorboardX import SummaryWriter
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
 
-from dataset import TrainData, TrainDataset
-from evaluate import analyze
+from dataset import TrainData, TrainDataset, TestData, TestDataset, calculate_coverage_class
+from evaluate import analyze, predict
 from losses import BCELovaszLoss
 from metrics import precision_batch
 from models import create_model
-from utils import moving_parameter_average, get_learning_rate
+from processing import crf_batch
+from utils import moving_parameter_average, get_learning_rate, write_submission
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
@@ -239,11 +240,38 @@ def main():
     print()
     print("evaluation of the training model")
     model.load_state_dict(torch.load("{}/model.pth".format(output_dir), map_location=device))
-    analyze(model, train_data.val_set_df)
+    mask_threshold_global, mask_threshold_per_cc = analyze(model, train_data.val_set_df)
 
     eval_end_time = time.time()
     print()
     print("Eval time: %s" % str(datetime.timedelta(seconds=eval_end_time - eval_start_time)))
+
+    print()
+    print("submission preparation")
+
+    submission_start_time = time.time()
+
+    test_data = TestData(input_dir)
+
+    test_set = TestDataset(test_data.df, image_size_target)
+    test_data_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=4)
+
+    test_data.df["predictions"] = predict(model, test_data_loader)
+    test_data.df["prediction_masks"] = [np.int32(p > mask_threshold_global) for p in test_data.df.predictions]
+
+    test_data.df["predictions_cc"] = test_data.df.prediction_masks.map(calculate_coverage_class)
+    test_data.df["prediction_masks_cc"] = [np.int32(p > mask_threshold_per_cc[cc]) for p, cc in
+                                           zip(test_data.df.predictions, test_data.df.predictions_cc)]
+
+    test_data.df["prediction_masks_crf"] = crf_batch(test_data.df.images, test_data.df.prediction_masks)
+
+    write_submission(test_data.df, "prediction_masks", "{}/{}".format(output_dir, "submission.csv"))
+    write_submission(test_data.df, "prediction_masks_cc", "{}/{}".format(output_dir, "submission_cc.csv"))
+    write_submission(test_data.df, "prediction_masks_crf", "{}/{}".format(output_dir, "submission_crf.csv"))
+
+    submission_end_time = time.time()
+    print()
+    print("Submission time: %s" % str(datetime.timedelta(seconds=submission_end_time - submission_start_time)))
 
 
 if __name__ == "__main__":
