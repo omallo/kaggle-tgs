@@ -1,4 +1,5 @@
 import sys
+from multiprocessing import Pool
 
 import numpy as np
 import pandas as pd
@@ -23,7 +24,9 @@ cudnn.benchmark = True
 
 
 def write_submission(df, mask_name, file_name):
-    pred_dict = {idx: rlenc(df.loc[idx][mask_name]) for idx in df.index.values}
+    with Pool(16) as pool:
+        rlenc_results = [r for r in pool.map(rlenc, df[mask_name])]
+    pred_dict = {idx: r for idx, r in zip(df.index.values, rlenc_results)}
     sub = pd.DataFrame.from_dict(pred_dict, orient='index')
     sub.index.names = ["id"]
     sub.columns = ["rle_mask"]
