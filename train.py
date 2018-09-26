@@ -15,7 +15,7 @@ from losses import BCELovaszLoss
 from metrics import precision_batch
 from models import create_model
 from processing import crf_batch
-from utils import moving_parameter_average, get_learning_rate, write_submission
+from utils import get_learning_rate, write_submission
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
@@ -54,8 +54,8 @@ def main():
     batch_size = 32
     epochs_to_train = 160
     bce_loss_weight_gamma = 0.98
-    swa_start_epoch = 10
-    swa_cycle_epochs = 5
+    # swa_start_epoch = 10
+    # swa_cycle_epochs = 5
     sgdr_min_lr = 0.001  # 0.0001, 0.001
     sgdr_max_lr = 0.03  # 0.001, 0.03
     sgdr_cycle_epochs = 20
@@ -73,7 +73,7 @@ def main():
     model = create_model(pretrained=True).to(device)
     # model.load_state_dict(torch.load("/storage/models/tgs/random-crop-round3/model.pth", map_location=device))
 
-    swa_model = create_model(pretrained=False).to(device)
+    # swa_model = create_model(pretrained=False).to(device)
     # swa_model.load_state_dict(model.state_dict())
 
     print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
@@ -91,11 +91,11 @@ def main():
     optim_summary_writer = SummaryWriter(log_dir="{}/logs/optim".format(output_dir))
     train_summary_writer = SummaryWriter(log_dir="{}/logs/train".format(output_dir))
     val_summary_writer = SummaryWriter(log_dir="{}/logs/val".format(output_dir))
-    val_swa_summary_writer = SummaryWriter(log_dir="{}/logs/val_swa".format(output_dir))
+    # val_swa_summary_writer = SummaryWriter(log_dir="{}/logs/val_swa".format(output_dir))
 
     sgdr_iterations = 0
     sgdr_reset_count = 0
-    swa_update_count = 0
+    # swa_update_count = 0
     batch_count = 0
     epoch_of_last_improval = 0
     sgdr_next_cycle_end_epoch = sgdr_cycle_epochs
@@ -103,10 +103,10 @@ def main():
     print('{"chart": "best_val_precision", "axis": "epoch"}')
     print('{"chart": "val_precision", "axis": "epoch"}')
     print('{"chart": "val_loss", "axis": "epoch"}')
-    print('{"chart": "val_precision_swa", "axis": "epoch"}')
-    print('{"chart": "val_loss_swa", "axis": "epoch"}')
+    # print('{"chart": "val_precision_swa", "axis": "epoch"}')
+    # print('{"chart": "val_loss_swa", "axis": "epoch"}')
     print('{"chart": "sgdr_reset", "axis": "epoch"}')
-    print('{"chart": "swa_update", "axis": "epoch"}')
+    # print('{"chart": "swa_update", "axis": "epoch"}')
 
     train_start_time = time.time()
 
@@ -153,26 +153,27 @@ def main():
             global_val_precision_best_avg = val_precision_avg
             ckpt_saved = True
 
-        swa_updated = False
-        if epoch + 1 >= swa_start_epoch and (model_improved or ((epoch + 1) % swa_cycle_epochs == 0)):
-            swa_update_count += 1
-            moving_parameter_average(swa_model, model, 1.0 / swa_update_count)
-            swa_updated = True
-
-        val_loss_swa_avg, val_precision_swa_avg = evaluate(swa_model, val_set_data_loader, criterion)
-
-        swa_model_improved = epoch + 1 >= swa_start_epoch and val_precision_swa_avg > global_val_precision_swa_best_avg
-        swa_ckpt_saved = False
-        if swa_model_improved:
-            torch.save(swa_model.state_dict(), "{}/swa_model.pth".format(output_dir))
-            global_val_precision_swa_best_avg = val_precision_swa_avg
-            swa_ckpt_saved = True
+        # swa_updated = False
+        # if epoch + 1 >= swa_start_epoch and (model_improved or ((epoch + 1) % swa_cycle_epochs == 0)):
+        #     swa_update_count += 1
+        #     moving_parameter_average(swa_model, model, 1.0 / swa_update_count)
+        #     swa_updated = True
+        #
+        # val_loss_swa_avg, val_precision_swa_avg = evaluate(swa_model, val_set_data_loader, criterion)
+        #
+        # swa_model_improved = epoch + 1 >= swa_start_epoch and val_precision_swa_avg > global_val_precision_swa_best_avg
+        # swa_ckpt_saved = False
+        # if swa_model_improved:
+        #     torch.save(swa_model.state_dict(), "{}/swa_model.pth".format(output_dir))
+        #     global_val_precision_swa_best_avg = val_precision_swa_avg
+        #     swa_ckpt_saved = True
 
         epoch_end_time = time.time()
         epoch_duration_time = epoch_end_time - epoch_start_time
 
         model_improved_overall = global_val_precision_best_avg > global_val_precision_overall_avg
-        swa_model_improved_overall = swa_updated and global_val_precision_swa_best_avg > global_val_precision_overall_avg
+        # swa_model_improved_overall = swa_updated and global_val_precision_swa_best_avg > global_val_precision_overall_avg
+        swa_model_improved_overall = False
         if model_improved_overall or swa_model_improved_overall:
             global_val_precision_overall_avg = max(global_val_precision_best_avg, global_val_precision_swa_best_avg)
             epoch_of_last_improval = epoch
@@ -185,7 +186,7 @@ def main():
             sgdr_reset = True
 
         optim_summary_writer.add_scalar("sgdr_reset", sgdr_reset_count, epoch + 1)
-        optim_summary_writer.add_scalar("swa_update", swa_update_count, epoch + 1)
+        # optim_summary_writer.add_scalar("swa_update", swa_update_count, epoch + 1)
 
         train_summary_writer.add_scalar("loss", train_loss_avg, epoch + 1)
         train_summary_writer.add_scalar("precision", train_precision_avg, epoch + 1)
@@ -193,43 +194,44 @@ def main():
         val_summary_writer.add_scalar("loss", val_loss_avg, epoch + 1)
         val_summary_writer.add_scalar("precision", val_precision_avg, epoch + 1)
 
-        if swa_updated:
-            val_swa_summary_writer.add_scalar("loss", val_loss_swa_avg, epoch + 1)
-            val_swa_summary_writer.add_scalar("precision", val_precision_swa_avg, epoch + 1)
+        # if swa_updated:
+        #     val_swa_summary_writer.add_scalar("loss", val_loss_swa_avg, epoch + 1)
+        #     val_swa_summary_writer.add_scalar("precision", val_precision_swa_avg, epoch + 1)
 
         print(
-            "[%03d/%03d] %ds, lr: %.6f, loss: %.3f, val_loss: %.3f|%.3f, prec: %.3f, val_prec: %.3f|%.3f, swa: %d, ckpt: %d|%d, rst: %d" % (
+            "[%03d/%03d] %ds, lr: %.6f, loss: %.3f, val_loss: %.3f, prec: %.3f, val_prec: %.3f, ckpt: %d, rst: %d" % (
                 epoch + 1,
                 epochs_to_train,
                 epoch_duration_time,
                 get_learning_rate(optimizer),
                 train_loss_avg,
                 val_loss_avg,
-                val_loss_swa_avg,
+                # val_loss_swa_avg,
                 train_precision_avg,
                 val_precision_avg,
-                val_precision_swa_avg,
-                int(swa_updated),
+                # val_precision_swa_avg,
+                # int(swa_updated),
                 int(ckpt_saved),
-                int(swa_ckpt_saved),
+                # int(swa_ckpt_saved),
                 int(sgdr_reset)),
             flush=True)
 
         print('{"chart": "best_val_precision", "x": %d, "y": %.3f}' % (epoch + 1, global_val_precision_overall_avg))
         print('{"chart": "val_precision", "x": %d, "y": %.3f}' % (epoch + 1, val_precision_avg))
         print('{"chart": "val_loss", "x": %d, "y": %.3f}' % (epoch + 1, val_loss_avg))
-        print('{"chart": "val_precision_swa", "x": %d, "y": %.3f}' % (epoch + 1, val_precision_swa_avg))
-        print('{"chart": "val_loss_swa", "x": %d, "y": %.3f}' % (epoch + 1, val_loss_swa_avg))
+        # print('{"chart": "val_precision_swa", "x": %d, "y": %.3f}' % (epoch + 1, val_precision_swa_avg))
+        # print('{"chart": "val_loss_swa", "x": %d, "y": %.3f}' % (epoch + 1, val_loss_swa_avg))
         print('{"chart": "sgdr_reset", "x": %d, "y": %.3f}' % (epoch + 1, sgdr_reset_count))
-        print('{"chart": "swa_update", "x": %d, "y": %.3f}' % (epoch + 1, swa_update_count))
+        # print('{"chart": "swa_update", "x": %d, "y": %.3f}' % (epoch + 1, swa_update_count))
 
         if epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
             print("early abort")
             break
 
+    optim_summary_writer.close()
     train_summary_writer.close()
     val_summary_writer.close()
-    val_swa_summary_writer.close()
+    # val_swa_summary_writer.close()
 
     train_end_time = time.time()
     print()
