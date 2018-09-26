@@ -78,6 +78,9 @@ def main():
     if model_dir:
         model.load_state_dict(torch.load("{}/model.pth".format(model_dir), map_location=device))
 
+    freeze(model.encoder)
+    encoder_layers_to_unfreeze = [model.conv2, model.conv3, model.conv4]
+
     # swa_model = create_model(pretrained=False).to(device)
     # swa_model.load_state_dict(model.state_dict())
 
@@ -90,7 +93,6 @@ def main():
     epoch_iterations = len(train_set) // batch_size
 
     optimizer = optim.SGD(model.parameters(), lr=sgdr_max_lr, weight_decay=0, momentum=0.9, nesterov=True)
-    freeze(model.encoder)
     # optimizer = optim.Adam(model.parameters(), lr=sgdr_max_lr)
     lr_scheduler = CosineAnnealingLR(optimizer, T_max=sgdr_cycle_epochs, eta_min=sgdr_min_lr)
 
@@ -124,7 +126,8 @@ def main():
         model.train()
 
         if epoch + 1 == epoch_to_unfreeze_encoder:
-            unfreeze(model.encoder)
+            for l in encoder_layers_to_unfreeze:
+                unfreeze(l)
 
         train_loss_sum = 0.0
         train_precision_sum = 0.0
