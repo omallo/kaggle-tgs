@@ -16,7 +16,7 @@ from losses import BCELovaszLoss
 from metrics import precision_batch
 from models import create_model
 from processing import crf_batch
-from utils import get_learning_rate, write_submission, freeze, unfreeze
+from utils import get_learning_rate, write_submission, unfreeze
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
@@ -35,9 +35,9 @@ def evaluate(model, data_loader, criterion):
 
             prediction_logits = model(images)
 
-            masks = masks[:, :, 14:14+101, 14:14+101].contiguous()
-            mask_weights = mask_weights[:, :, 14:14+101, 14:14+101].contiguous()
-            prediction_logits = prediction_logits[:, :, 14:14+101, 14:14+101].contiguous()
+            masks = masks[:, :, 14:14 + 101, 14:14 + 101].contiguous()
+            mask_weights = mask_weights[:, :, 14:14 + 101, 14:14 + 101].contiguous()
+            prediction_logits = prediction_logits[:, :, 14:14 + 101, 14:14 + 101].contiguous()
 
             predictions = torch.sigmoid(prediction_logits)
             criterion.weight = mask_weights
