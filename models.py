@@ -19,7 +19,7 @@ class ConvBnRelu(nn.Module):
         self.conv = nn.Sequential(
             with_he_normal_weights(nn.Conv2d(in_channels, out_channels, 3, padding=1)),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
+            nn.ELU(inplace=True)
         )
 
     def forward(self, x):
@@ -35,7 +35,7 @@ class DecoderBlockV2(nn.Module):
             ConvBnRelu(in_channels, middle_channels),
             nn.ConvTranspose2d(middle_channels, out_channels, kernel_size=4, stride=2, padding=1),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
+            nn.ELU(inplace=True),
         )
 
         self.upsample = nn.Sequential(
@@ -80,8 +80,11 @@ class UNetResNet(nn.Module):
         if encoder_depth == 34:
             # self.encoder = torchvision.models.resnet34(pretrained=pretrained)
             self.encoder = ResNet(SEBasicBlock, [3, 4, 6, 3])
+
             if pretrained:
                 self.encoder.load_state_dict(model_zoo.load_url(model_urls["resnet34"]), strict=False)
+
+            self.encoder.avgpool = nn.AdaptiveAvgPool2d(1)
 
             bottom_channel_nr = 512
         elif encoder_depth == 101:
@@ -95,7 +98,7 @@ class UNetResNet(nn.Module):
 
         self.pool = nn.MaxPool2d(2, 2)
 
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ELU(inplace=True)
 
         self.input_adjust = nn.Sequential(self.encoder.conv1,
                                           self.encoder.bn1,

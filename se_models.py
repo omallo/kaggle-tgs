@@ -1,9 +1,8 @@
 import torch.nn as nn
-from torchvision.models import ResNet
 
 
 def conv3x3(in_planes, out_planes, stride=1):
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False)
+    return with_he_normal_weights(nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False))
 
 
 class SELayer(nn.Module):
@@ -12,7 +11,7 @@ class SELayer(nn.Module):
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Sequential(
             nn.Linear(channel, channel // reduction),
-            nn.ReLU(inplace=True),
+            nn.ELU(inplace=True),
             nn.Linear(channel // reduction, channel),
             nn.Sigmoid()
         )
@@ -31,7 +30,7 @@ class SEBasicBlock(nn.Module):
         super(SEBasicBlock, self).__init__()
         self.conv1 = conv3x3(inplanes, planes, stride)
         self.bn1 = nn.BatchNorm2d(planes)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ELU(inplace=True)
         self.conv2 = conv3x3(planes, planes)
         self.bn2 = nn.BatchNorm2d(planes)
         self.se = SELayer(planes, reduction)
@@ -57,7 +56,6 @@ class SEBasicBlock(nn.Module):
         return out
 
 
-def se_resnet34(num_classes):
-    model = ResNet(SEBasicBlock, [3, 4, 6, 3], num_classes=num_classes)
-    model.avgpool = nn.AdaptiveAvgPool2d(1)
-    return model
+def with_he_normal_weights(layer):
+    nn.init.kaiming_normal_(layer.weight, a=0, mode="fan_in")
+    return layer
