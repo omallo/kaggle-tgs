@@ -80,11 +80,8 @@ class UNetResNet(nn.Module):
         if encoder_depth == 34:
             # self.encoder = torchvision.models.resnet34(pretrained=pretrained)
             self.encoder = ResNet(SEBasicBlock, [3, 4, 6, 3])
-
             if pretrained:
                 self.encoder.load_state_dict(model_zoo.load_url(model_urls["resnet34"]), strict=False)
-
-            self.encoder.avgpool = nn.AdaptiveAvgPool2d(1)
 
             bottom_channel_nr = 512
         elif encoder_depth == 101:
