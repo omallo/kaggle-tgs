@@ -198,7 +198,7 @@ def main():
         sgdr_reset = False
         if (epoch + 1 >= sgdr_next_cycle_end_epoch) and (epoch - epoch_of_last_improval >= sgdr_cycle_end_patience):
             sgdr_iterations = 0
-            sgdr_next_cycle_end_epoch = epoch + sgdr_cycle_epochs
+            sgdr_next_cycle_end_epoch = epoch + 1 + sgdr_cycle_epochs
             sgdr_reset_count += 1
             sgdr_reset = True
 
