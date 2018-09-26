@@ -95,8 +95,6 @@ class UNetResNet(nn.Module):
 
         self.pool = nn.MaxPool2d(2, 2)
 
-        self.relu = nn.ELU(inplace=True)
-
         self.input_adjust = nn.Sequential(self.encoder.conv1,
                                           self.encoder.bn1,
                                           self.encoder.relu)
