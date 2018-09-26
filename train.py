@@ -84,7 +84,6 @@ def main():
         model.load_state_dict(torch.load("{}/model.pth".format(model_dir), map_location=device))
 
     freeze(model.encoder)
-    encoder_layers_to_unfreeze = [model.conv2, model.conv3, model.conv4]
 
     # swa_model = create_model(pretrained=False).to(device)
     # swa_model.load_state_dict(model.state_dict())
@@ -131,8 +130,7 @@ def main():
         model.train()
 
         if epoch + 1 == epoch_to_unfreeze_encoder:
-            for l in encoder_layers_to_unfreeze:
-                unfreeze(l)
+            unfreeze(model.encoder)
 
         train_loss_sum = 0.0
         train_precision_sum = 0.0
