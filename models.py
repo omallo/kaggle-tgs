@@ -5,7 +5,7 @@ from torch.utils import model_zoo
 from torchvision.models import ResNet
 from torchvision.models.resnet import model_urls
 
-from se_models import SEBasicBlock, SEBottleneck
+from se_models import SEBasicBlock, SEBottleneck, SpatialChannelSEBlock
 from utils import with_he_normal_weights
 
 
@@ -36,11 +36,13 @@ class DecoderBlockV2(nn.Module):
             nn.ConvTranspose2d(middle_channels, out_channels, kernel_size=4, stride=2, padding=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
+            SpatialChannelSEBlock(out_channels)
         )
 
         self.upsample = nn.Sequential(
             ConvBnRelu(in_channels, out_channels),
             nn.Upsample(scale_factor=2, mode='bilinear'),
+            SpatialChannelSEBlock(out_channels)
         )
 
     def forward(self, x):
@@ -103,8 +105,6 @@ class UNetResNet(nn.Module):
             bottom_channel_nr = 2048
         else:
             raise NotImplementedError('only 34, 50, 101, 152 version of Resnet are implemented')
-
-        self.pool = nn.MaxPool2d(2, 2)
 
         self.input_adjust = nn.Sequential(self.encoder.conv1,
                                           self.encoder.bn1,
