@@ -6,7 +6,7 @@ from torch.utils import model_zoo
 from torchvision.models import ResNet
 from torchvision.models.resnet import model_urls
 
-from se_models import SEBasicBlock
+from se_models import SEBasicBlock, SEBottleneck
 from utils import with_he_normal_weights
 
 
@@ -83,16 +83,27 @@ class UNetResNet(nn.Module):
             self.encoder = ResNet(SEBasicBlock, [3, 4, 6, 3])
             if pretrained:
                 self.encoder.load_state_dict(model_zoo.load_url(model_urls["resnet34"]), strict=False)
-
             bottom_channel_nr = 512
+        elif encoder_depth == 50:
+            # self.encoder = torchvision.models.resnet50(pretrained=pretrained)
+            self.encoder = ResNet(SEBottleneck, [3, 4, 6, 3])
+            if pretrained:
+                self.encoder.load_state_dict(model_zoo.load_url(model_urls["resnet50"]), strict=False)
+            bottom_channel_nr = 2048
         elif encoder_depth == 101:
-            self.encoder = torchvision.models.resnet101(pretrained=pretrained)
+            # self.encoder = torchvision.models.resnet101(pretrained=pretrained)
+            self.encoder = ResNet(SEBottleneck, [3, 4, 23, 3])
+            if pretrained:
+                self.encoder.load_state_dict(model_zoo.load_url(model_urls["resnet101"]), strict=False)
             bottom_channel_nr = 2048
         elif encoder_depth == 152:
-            self.encoder = torchvision.models.resnet152(pretrained=pretrained)
+            # self.encoder = torchvision.models.resnet152(pretrained=pretrained)
+            self.encoder = ResNet(SEBottleneck, [3, 8, 36, 3])
+            if pretrained:
+                self.encoder.load_state_dict(model_zoo.load_url(model_urls["resnet152"]), strict=False)
             bottom_channel_nr = 2048
         else:
-            raise NotImplementedError('only 34, 101, 152 version of Resnet are implemented')
+            raise NotImplementedError('only 34, 50, 101, 152 version of Resnet are implemented')
 
         self.pool = nn.MaxPool2d(2, 2)
 
