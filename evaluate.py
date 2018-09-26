@@ -34,7 +34,11 @@ def predict(model, data_loader):
     with torch.no_grad():
         for _, image in enumerate(data_loader):
             image = image.to(device)
-            predictions = torch.sigmoid(model(image))
+
+            predictions1 = torch.sigmoid(model(image))
+            predictions2 = torch.sigmoid(model(image.flip(3))).flip(3)
+            predictions = 0.5 * (predictions1 + predictions2)
+
             val_predictions += [p for p in predictions.cpu().numpy()]
     val_predictions = np.asarray(val_predictions).reshape(-1, image_size_target, image_size_target)
     val_predictions = [downsample(p, image_size_original) for p in val_predictions]
