@@ -58,7 +58,7 @@ def main():
     output_dir = "/artifacts"
     image_size_target = 128
     batch_size = 32
-    epochs_to_train = 0
+    epochs_to_train = 160
     bce_loss_weight_gamma = 0.98
     # swa_start_epoch = 10
     # swa_cycle_epochs = 5
@@ -84,6 +84,8 @@ def main():
         model.load_state_dict(torch.load("{}/model.pth".format(model_dir), map_location=device))
     else:
         model = create_model(pretrained=True).to(device)
+
+    torch.save(model.state_dict(), "{}/model.pth".format(output_dir))
 
     # freeze(model.encoder)
 
@@ -258,7 +260,7 @@ def main():
 
     print()
     print("evaluation of the training model")
-    model.load_state_dict(torch.load("{}/model.pth".format(model_dir), map_location=device))
+    model.load_state_dict(torch.load("{}/model.pth".format(output_dir), map_location=device))
     mask_threshold_global, mask_threshold_per_cc = analyze(model, train_data.val_set_df)
 
     eval_end_time = time.time()
