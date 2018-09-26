@@ -55,12 +55,12 @@ class Refine(nn.Module):
 
 
 class FCN(nn.Module):
-    def __init__(self, num_classes):
+    def __init__(self, num_classes, pretrained):
         super(FCN, self).__init__()
 
         self.num_classes = num_classes
 
-        resnet = models.resnet50(pretrained=True)
+        resnet = models.resnet50(pretrained=pretrained)
 
         self.conv1 = resnet.conv1
         self.bn0 = resnet.bn1
