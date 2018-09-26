@@ -2,7 +2,7 @@ import torch.nn as nn
 
 
 def conv3x3(in_planes, out_planes, stride=1):
-    return with_he_normal_weights(nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False))
+    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False)
 
 
 class SELayer(nn.Module):
@@ -54,8 +54,3 @@ class SEBasicBlock(nn.Module):
         out = self.relu(out)
 
         return out
-
-
-def with_he_normal_weights(layer):
-    nn.init.kaiming_normal_(layer.weight, a=0, mode="fan_in")
-    return layer
