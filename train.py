@@ -1,4 +1,5 @@
 import datetime
+import os
 import sys
 import time
 
@@ -11,6 +12,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
 
 from dataset import TrainData, TrainDataset, TestData, TestDataset, calculate_coverage_class
+from ensemble import Ensemble
 from evaluate import analyze, predict
 from losses import BCELovaszLoss
 from metrics import precision_batch
@@ -68,6 +70,7 @@ def main():
     sgdr_cycle_end_patience = 3
     train_abort_epochs_without_improval = 20
     epoch_to_unfreeze_encoder = 10
+    ensemble_model_count = 3
 
     model_dir = sys.argv[1] if len(sys.argv) > 1 else None
 
@@ -97,6 +100,7 @@ def main():
     global_val_precision_overall_avg = float("-inf")
     global_val_precision_best_avg = float("-inf")
     global_val_precision_swa_best_avg = float("-inf")
+    sgdr_cycle_val_precision_best_avg = float("-inf")
 
     epoch_iterations = len(train_set) // batch_size
 
@@ -115,6 +119,7 @@ def main():
     batch_count = 0
     epoch_of_last_improval = 0
     sgdr_next_cycle_end_epoch = sgdr_cycle_epochs
+    ensemble_model_index = 0
 
     print('{"chart": "best_val_precision", "axis": "epoch"}')
     print('{"chart": "val_precision", "axis": "epoch"}')
@@ -197,10 +202,17 @@ def main():
             global_val_precision_overall_avg = max(global_val_precision_best_avg, global_val_precision_swa_best_avg)
             epoch_of_last_improval = epoch
 
+        model_improved_within_sgdr_cycle = val_precision_avg > sgdr_cycle_val_precision_best_avg
+        if model_improved_within_sgdr_cycle:
+            torch.save(model.state_dict(), "{}/model-{}.pth".format(output_dir, ensemble_model_index))
+            sgdr_cycle_val_precision_best_avg = val_precision_avg
+
         sgdr_reset = False
         if (epoch + 1 >= sgdr_next_cycle_end_epoch) and (epoch - epoch_of_last_improval >= sgdr_cycle_end_patience):
             sgdr_iterations = 0
             sgdr_next_cycle_end_epoch = epoch + 1 + sgdr_cycle_epochs
+            ensemble_model_index = (ensemble_model_index + 1) % ensemble_model_count
+            sgdr_cycle_val_precision_best_avg = float("-inf")
             sgdr_reset_count += 1
             sgdr_reset = True
 
@@ -260,7 +272,17 @@ def main():
 
     print()
     print("evaluation of the training model")
-    model.load_state_dict(torch.load("{}/model.pth".format(output_dir), map_location=device))
+
+    ensemble_models = []
+    for i in range(ensemble_model_count):
+        model_file_name = "{}/model-{}.pth".format(output_dir, i)
+        if os.path.isfile(model_file_name):
+            m = create_model(pretrained=False)
+            m.load_state_dict(torch.load(model_file_name, map_location=device))
+            ensemble_models.append(m)
+
+    model = Ensemble(ensemble_models)
+
     mask_threshold_global, mask_threshold_per_cc = analyze(model, train_data.val_set_df)
 
     eval_end_time = time.time()
