@@ -1,4 +1,5 @@
 import datetime
+import sys
 import time
 
 import numpy as np
@@ -63,6 +64,8 @@ def main():
     train_abort_epochs_without_improval = 20
     epoch_to_unfreeze_encoder = 20
 
+    model_dir = sys.argv[1] if len(sys.argv) > 1 else None
+
     train_data = TrainData(input_dir)
 
     train_set = TrainDataset(train_data.train_set_df, image_size_target, augment=True)
@@ -72,7 +75,8 @@ def main():
     val_set_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=2)
 
     model = create_model(pretrained=True).to(device)
-    # model.load_state_dict(torch.load("/storage/models/tgs/random-crop-round3/model.pth", map_location=device))
+    if model_dir:
+        model.load_state_dict(torch.load("{}/model.pth".format(model_dir), map_location=device))
 
     # swa_model = create_model(pretrained=False).to(device)
     # swa_model.load_state_dict(model.state_dict())
