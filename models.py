@@ -1,12 +1,11 @@
 import torch
-import torchvision
 from torch import nn
 from torch.nn import functional as F
 from torch.utils import model_zoo
 from torchvision.models import ResNet
 from torchvision.models.resnet import model_urls
 
-from se_models import SEBasicBlock, SEBottleneck, SELayer
+from se_models import SEBasicBlock, SEBottleneck
 from utils import with_he_normal_weights
 
 
@@ -36,14 +35,12 @@ class DecoderBlockV2(nn.Module):
             ConvBnRelu(in_channels, middle_channels),
             nn.ConvTranspose2d(middle_channels, out_channels, kernel_size=4, stride=2, padding=1),
             nn.BatchNorm2d(out_channels),
-            SELayer(out_channels),
             nn.ReLU(inplace=True),
         )
 
         self.upsample = nn.Sequential(
             ConvBnRelu(in_channels, out_channels),
             nn.Upsample(scale_factor=2, mode='bilinear'),
-            SELayer(out_channels),
         )
 
     def forward(self, x):
