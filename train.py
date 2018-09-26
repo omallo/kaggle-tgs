@@ -83,7 +83,7 @@ def main():
     if model_dir:
         model.load_state_dict(torch.load("{}/model.pth".format(model_dir), map_location=device))
 
-    freeze(model.encoder)
+    # freeze(model.encoder)
 
     # swa_model = create_model(pretrained=False).to(device)
     # swa_model.load_state_dict(model.state_dict())
