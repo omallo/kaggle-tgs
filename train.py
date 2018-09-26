@@ -15,7 +15,7 @@ from losses import BCELovaszLoss
 from metrics import precision_batch
 from models import create_model
 from processing import crf_batch
-from utils import get_learning_rate, write_submission
+from utils import get_learning_rate, write_submission, freeze, unfreeze
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
@@ -61,6 +61,7 @@ def main():
     sgdr_cycle_epochs = 20
     sgdr_cycle_end_patience = 3
     train_abort_epochs_without_improval = 20
+    epoch_to_unfreeze_encoder = 20
 
     train_data = TrainData(input_dir)
 
@@ -85,6 +86,7 @@ def main():
     epoch_iterations = len(train_set) // batch_size
 
     optimizer = optim.SGD(model.parameters(), lr=sgdr_max_lr, weight_decay=0, momentum=0.9, nesterov=True)
+    freeze(model.encoder)
     # optimizer = optim.Adam(model.parameters(), lr=sgdr_max_lr)
     lr_scheduler = CosineAnnealingLR(optimizer, T_max=sgdr_cycle_epochs, eta_min=sgdr_min_lr)
 
@@ -116,6 +118,9 @@ def main():
         criterion = BCELovaszLoss(bce_weight=bce_loss_weight_gamma ** epoch)
 
         model.train()
+
+        if epoch + 1 == epoch_to_unfreeze_encoder:
+            unfreeze(model.encoder)
 
         train_loss_sum = 0.0
         train_precision_sum = 0.0
