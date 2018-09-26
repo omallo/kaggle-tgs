@@ -79,9 +79,11 @@ def main():
     val_set = TrainDataset(train_data.val_set_df, image_size_target, augment=False)
     val_set_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=2)
 
-    model = create_model(pretrained=True).to(device)
     if model_dir:
+        model = create_model(pretrained=False).to(device)
         model.load_state_dict(torch.load("{}/model.pth".format(model_dir), map_location=device))
+    else:
+        model = create_model(pretrained=True).to(device)
 
     # freeze(model.encoder)
 
