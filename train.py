@@ -280,7 +280,7 @@ def main():
     test_data.df["prediction_masks_cc"] = [np.int32(p > mask_threshold_per_cc[cc]) for p, cc in
                                            zip(test_data.df.predictions, test_data.df.predictions_cc)]
 
-    test_data.df["prediction_masks_crf"] = crf_batch(test_data.df.images, test_data.df.prediction_masks)
+    test_data.df["prediction_masks_crf"] = crf_batch(test_data.df.images, test_data.df.predictions)
 
     write_submission(test_data.df, "prediction_masks", "{}/{}".format(output_dir, "submission.csv"))
     write_submission(test_data.df, "prediction_masks_cc", "{}/{}".format(output_dir, "submission_cc.csv"))
