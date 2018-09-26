@@ -70,7 +70,7 @@ def analyze(model, df):
     df["prediction_masks"] = [np.int32(p > mask_threshold_global) for p in df.predictions]
     df["precisions"] = [precision(pm, m) for pm, m in zip(df.prediction_masks, df.masks)]
 
-    df["predictions_cc"] = df.predictions.map(calculate_coverage_class)
+    df["predictions_cc"] = df.prediction_masks.map(calculate_coverage_class)
 
     df["prediction_masks_otsu"] = [np.int32(compute_otsu_mask(p)) for p in df.predictions]
     df["precisions_otsu"] = [precision(pm, m) for pm, m in zip(df.prediction_masks_otsu, df.masks)]
