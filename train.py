@@ -258,7 +258,7 @@ def main():
 
     print()
     print("evaluation of the training model")
-    model.load_state_dict(torch.load("{}/model.pth".format(output_dir), map_location=device))
+    model.load_state_dict(torch.load("{}/model.pth".format(model_dir), map_location=device))
     mask_threshold_global, mask_threshold_per_cc = analyze(model, train_data.val_set_df)
 
     eval_end_time = time.time()
