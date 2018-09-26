@@ -1,4 +1,5 @@
 from multiprocessing import Pool
+from torch import nn
 
 import pandas as pd
 
@@ -14,6 +15,11 @@ def adjust_learning_rate(optimizer, lr):
 def get_learning_rate(optimizer):
     for param_group in optimizer.param_groups:
         return param_group["lr"]
+
+
+def with_he_normal_weights(layer):
+    nn.init.kaiming_normal_(layer.weight, a=0, mode="fan_in")
+    return layer
 
 
 def freeze(model):

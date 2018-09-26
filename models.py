@@ -7,6 +7,7 @@ from torchvision.models import ResNet
 from torchvision.models.resnet import model_urls
 
 from se_models import SEBasicBlock
+from utils import with_he_normal_weights
 
 
 def create_model(pretrained):
@@ -124,8 +125,3 @@ class UNetResNet(nn.Module):
         dec2 = self.dec2(torch.cat([dec3, conv2], 1))
         dec1 = F.dropout2d(self.dec1(torch.cat([dec2, conv1], 1)), p=self.dropout_2d)
         return self.final(dec1)
-
-
-def with_he_normal_weights(layer):
-    nn.init.kaiming_normal_(layer.weight, a=0, mode="fan_in")
-    return layer
