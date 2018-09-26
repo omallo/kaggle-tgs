@@ -5,9 +5,19 @@ def conv3x3(in_planes, out_planes, stride=1):
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False)
 
 
-class SELayer(nn.Module):
+class SpatialChannelSEBlock(nn.Module):
     def __init__(self, channel, reduction=16):
-        super(SELayer, self).__init__()
+        super(SpatialChannelSEBlock, self).__init__()
+        self.cse = ChannelSEBlock(channel, reduction)
+        self.sse = SpatialSEBlock(channel)
+
+    def forward(self, x):
+        return self.cse(x) + self.sse(x)
+
+
+class ChannelSEBlock(nn.Module):
+    def __init__(self, channel, reduction=16):
+        super(ChannelSEBlock, self).__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Sequential(
             nn.Linear(channel, channel // reduction),
@@ -23,6 +33,17 @@ class SELayer(nn.Module):
         return x * y
 
 
+class SpatialSEBlock(nn.Module):
+    def __init__(self, channel):
+        super(SpatialSEBlock, self).__init__()
+        self.conv = nn.Conv2d(in_channels=channel, out_channels=1, kernel_size=1)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        y = self.sigmoid(self.conv(x))
+        return x * y
+
+
 class SEBasicBlock(nn.Module):
     expansion = 1
 
@@ -33,7 +54,7 @@ class SEBasicBlock(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.conv2 = conv3x3(planes, planes)
         self.bn2 = nn.BatchNorm2d(planes)
-        self.se = SELayer(planes, reduction)
+        self.se = SpatialChannelSEBlock(planes, reduction)
         self.downsample = downsample
         self.stride = stride
 
@@ -63,13 +84,12 @@ class SEBottleneck(nn.Module):
         super(SEBottleneck, self).__init__()
         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,
-                               padding=1, bias=False)
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
         self.conv3 = nn.Conv2d(planes, planes * 4, kernel_size=1, bias=False)
         self.bn3 = nn.BatchNorm2d(planes * 4)
         self.relu = nn.ReLU(inplace=True)
-        self.se = SELayer(planes * 4, reduction)
+        self.se = SpatialChannelSEBlock(planes * 4, reduction)
         self.downsample = downsample
         self.stride = stride
 
