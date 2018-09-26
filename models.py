@@ -6,14 +6,12 @@ from torch.utils import model_zoo
 from torchvision.models import ResNet
 from torchvision.models.resnet import model_urls
 
-from se_models import SEBasicBlock, SEBottleneck
+from se_models import SEBasicBlock, SEBottleneck, SELayer
 from utils import with_he_normal_weights
-from gcn import FCN
 
 
 def create_model(pretrained):
-    # return UNetResNet(34, 1, num_filters=32, dropout_2d=0.5, pretrained=pretrained, is_deconv=False)
-    return FCN(num_classes=1, pretrained=pretrained)
+    return UNetResNet(34, 1, num_filters=32, dropout_2d=0.5, pretrained=pretrained, is_deconv=False)
 
 
 class ConvBnRelu(nn.Module):
@@ -38,12 +36,14 @@ class DecoderBlockV2(nn.Module):
             ConvBnRelu(in_channels, middle_channels),
             nn.ConvTranspose2d(middle_channels, out_channels, kernel_size=4, stride=2, padding=1),
             nn.BatchNorm2d(out_channels),
+            SELayer(out_channels),
             nn.ReLU(inplace=True),
         )
 
         self.upsample = nn.Sequential(
             ConvBnRelu(in_channels, out_channels),
             nn.Upsample(scale_factor=2, mode='bilinear'),
+            SELayer(out_channels),
         )
 
     def forward(self, x):
@@ -55,7 +55,7 @@ class DecoderBlockV2(nn.Module):
 
 
 class UNetResNet(nn.Module):
-    """PyTorch U-Net model using ResNet(34, 101 or 152) encoder.
+    """PyTorch U-Net model using ResNet(34, 50, 101 or 152) encoder.
     UNet: https://arxiv.org/abs/1505.04597
     ResNet: https://arxiv.org/abs/1512.03385
     Proposed by Alexander Buslaev: https://www.linkedin.com/in/al-buslaev/
