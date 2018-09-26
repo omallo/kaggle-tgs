@@ -14,11 +14,11 @@ pip -q install -r requirements.txt
 
 printf "commit: $(git rev-parse HEAD)\n\n" | tee -a /artifacts/out.log
 
-if [ -z "$1" ]
+if [ -z "$2" ]
 then
   python train.py | tee -a /artifacts/out.log
 else
-  python train.py /storage/models/tgs/$1 | tee -a /artifacts/out.log
+  python train.py /storage/models/tgs/$2 | tee -a /artifacts/out.log
 fi
 
 ( cd /artifacts && zip -r logs.zip logs )
