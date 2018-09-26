@@ -11,7 +11,7 @@ from utils import with_he_normal_weights
 
 
 def create_model(pretrained):
-    return UNetResNet(34, 1, num_filters=32, dropout_2d=0.5, pretrained=pretrained, is_deconv=False)
+    return UNetResNet(50, 1, num_filters=32, dropout_2d=0.5, pretrained=pretrained, is_deconv=False)
 
 
 class ConvBnRelu(nn.Module):
