@@ -20,7 +20,7 @@ class ConvBnRelu(nn.Module):
         self.conv = nn.Sequential(
             with_he_normal_weights(nn.Conv2d(in_channels, out_channels, 3, padding=1)),
             nn.BatchNorm2d(out_channels),
-            nn.ELU(inplace=True)
+            nn.ReLU(inplace=True)
         )
 
     def forward(self, x):
@@ -36,7 +36,7 @@ class DecoderBlockV2(nn.Module):
             ConvBnRelu(in_channels, middle_channels),
             nn.ConvTranspose2d(middle_channels, out_channels, kernel_size=4, stride=2, padding=1),
             nn.BatchNorm2d(out_channels),
-            nn.ELU(inplace=True),
+            nn.ReLU(inplace=True),
         )
 
         self.upsample = nn.Sequential(
