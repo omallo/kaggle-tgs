@@ -18,6 +18,7 @@ if [ -z "$2" ]
 then
   python train.py | tee -a /artifacts/out.log
 else
+  cp /storage/models/tgs/$2/*.pth .
   python train.py /storage/models/tgs/$2 | tee -a /artifacts/out.log
 fi
 

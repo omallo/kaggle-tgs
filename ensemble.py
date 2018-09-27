@@ -9,7 +9,7 @@ class Ensemble(nn.Module):
 
     def forward(self, x):
         all_predictions = [torch.sigmoid(m(x)) for m in self.models]
-        sum_predictions = torch.zeros_like([all_predictions[0]])
+        sum_predictions = torch.zeros_like(all_predictions[0])
         for p in all_predictions:
             sum_predictions += p
         return sum_predictions / len(self.models)
