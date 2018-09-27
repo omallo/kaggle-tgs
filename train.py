@@ -5,6 +5,7 @@ import time
 
 import numpy as np
 import torch
+import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
 from tensorboardX import SummaryWriter
@@ -116,10 +117,12 @@ def main():
 
     train_start_time = time.time()
 
+    criterion = nn.BCEWithLogitsLoss()
+
     for epoch in range(epochs_to_train):
         epoch_start_time = time.time()
 
-        criterion = BCELovaszLoss(bce_weight=bce_loss_weight_gamma ** epoch)
+        # criterion = BCELovaszLoss(bce_weight=bce_loss_weight_gamma ** epoch)
 
         model.train()
 
