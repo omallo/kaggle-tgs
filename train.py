@@ -224,8 +224,8 @@ def main():
 
     model.load_state_dict(torch.load("{}/model.pth".format(output_dir), map_location=device))
 
-    analyze(model, train_data.val_set_df, use_tta=False)
-    analyze(model, train_data.val_set_df, use_tta=True)
+    analyze(Ensemble([model]), train_data.val_set_df, use_tta=False)
+    analyze(Ensemble([model]), train_data.val_set_df, use_tta=True)
 
     ensemble_models = []
     for i in range(ensemble_model_count):
