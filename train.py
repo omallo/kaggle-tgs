@@ -286,7 +286,7 @@ def main():
             m.load_state_dict(torch.load(model_file_name, map_location=device))
             ensemble_models.append(m)
     model = Ensemble(ensemble_models)
-    mask_threshold_global, mask_threshold_per_cc = analyze(model, train_data.val_set_df)
+    mask_threshold_global, mask_threshold_per_cc = analyze(model, train_data.val_set_df, use_tta=True)
 
     eval_end_time = time.time()
     print()
