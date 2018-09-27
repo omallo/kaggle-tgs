@@ -23,22 +23,18 @@ def downsample(image, image_size_original):
 
 
 def augment(image, mask):
-    augmented = False
-
     if np.random.rand() < 0.5:
         image = np.fliplr(image)
         mask = np.fliplr(mask)
-        augmented = True
-
+  
     if np.random.rand() < 0.5:
         c = np.random.choice(2)
         if c == 0:
             image = multiply_brightness(image, np.random.uniform(1 - 0.1, 1 + 0.1))
         elif c == 1:
             image = adjust_gamma(image, np.random.uniform(1 - 0.1, 1 + 0.1))
-        augmented = True
-
-    if np.random.rand() < 0.5 or not augmented:
+   
+    if np.random.rand() < 0.5:
         c = np.random.choice(3)
         if c == 0:
             image, mask = apply_elastic_transform(image, mask, alpha=150, sigma=8, alpha_affine=0)
@@ -46,9 +42,8 @@ def augment(image, mask):
             image, mask = apply_elastic_transform(image, mask, alpha=0, sigma=0, alpha_affine=8)
         elif c == 2:
             image, mask = apply_elastic_transform(image, mask, alpha=150, sigma=10, alpha_affine=5)
-        augmented = True
 
-    if np.random.rand() < 0.5 or not augmented:
+    if np.random.rand() < 0.5:
         image, mask = random_crop_and_pad(image, mask)
 
     return image, mask
