@@ -10,7 +10,7 @@ from se_models import SEBottleneck
 
 
 def create_model(pretrained):
-    return UNetResNet(34, 1, num_filters=32, dropout_2d=0.2, pretrained=pretrained, is_deconv=False)
+    return UNetResNet(34, 1, num_filters=32, dropout_2d=0.0, pretrained=pretrained, is_deconv=False)
 
 
 class ConvBnRelu(nn.Module):
