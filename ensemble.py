@@ -3,7 +3,7 @@ from torch import nn
 
 
 class Ensemble(nn.Module):
-    def __init__(self, *models):
+    def __init__(self, models):
         super().__init__()
         self.models = models
 
