@@ -273,6 +273,9 @@ def main():
     print()
     print("evaluation of the training model")
 
+    model.load_state_dict(torch.load("{}/model.pth".format(output_dir), map_location=device))
+    analyze(model, train_data.val_set_df)
+
     ensemble_models = []
     for i in range(ensemble_model_count):
         model_file_name = "{}/model-{}.pth".format(output_dir, i)
@@ -280,9 +283,7 @@ def main():
             m = create_model(pretrained=False).to(device)
             m.load_state_dict(torch.load(model_file_name, map_location=device))
             ensemble_models.append(m)
-
     model = Ensemble(ensemble_models)
-
     mask_threshold_global, mask_threshold_per_cc = analyze(model, train_data.val_set_df)
 
     eval_end_time = time.time()
