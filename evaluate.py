@@ -28,16 +28,19 @@ def compute_otsu_mask(image):
     return cv2.threshold(image_grayscale, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1] / 255
 
 
-def predict(model, data_loader):
+def predict(model, data_loader, use_tta):
     model.eval()
     val_predictions = []
     with torch.no_grad():
         for _, image in enumerate(data_loader):
             image = image.to(device)
 
-            predictions1 = model(image)
-            predictions2 = model(image.flip(3)).flip(3)
-            predictions = 0.5 * (predictions1 + predictions2)
+            if use_tta:
+                predictions1 = model(image)
+                predictions2 = model(image.flip(3)).flip(3)
+                predictions = 0.5 * (predictions1 + predictions2)
+            else:
+                predictions = model(image)
 
             val_predictions += [p for p in predictions.cpu().numpy()]
     val_predictions = np.asarray(val_predictions).reshape(-1, image_size_target, image_size_target)
@@ -59,7 +62,7 @@ def calculate_best_threshold(df):
     return thresholds[np.argmax(precisions_per_threshold)]
 
 
-def analyze(model, df):
+def analyze(model, df, use_tta):
     pd.set_option("display.max_rows", 500)
     pd.set_option("display.max_columns", 500)
     pd.set_option("display.width", 160)
@@ -67,7 +70,7 @@ def analyze(model, df):
     data_set = TestDataset(df, image_size_target)
     data_loader = DataLoader(data_set, batch_size=batch_size, shuffle=False, num_workers=4)
 
-    df["predictions"] = predict(model, data_loader)
+    df["predictions"] = predict(model, data_loader, use_tta)
 
     mask_threshold_global = calculate_best_threshold(df)
 

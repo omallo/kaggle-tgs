@@ -274,7 +274,9 @@ def main():
     print("evaluation of the training model")
 
     model.load_state_dict(torch.load("{}/model.pth".format(output_dir), map_location=device))
-    analyze(model, train_data.val_set_df)
+
+    analyze(model, train_data.val_set_df, use_tta=False)
+    analyze(model, train_data.val_set_df, use_tta=True)
 
     ensemble_models = []
     for i in range(ensemble_model_count):
@@ -300,7 +302,7 @@ def main():
     test_set = TestDataset(test_data.df, image_size_target)
     test_data_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=4)
 
-    test_data.df["predictions"] = predict(model, test_data_loader)
+    test_data.df["predictions"] = predict(model, test_data_loader, use_tta=True)
     test_data.df["prediction_masks"] = [np.int32(p > mask_threshold_global) for p in test_data.df.predictions]
 
     test_data.df["predictions_cc"] = test_data.df.prediction_masks.map(calculate_coverage_class)
