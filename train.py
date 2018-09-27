@@ -255,7 +255,7 @@ def main():
         print('{"chart": "sgdr_reset", "x": %d, "y": %.3f}' % (epoch + 1, sgdr_reset_count))
         # print('{"chart": "swa_update", "x": %d, "y": %.3f}' % (epoch + 1, swa_update_count))
 
-        if epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
+        if sgdr_reset and epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
             print("early abort")
             break
 
