@@ -89,7 +89,6 @@ def main():
 
     print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
 
-    global_val_precision_overall_avg = float("-inf")
     global_val_precision_best_avg = float("-inf")
     sgdr_cycle_val_precision_best_avg = float("-inf")
 
@@ -200,7 +199,7 @@ def main():
                 int(sgdr_reset)),
             flush=True)
 
-        print('{"chart": "best_val_precision", "x": %d, "y": %.3f}' % (epoch + 1, global_val_precision_overall_avg))
+        print('{"chart": "best_val_precision", "x": %d, "y": %.3f}' % (epoch + 1, global_val_precision_best_avg))
         print('{"chart": "val_precision", "x": %d, "y": %.3f}' % (epoch + 1, val_precision_avg))
         print('{"chart": "val_loss", "x": %d, "y": %.3f}' % (epoch + 1, val_loss_avg))
         print('{"chart": "sgdr_reset", "x": %d, "y": %.3f}' % (epoch + 1, sgdr_reset_count))
