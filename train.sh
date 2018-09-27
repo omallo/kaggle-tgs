@@ -19,7 +19,7 @@ then
   python train.py | tee -a /artifacts/out.log
 else
   cp /storage/models/tgs/$2/*.pth /artifacts
-  python train.py /storage/models/tgs/$2 | tee -a /artifacts/out.log
+  python -m cProfile -o /artifacts/train.prof train.py /storage/models/tgs/$2 | tee -a /artifacts/out.log
 fi
 
 ( cd /artifacts && zip -r logs.zip logs )
