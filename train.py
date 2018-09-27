@@ -277,7 +277,7 @@ def main():
     for i in range(ensemble_model_count):
         model_file_name = "{}/model-{}.pth".format(output_dir, i)
         if os.path.isfile(model_file_name):
-            m = create_model(pretrained=False)
+            m = create_model(pretrained=False).to(device)
             m.load_state_dict(torch.load(model_file_name, map_location=device))
             ensemble_models.append(m)
 
