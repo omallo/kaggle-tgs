@@ -5,8 +5,8 @@ import time
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.backends.cudnn as cudnn
+import torch.nn as nn
 import torch.optim as optim
 from tensorboardX import SummaryWriter
 from torch.optim.lr_scheduler import CosineAnnealingLR
@@ -15,10 +15,8 @@ from torch.utils.data import DataLoader
 from dataset import TrainData, TrainDataset, TestData, TestDataset, calculate_coverage_class
 from ensemble import Ensemble
 from evaluate import analyze, predict
-from losses import BCELovaszLoss
 from metrics import precision_batch
 from models import create_model
-from processing import crf_batch
 from utils import get_learning_rate, write_submission
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -34,7 +32,10 @@ def evaluate(model, data_loader, criterion):
 
     with torch.no_grad():
         for _, batch in enumerate(data_loader):
-            images, masks, mask_weights = batch[0].to(device, non_blocking=True), batch[1].to(device, non_blocking=True), batch[2].to(device, non_blocking=True)
+            images, masks, mask_weights = \
+                batch[0].to(device, non_blocking=True), \
+                batch[1].to(device, non_blocking=True), \
+                batch[2].to(device, non_blocking=True)
 
             prediction_logits = model(images)
 
@@ -63,7 +64,7 @@ def main():
     batch_size = 32
     epochs_to_train = 160
     bce_loss_weight_gamma = 0.98
-    sgdr_min_lr = 0.0001 # 0.0001, 0.001
+    sgdr_min_lr = 0.0001  # 0.0001, 0.001
     sgdr_max_lr = 0.001  # 0.001, 0.03
     sgdr_cycle_epochs = 20
     sgdr_cycle_end_patience = 3
@@ -130,7 +131,10 @@ def main():
         train_precision_sum = 0.0
         train_step_count = 0
         for _, batch in enumerate(train_set_data_loader):
-            images, masks, mask_weights = batch[0].to(device, non_blocking=True), batch[1].to(device, non_blocking=True), batch[2].to(device, non_blocking=True)
+            images, masks, mask_weights = \
+                batch[0].to(device, non_blocking=True), \
+                batch[1].to(device, non_blocking=True), \
+                batch[2].to(device, non_blocking=True)
 
             lr_scheduler.step(epoch=min(sgdr_cycle_epochs, sgdr_iterations / epoch_iterations))
 
@@ -207,7 +211,7 @@ def main():
         print('{"chart": "val_loss", "x": %d, "y": %.3f}' % (epoch + 1, val_loss_avg))
         print('{"chart": "sgdr_reset", "x": %d, "y": %.3f}' % (epoch + 1, sgdr_reset_count))
 
-        if sgdr_reset and epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
+        if sgdr_reset and sgdr_reset_count >= ensemble_model_count and epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
             print("early abort")
             break
 
