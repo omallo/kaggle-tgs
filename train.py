@@ -34,7 +34,7 @@ def evaluate(model, data_loader, criterion):
 
     with torch.no_grad():
         for _, batch in enumerate(data_loader):
-            images, masks, mask_weights = batch[0].to(device), batch[1].to(device), batch[2].to(device)
+            images, masks, mask_weights = batch[0].to(device, non_blocking=True), batch[1].to(device, non_blocking=True), batch[2].to(device, non_blocking=True)
 
             prediction_logits = model(images)
 
@@ -130,7 +130,7 @@ def main():
         train_precision_sum = 0.0
         train_step_count = 0
         for _, batch in enumerate(train_set_data_loader):
-            images, masks, mask_weights = batch[0].to(device), batch[1].to(device), batch[2].to(device)
+            images, masks, mask_weights = batch[0].to(device, non_blocking=True), batch[1].to(device, non_blocking=True), batch[2].to(device, non_blocking=True)
 
             lr_scheduler.step(epoch=min(sgdr_cycle_epochs, sgdr_iterations / epoch_iterations))
 
