@@ -29,22 +29,26 @@ def compute_otsu_mask(image):
 
 
 def predict_image_over_4_crops(image, model):
-    predictions1 = model(image[:, :, 0:96, 0:96].contiguous())
+    predictions1 = torch.zeros_like(image)
+    predictions1[:, :, 0:96, 0:96] = model(image[:, :, 0:96, 0:96].contiguous())
     weights1 = torch.zeros_like(image)
     weights1[:, :, 0:96, 0:96] = 1
     weights1 = weights1.to(device)
 
-    predictions2 = model(image[:, :, 5:101, 0:96].contiguous())
+    predictions2 = torch.zeros_like(image)
+    predictions2[:, :, 5:101, 0:96] = model(image[:, :, 5:101, 0:96].contiguous())
     weights2 = torch.zeros_like(image)
     weights2[:, :, 5:101, 0:96] = 1
     weights2 = weights2.to(device)
 
-    predictions3 = model(image[:, :, 0:96, 5:101].contiguous())
+    predictions3 = torch.zeros_like(image)
+    predictions3[:, :, 0:96, 5:101] = model(image[:, :, 0:96, 5:101].contiguous())
     weights3 = torch.zeros_like(image)
     weights3[:, :, 0:96, 5:101] = 1
     weights3 = weights3.to(device)
 
-    predictions4 = model(image[:, :, 5:101, 5:101].contiguous())
+    predictions4 = torch.zeros_like(image)
+    predictions4[:, :, 5:101, 5:101] = model(image[:, :, 5:101, 5:101].contiguous())
     weights4 = torch.zeros_like(image)
     weights4[:, :, 5:101, 5:101] = 1
     weights4 = weights4.to(device)
