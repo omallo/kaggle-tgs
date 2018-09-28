@@ -15,6 +15,7 @@ from torch.utils.data import DataLoader
 from dataset import TrainData, TrainDataset, TestData, TestDataset, calculate_coverage_class
 from ensemble import Ensemble
 from evaluate import analyze, predict
+from losses import BCELovaszLoss
 from metrics import precision_batch
 from models import create_model
 from utils import get_learning_rate, write_submission
@@ -118,7 +119,8 @@ def main():
 
     train_start_time = time.time()
 
-    criterion = nn.BCEWithLogitsLoss()
+    # criterion = nn.BCEWithLogitsLoss()
+    criterion = BCELovaszLoss(bce_weight=0.0)
 
     for epoch in range(epochs_to_train):
         epoch_start_time = time.time()
