@@ -15,7 +15,6 @@ from torch.utils.data import DataLoader
 from dataset import TrainData, TrainDataset, TestData, TestDataset, calculate_coverage_class
 from ensemble import Ensemble
 from evaluate import analyze, predict
-from losses import BCELovaszLoss
 from metrics import precision_batch
 from models import create_model
 from utils import get_learning_rate, write_submission
@@ -110,7 +109,7 @@ def main():
     sgdr_reset_count = 0
     batch_count = 0
     epoch_of_last_improval = 0
-    sgdr_next_cycle_end_epoch = sgdr_cycle_epochs
+    sgdr_next_cycle_end_epoch = sgdr_cycle_epochs + sgdr_cycle_epoch_prolongation
     ensemble_model_index = 0
 
     print('{"chart": "best_val_precision", "axis": "epoch"}')
