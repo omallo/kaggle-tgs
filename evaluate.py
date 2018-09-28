@@ -11,7 +11,7 @@ from processing import crf
 from transforms import downsample
 
 image_size_original = 101
-image_size_target = 128
+image_size_target = 96
 batch_size = 32
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -73,7 +73,7 @@ def predict(model, data_loader, use_tta):
                 predictions = predict_image_over_4_crops(image, model)
 
             val_predictions += [p for p in predictions.cpu().numpy()]
-    val_predictions = np.asarray(val_predictions).reshape(-1, image_size_original, image_size_original)
+    val_predictions = np.asarray(val_predictions).reshape(-1, image_size_target, image_size_target)
     val_predictions = [downsample(p, image_size_original) for p in val_predictions]
     return val_predictions
 
