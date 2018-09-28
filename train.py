@@ -60,7 +60,7 @@ def evaluate(model, data_loader, criterion):
 def main():
     input_dir = "/storage/kaggle/tgs"
     output_dir = "/artifacts"
-    image_size_target = 96
+    image_size_target = 128
     batch_size = 32
     epochs_to_train = 0
     bce_loss_weight_gamma = 0.98
