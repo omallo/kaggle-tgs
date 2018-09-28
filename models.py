@@ -6,7 +6,7 @@ from torch.utils import model_zoo
 from torchvision.models import ResNet
 from torchvision.models.resnet import model_urls
 
-from se_models import SEBottleneck
+from se_models import SEBasicBlock, SEBottleneck, SpatialChannelSEBlock
 
 
 def create_model(pretrained):
@@ -36,13 +36,13 @@ class DecoderBlockV2(nn.Module):
             nn.ConvTranspose2d(middle_channels, out_channels, kernel_size=4, stride=2, padding=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
-            # SpatialChannelSEBlock(out_channels)
+            SpatialChannelSEBlock(out_channels)
         )
 
         self.upsample = nn.Sequential(
             ConvBnRelu(in_channels, out_channels),
             nn.Upsample(scale_factor=2, mode='bilinear'),
-            # SpatialChannelSEBlock(out_channels)
+            SpatialChannelSEBlock(out_channels)
         )
 
     def forward(self, x):
@@ -80,10 +80,10 @@ class UNetResNet(nn.Module):
         self.dropout_2d = dropout_2d
 
         if encoder_depth == 34:
-            self.encoder = torchvision.models.resnet34(pretrained=pretrained)
-            # self.encoder = ResNet(SEBasicBlock, [3, 4, 6, 3])
-            # if pretrained:
-            #     self.encoder.load_state_dict(model_zoo.load_url(model_urls["resnet34"]), strict=False)
+            # self.encoder = torchvision.models.resnet34(pretrained=pretrained)
+            self.encoder = ResNet(SEBasicBlock, [3, 4, 6, 3])
+            if pretrained:
+                self.encoder.load_state_dict(model_zoo.load_url(model_urls["resnet34"]), strict=False)
             bottom_channel_nr = 512
         elif encoder_depth == 50:
             # self.encoder = torchvision.models.resnet50(pretrained=pretrained)
