@@ -36,13 +36,13 @@ def predict_image_over_4_crops(image, model):
     predictions[:, :, 0:96, 0:96] += model(image[:, :, 0:96, 0:96].contiguous())
     weights[:, :, 0:96, 0:96] += 1
 
-    predictions[:, :, 5:101, 0:96] = model(image[:, :, 5:101, 0:96].contiguous())
+    predictions[:, :, 5:101, 0:96] += model(image[:, :, 5:101, 0:96].contiguous())
     weights[:, :, 5:101, 0:96] += 1
 
-    predictions[:, :, 0:96, 5:101] = model(image[:, :, 0:96, 5:101].contiguous())
+    predictions[:, :, 0:96, 5:101] += model(image[:, :, 0:96, 5:101].contiguous())
     weights[:, :, 0:96, 5:101] += 1
 
-    predictions[:, :, 5:101, 5:101] = model(image[:, :, 5:101, 5:101].contiguous())
+    predictions[:, :, 5:101, 5:101] += model(image[:, :, 5:101, 5:101].contiguous())
     weights[:, :, 5:101, 5:101] += 1
 
     return predictions / weights
