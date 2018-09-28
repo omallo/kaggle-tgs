@@ -4,7 +4,6 @@ import pandas as pd
 import torch
 import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
-from tqdm import tqdm
 
 from dataset import calculate_coverage_class, TestDataset
 from metrics import precision
@@ -82,7 +81,7 @@ def predict(model, data_loader, use_tta):
 def calculate_best_threshold(df):
     thresholds = np.linspace(0, 1, 51)
     precisions_per_threshold = []
-    for threshold in tqdm(thresholds, desc="Calculate optimal threshold"):
+    for threshold in thresholds:
         precisions = []
         for idx in df.index:
             mask = df.loc[idx].masks
