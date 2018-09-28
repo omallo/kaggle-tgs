@@ -120,8 +120,8 @@ def main():
 
     train_start_time = time.time()
 
-    # criterion = nn.BCEWithLogitsLoss()
-    criterion = BCELovaszLoss(bce_weight=0.0)
+    criterion = nn.BCEWithLogitsLoss()
+    # criterion = BCELovaszLoss(bce_weight=0.0)
 
     for epoch in range(epochs_to_train):
         epoch_start_time = time.time()
