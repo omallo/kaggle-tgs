@@ -28,6 +28,33 @@ def compute_otsu_mask(image):
     return cv2.threshold(image_grayscale, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1] / 255
 
 
+def predict_image_over_4_crops(image, model):
+    predictions1 = model(image[:, :, 0:96, 0:96].contiguous())
+    weights1 = torch.zeros_like(image)
+    weights1[:, :, 0:96, 0:96] = 1
+    weights1 = weights1.to(device)
+
+    predictions2 = model(image[:, :, 5:101, 0:96].contiguous())
+    weights2 = torch.zeros_like(image)
+    weights2[:, :, 5:101, 0:96] = 1
+    weights2 = weights2.to(device)
+
+    predictions3 = model(image[:, :, 0:96, 5:101].contiguous())
+    weights3 = torch.zeros_like(image)
+    weights3[:, :, 0:96, 5:101] = 1
+    weights3 = weights3.to(device)
+
+    predictions4 = model(image[:, :, 5:101, 5:101].contiguous())
+    weights4 = torch.zeros_like(image)
+    weights4[:, :, 5:101, 5:101] = 1
+    weights4 = weights4.to(device)
+
+    predictions = predictions1 + predictions2 + predictions3 + predictions4
+    weights = weights1 + weights2 + weights3 + weights4
+
+    return predictions / weights
+
+
 def predict(model, data_loader, use_tta):
     model.eval()
     val_predictions = []
@@ -36,11 +63,11 @@ def predict(model, data_loader, use_tta):
             image = image.to(device)
 
             if use_tta:
-                predictions1 = model(image)
-                predictions2 = model(image.flip(3)).flip(3)
+                predictions1 = predict_image_over_4_crops(image, model)
+                predictions2 = predict_image_over_4_crops(image.flip(3), model).flip(3)
                 predictions = 0.5 * (predictions1 + predictions2)
             else:
-                predictions = model(image)
+                predictions = predict_image_over_4_crops(image, model)
 
             val_predictions += [p for p in predictions.cpu().numpy()]
     val_predictions = np.asarray(val_predictions).reshape(-1, image_size_target, image_size_target)
