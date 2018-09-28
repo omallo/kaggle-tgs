@@ -63,7 +63,7 @@ def predict(model, data_loader, use_tta):
                 predictions = predict_image_over_4_crops(image, model)
 
             val_predictions += [p for p in predictions.cpu().numpy()]
-    val_predictions = np.asarray(val_predictions).reshape(-1, image_size_target, image_size_target)
+    val_predictions = np.asarray(val_predictions).reshape(-1, image_size_original, image_size_original)
     val_predictions = [downsample(p, image_size_original) for p in val_predictions]
     return val_predictions
 
