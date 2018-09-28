@@ -68,6 +68,7 @@ def main():
     sgdr_min_lr = 0.001  # 0.0001, 0.001
     sgdr_max_lr = 0.03  # 0.001, 0.03
     sgdr_cycle_epochs = 20
+    sgdr_cycle_epoch_prolongation = 2
     sgdr_cycle_end_patience = 3
     train_abort_epochs_without_improval = 20
     ensemble_model_count = 5
@@ -177,7 +178,7 @@ def main():
         sgdr_reset = False
         if (epoch + 1 >= sgdr_next_cycle_end_epoch) and (epoch - epoch_of_last_improval >= sgdr_cycle_end_patience):
             sgdr_iterations = 0
-            sgdr_next_cycle_end_epoch = epoch + 1 + sgdr_cycle_epochs
+            sgdr_next_cycle_end_epoch = epoch + 1 + sgdr_cycle_epochs + sgdr_cycle_epoch_prolongation
             ensemble_model_index = (ensemble_model_index + 1) % ensemble_model_count
             sgdr_cycle_val_precision_best_avg = float("-inf")
             sgdr_reset_count += 1
