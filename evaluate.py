@@ -5,7 +5,7 @@ import torch
 import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
 
-from dataset import calculate_coverage_class, TestDataset
+from dataset import TestDataset, calculate_prediction_coverage_class
 from metrics import precision
 from processing import crf_batch
 from transforms import downsample
@@ -99,7 +99,7 @@ def calculate_predictions(df, model, use_tta):
 
 def calculate_prediction_masks(df, threshold):
     df["prediction_masks"] = [np.int32(p > threshold) for p in df.predictions]
-    df["predictions_cc"] = df.prediction_masks.map(calculate_coverage_class)
+    df["predictions_cc"] = df.prediction_masks.map(calculate_prediction_coverage_class)
     df["prediction_masks_otsu"] = [np.int32(compute_otsu_mask(p)) for p in df.predictions]
     df["prediction_masks_crf"] = crf_batch(df.images, df.prediction_masks)
     df["prediction_masks_best"] = [calculate_best_prediction_mask(pm1, pm2, pm3, cc) for pm1, pm2, pm3, cc in
