@@ -59,8 +59,6 @@ class TrainDataset(Dataset):
         if self.augment and index < len(self.df):
             image, mask = augment(image, mask)
 
-        # image, mask = random_crop_to_size(image, mask, self.image_size_target)
-
         mask_weights = calculate_mask_weights(mask)
 
         image = upsample(image, self.image_size_target)
