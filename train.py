@@ -6,6 +6,7 @@ import time
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
+import torch.nn as nn
 import torch.optim as optim
 from tensorboardX import SummaryWriter
 from torch.optim.lr_scheduler import CosineAnnealingLR
@@ -14,7 +15,6 @@ from torch.utils.data import DataLoader
 from dataset import TrainData, TrainDataset, TestData, TestDataset, calculate_coverage_class
 from ensemble import Ensemble
 from evaluate import analyze, predict
-from losses import LovaszLoss
 from metrics import precision_batch
 from models import create_model
 from utils import get_learning_rate, write_submission
@@ -114,8 +114,8 @@ def main():
 
     train_start_time = time.time()
 
-    # criterion = nn.BCEWithLogitsLoss()
-    criterion = LovaszLoss()
+    criterion = nn.BCEWithLogitsLoss()
+    # criterion = LovaszLoss()
 
     for epoch in range(epochs_to_train):
         epoch_start_time = time.time()
