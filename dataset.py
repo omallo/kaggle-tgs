@@ -142,13 +142,6 @@ def calculate_coverage_class(mask):
             return i
 
 
-def calculate_prediction_coverage_class(mask):
-    coverage = mask.sum() / mask.size
-    for i in range(0, 21):
-        if coverage * 20 <= i:
-            return i
-
-
 def image_to_tensor(image):
     return torch.from_numpy((np.moveaxis(image, -1, 0) / 255).copy()).float()
 
