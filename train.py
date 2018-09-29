@@ -118,7 +118,7 @@ def main():
     for model_file_path in glob.glob("{}/model-*.pth".format(output_dir)):
         model_file_name = os.path.basename(model_file_path)
         model_index = int(model_file_name.replace("model-", "").replace(".pth", ""))
-        ensemble_model_index = max(ensemble_model_index, model_index)
+        ensemble_model_index = max(ensemble_model_index, model_index + 1)
 
     print('{"chart": "best_val_precision", "axis": "epoch"}')
     print('{"chart": "val_precision", "axis": "epoch"}')
