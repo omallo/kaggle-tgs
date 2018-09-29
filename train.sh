@@ -16,10 +16,10 @@ printf "commit: $(git rev-parse HEAD)\n\n" | tee -a /artifacts/out.log
 
 if [ -z "$2" ]
 then
-  python -m cProfile -o /artifacts/train.prof train.py | tee -a /artifacts/out.log
+  python -m cProfile -o /artifacts/train.prof train.py 2>/artifacts/err.log | tee -a /artifacts/out.log
 else
   cp /storage/models/tgs/$2/*.pth /artifacts
-  python -m cProfile -o /artifacts/train.prof train.py /storage/models/tgs/$2 | tee -a /artifacts/out.log
+  python -m cProfile -o /artifacts/train.prof train.py /storage/models/tgs/$2 2>/artifacts/err.log | tee -a /artifacts/out.log
 fi
 
 ( cd /artifacts && zip -r logs.zip logs )
