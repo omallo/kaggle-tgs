@@ -29,6 +29,14 @@ class BCELovaszLoss(nn.Module):
                + (1 - self.bce_weight) * lovasz_hinge(logits, targets, per_image=False)
 
 
+class LovaszLoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, logits, targets):
+        return lovasz_hinge(logits, targets, per_image=False)
+
+
 def lovasz_grad(gt_sorted):
     """
     Computes gradient of the Lovasz extension w.r.t sorted errors
@@ -79,7 +87,7 @@ def lovasz_hinge_flat(logits, labels):
     perm = perm.data
     gt_sorted = labels[perm]
     grad = lovasz_grad(gt_sorted)
-    loss = torch.dot(F.relu(errors_sorted), Variable(grad))
+    loss = torch.dot(F.elu(errors_sorted, alpha=1.0), Variable(grad))
     return loss
 
 
