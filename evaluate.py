@@ -82,6 +82,15 @@ def calculate_best_threshold(df):
     return thresholds[np.argmax(precisions_per_threshold)]
 
 
+def calculate_max_precision(precision, precision_otsu, precision_crf, prediction_cc):
+    if prediction_cc == 0 or prediction_cc == 9:
+        return precision
+    elif prediction_cc == 10:
+        return precision_crf
+    else:
+        return precision_otsu
+
+
 def analyze(model, df, use_tta):
     pd.set_option("display.max_rows", 500)
     pd.set_option("display.max_columns", 500)
@@ -105,7 +114,8 @@ def analyze(model, df, use_tta):
     df["prediction_masks_crf"] = [crf(i, pm) for i, pm in zip(df.images, df.prediction_masks)]
     df["precisions_crf"] = [precision(pm, m) for pm, m in zip(df.prediction_masks_crf, df.masks)]
 
-    df["precisions_max"] = [max(p1, p2, p3) for p1, p2, p3 in zip(df.precisions, df.precisions_otsu, df.precisions_crf)]
+    df["precisions_max"] = [calculate_max_precision(p1, p2, p3, cc) for p1, p2, p3, cc in
+                            zip(df.precisions, df.precisions_otsu, df.precisions_crf, df.predictions_cc)]
 
     mask_threshold_per_cc = {}
     for cc, cc_df in df.groupby("predictions_cc"):
