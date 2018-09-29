@@ -108,7 +108,7 @@ def main():
     swa_val_summary_writer = SummaryWriter(log_dir="{}/logs/swa_val".format(output_dir))
 
     sgdr_iterations = 0
-    sgdr_reset_count = 0
+    sgdr_cycle_count = 0
     batch_count = 0
     epoch_of_last_improval = 0
     sgdr_next_cycle_end_epoch = sgdr_cycle_epochs + sgdr_cycle_epoch_prolongation
@@ -123,7 +123,7 @@ def main():
     print('{"chart": "best_val_precision", "axis": "epoch"}')
     print('{"chart": "val_precision", "axis": "epoch"}')
     print('{"chart": "val_loss", "axis": "epoch"}')
-    print('{"chart": "sgdr_reset", "axis": "epoch"}')
+    print('{"chart": "sgdr_cycle", "axis": "epoch"}')
     print('{"chart": "precision", "axis": "epoch"}')
     print('{"chart": "loss", "axis": "epoch"}')
     print('{"chart": "swa_val_precision", "axis": "epoch"}')
@@ -206,12 +206,12 @@ def main():
             sgdr_next_cycle_end_epoch = epoch + 1 + sgdr_cycle_epochs + sgdr_cycle_epoch_prolongation
             ensemble_model_index += 1
             sgdr_cycle_val_precision_best_avg = float("-inf")
-            sgdr_reset_count += 1
+            sgdr_cycle_count += 1
             sgdr_reset = True
 
         swa_val_loss_avg, swa_val_precision_avg = evaluate(swa_model, val_set_data_loader, criterion)
 
-        optim_summary_writer.add_scalar("sgdr_reset", sgdr_reset_count, epoch + 1)
+        optim_summary_writer.add_scalar("sgdr_cycle", sgdr_cycle_count, epoch + 1)
 
         train_summary_writer.add_scalar("loss", train_loss_avg, epoch + 1)
         train_summary_writer.add_scalar("precision", train_precision_avg, epoch + 1)
@@ -244,13 +244,13 @@ def main():
         print('{"chart": "best_val_precision", "x": %d, "y": %.3f}' % (epoch + 1, global_val_precision_best_avg))
         print('{"chart": "val_precision", "x": %d, "y": %.3f}' % (epoch + 1, val_precision_avg))
         print('{"chart": "val_loss", "x": %d, "y": %.3f}' % (epoch + 1, val_loss_avg))
-        print('{"chart": "sgdr_reset", "x": %d, "y": %.3f}' % (epoch + 1, sgdr_reset_count))
+        print('{"chart": "sgdr_cycle", "x": %d, "y": %.3f}' % (epoch + 1, sgdr_cycle_count))
         print('{"chart": "precision", "x": %d, "y": %.3f}' % (epoch + 1, train_precision_avg))
         print('{"chart": "loss", "x": %d, "y": %.3f}' % (epoch + 1, train_loss_avg))
         print('{"chart": "swa_val_precision", "x": %d, "y": %.3f}' % (epoch + 1, swa_val_precision_avg))
         print('{"chart": "swa_val_loss", "x": %d, "y": %.3f}' % (epoch + 1, swa_val_loss_avg))
 
-        if sgdr_reset and sgdr_reset_count >= ensemble_model_count and epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
+        if sgdr_reset and sgdr_cycle_count >= ensemble_model_count and epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
             print("early abort")
             break
 
