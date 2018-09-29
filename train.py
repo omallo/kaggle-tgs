@@ -263,7 +263,7 @@ def main():
             m = create_model(pretrained=False).to(device)
             m.load_state_dict(torch.load(model_file_name, map_location=device))
             ensemble_models.append(m)
-    ensemble_models.append(swa_model)
+    # ensemble_models.append(swa_model)
 
     for ensemble_model in ensemble_models:
         val_loss_avg, val_precision_avg = evaluate(ensemble_model, val_set_data_loader, criterion)
