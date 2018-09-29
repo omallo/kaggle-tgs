@@ -112,8 +112,13 @@ def main():
     batch_count = 0
     epoch_of_last_improval = 0
     sgdr_next_cycle_end_epoch = sgdr_cycle_epochs + sgdr_cycle_epoch_prolongation
-    ensemble_model_index = 0
     swa_update_count = 0
+
+    ensemble_model_index = 0
+    for model_file_path in glob.glob("{}/model-*.pth".format(output_dir)):
+        model_file_name = os.path.basename(model_file_path)
+        model_index = int(model_file_name.replace("model-", "").replace(".pth", ""))
+        ensemble_model_index = max(ensemble_model_index, model_index)
 
     print('{"chart": "best_val_precision", "axis": "epoch"}')
     print('{"chart": "val_precision", "axis": "epoch"}')
