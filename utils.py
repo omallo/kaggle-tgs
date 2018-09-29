@@ -1,7 +1,7 @@
 from multiprocessing import Pool
-from torch import nn
 
 import pandas as pd
+from torch import nn
 
 from processing import rlenc
 
@@ -30,12 +30,6 @@ def freeze(model):
 def unfreeze(model):
     for param in model.parameters():
         param.requires_grad = True
-
-
-def moving_parameter_average(target_model, source_model, alpha):
-    for param1, param2 in zip(target_model.parameters(), source_model.parameters()):
-        param1.data *= (1.0 - alpha)
-        param1.data += param2.data * alpha
 
 
 def write_submission(df, mask_name, file_path):

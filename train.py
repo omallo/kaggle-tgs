@@ -17,6 +17,7 @@ from ensemble import Ensemble
 from evaluate import analyze, predict
 from metrics import precision_batch
 from models import create_model
+from swa_utils import moving_average, bn_update
 from utils import get_learning_rate, write_submission
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -66,6 +67,7 @@ def main():
     sgdr_cycle_end_patience = 3
     train_abort_epochs_without_improval = 25
     ensemble_model_count = 3
+    swa_epoch_to_start = 30
 
     model_dir = sys.argv[1] if len(sys.argv) > 1 else None
 
@@ -85,6 +87,8 @@ def main():
 
     torch.save(model.state_dict(), "{}/model.pth".format(output_dir))
 
+    swa_model = create_model(pretrained=False).to(device)
+
     print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
 
     global_val_precision_best_avg = float("-inf")
@@ -99,6 +103,7 @@ def main():
     optim_summary_writer = SummaryWriter(log_dir="{}/logs/optim".format(output_dir))
     train_summary_writer = SummaryWriter(log_dir="{}/logs/train".format(output_dir))
     val_summary_writer = SummaryWriter(log_dir="{}/logs/val".format(output_dir))
+    swa_val_summary_writer = SummaryWriter(log_dir="{}/logs/swa_val".format(output_dir))
 
     sgdr_iterations = 0
     sgdr_reset_count = 0
@@ -106,11 +111,14 @@ def main():
     epoch_of_last_improval = 0
     sgdr_next_cycle_end_epoch = sgdr_cycle_epochs + sgdr_cycle_epoch_prolongation
     ensemble_model_index = 0
+    swa_update_count = 0
 
     print('{"chart": "best_val_precision", "axis": "epoch"}')
     print('{"chart": "val_precision", "axis": "epoch"}')
     print('{"chart": "val_loss", "axis": "epoch"}')
     print('{"chart": "sgdr_reset", "axis": "epoch"}')
+    print('{"chart": "swa_val_precision", "axis": "epoch"}')
+    print('{"chart": "swa_val_loss", "axis": "epoch"}')
 
     train_start_time = time.time()
 
@@ -168,6 +176,11 @@ def main():
         if model_improved_within_sgdr_cycle:
             torch.save(model.state_dict(), "{}/model-{}.pth".format(output_dir, ensemble_model_index))
             sgdr_cycle_val_precision_best_avg = val_precision_avg
+            if epoch + 1 >= swa_epoch_to_start:
+                swa_update_count += 1
+                moving_average(swa_model, model, 1.0 / swa_update_count)
+                bn_update(train_set_data_loader, swa_model)
+                torch.save(model.state_dict(), "{}/swa_model.pth".format(output_dir))
 
         sgdr_reset = False
         if (epoch + 1 >= sgdr_next_cycle_end_epoch) and (epoch - epoch_of_last_improval >= sgdr_cycle_end_patience):
@@ -178,6 +191,8 @@ def main():
             sgdr_reset_count += 1
             sgdr_reset = True
 
+        swa_val_loss_avg, swa_val_precision_avg = evaluate(swa_model, val_set_data_loader, criterion)
+
         optim_summary_writer.add_scalar("sgdr_reset", sgdr_reset_count, epoch + 1)
 
         train_summary_writer.add_scalar("loss", train_loss_avg, epoch + 1)
@@ -186,19 +201,24 @@ def main():
         val_summary_writer.add_scalar("loss", val_loss_avg, epoch + 1)
         val_summary_writer.add_scalar("precision", val_precision_avg, epoch + 1)
 
+        swa_val_summary_writer.add_scalar("loss", swa_val_loss_avg, epoch + 1)
+        swa_val_summary_writer.add_scalar("precision", swa_val_precision_avg, epoch + 1)
+
         epoch_end_time = time.time()
         epoch_duration_time = epoch_end_time - epoch_start_time
 
         print(
-            "[%03d/%03d] %ds, lr: %.6f, loss: %.3f, val_loss: %.3f, prec: %.3f, val_prec: %.3f, ckpt: %d, rst: %d" % (
+            "[%03d/%03d] %ds, lr: %.6f, loss: %.3f, val_loss: %.3f|%.3f, prec: %.3f, val_prec: %.3f|%.3f, ckpt: %d, rst: %d" % (
                 epoch + 1,
                 epochs_to_train,
                 epoch_duration_time,
                 get_learning_rate(optimizer),
                 train_loss_avg,
                 val_loss_avg,
+                swa_val_loss_avg,
                 train_precision_avg,
                 val_precision_avg,
+                swa_val_precision_avg,
                 int(ckpt_saved),
                 int(sgdr_reset)),
             flush=True)
@@ -207,6 +227,8 @@ def main():
         print('{"chart": "val_precision", "x": %d, "y": %.3f}' % (epoch + 1, val_precision_avg))
         print('{"chart": "val_loss", "x": %d, "y": %.3f}' % (epoch + 1, val_loss_avg))
         print('{"chart": "sgdr_reset", "x": %d, "y": %.3f}' % (epoch + 1, sgdr_reset_count))
+        print('{"chart": "swa_val_precision", "x": %d, "y": %.3f}' % (epoch + 1, swa_val_precision_avg))
+        print('{"chart": "swa_val_loss", "x": %d, "y": %.3f}' % (epoch + 1, swa_val_loss_avg))
 
         if sgdr_reset and sgdr_reset_count >= ensemble_model_count and epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
             print("early abort")
@@ -237,6 +259,8 @@ def main():
             m = create_model(pretrained=False).to(device)
             m.load_state_dict(torch.load(model_file_name, map_location=device))
             ensemble_models.append(m)
+    ensemble_models.append(swa_model)
+
     model = Ensemble(ensemble_models)
     mask_threshold_global, mask_threshold_per_cc = analyze(model, train_data.val_set_df, use_tta=True)
 
