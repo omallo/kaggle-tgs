@@ -82,13 +82,13 @@ def calculate_best_threshold(df):
     return thresholds[np.argmax(precisions_per_threshold)]
 
 
-def calculate_best_precision(precision, precision_otsu, precision_crf, prediction_cc):
+def calculate_best_prediction_mask(prediction_mask, prediction_mask_otsu, prediction_mask_crf, prediction_cc):
     if prediction_cc == 0 or prediction_cc == 9:
-        return precision
+        return prediction_mask
     elif prediction_cc == 10:
-        return precision_crf
+        return prediction_mask_crf
     else:
-        return precision_otsu
+        return prediction_mask_otsu
 
 
 def calculate_predictions(df, model, use_tta):
@@ -97,20 +97,22 @@ def calculate_predictions(df, model, use_tta):
     df["predictions"] = predict(model, data_loader, use_tta)
 
 
-def calculate_prediction_masks(df, threshold, calculate_crf=True):
+def calculate_prediction_masks(df, threshold):
     df["prediction_masks"] = [np.int32(p > threshold) for p in df.predictions]
     df["prediction_masks_otsu"] = [np.int32(compute_otsu_mask(p)) for p in df.predictions]
-    if calculate_crf:
-        df["prediction_masks_crf"] = [crf(i, pm) for i, pm in zip(df.images, df.prediction_masks)]
+    df["prediction_masks_crf"] = [crf(i, pm) for i, pm in zip(df.images, df.prediction_masks)]
+    df["prediction_masks_best"] = [calculate_best_prediction_mask(pm1, pm2, pm3, cc) for pm1, pm2, pm3, cc in
+                                   zip(df.prediction_masks, df.prediction_masks_otsu, df.prediction_masks_crf,
+                                       df.predictions_cc)]
 
 
 def calculate_precisions(df):
-    df["predictions_cc"] = df.prediction_masks.map(calculate_coverage_class)
     df["precisions"] = [precision(pm, m) for pm, m in zip(df.prediction_masks, df.masks)]
     df["precisions_otsu"] = [precision(pm, m) for pm, m in zip(df.prediction_masks_otsu, df.masks)]
     df["precisions_crf"] = [precision(pm, m) for pm, m in zip(df.prediction_masks_crf, df.masks)]
-    df["precisions_best"] = [calculate_best_precision(p1, p2, p3, cc) for p1, p2, p3, cc in
-                             zip(df.precisions, df.precisions_otsu, df.precisions_crf, df.predictions_cc)]
+    df["precisions_best"] = [precision(pm, m) for pm, m in zip(df.prediction_masks_best, df.masks)]
+
+    df["predictions_cc"] = df.prediction_masks.map(calculate_coverage_class)
 
     mask_threshold_per_cc = {}
     for cc, cc_df in df.groupby("predictions_cc"):

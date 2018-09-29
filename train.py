@@ -283,9 +283,10 @@ def main():
 
     test_data = TestData(input_dir)
     calculate_predictions(test_data.df, model, True)
-    calculate_prediction_masks(test_data.df, mask_threshold_global, calculate_crf=False)
+    calculate_prediction_masks(test_data.df, mask_threshold_global)
 
     write_submission(test_data.df, "prediction_masks", "{}/{}".format(output_dir, "submission.csv"))
+    write_submission(test_data.df, "prediction_masks_best", "{}/{}".format(output_dir, "submission_best.csv"))
 
     submission_end_time = time.time()
     print()
