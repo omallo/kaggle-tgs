@@ -26,9 +26,10 @@ class ConvBnRelu(nn.Module):
 
 
 class DecoderBlockV2(nn.Module):
-    def __init__(self, in_channels, middle_channels, out_channels, is_deconv=True):
+    def __init__(self, in_channels, middle_channels, out_channels, is_deconv=True, size=None):
         super(DecoderBlockV2, self).__init__()
         self.is_deconv = is_deconv
+        self.size = size
 
         self.deconv = nn.Sequential(
             ConvBnRelu(in_channels, middle_channels),
@@ -40,7 +41,8 @@ class DecoderBlockV2(nn.Module):
 
         self.upsample = nn.Sequential(
             ConvBnRelu(in_channels, out_channels),
-            nn.Upsample(scale_factor=2, mode='bilinear'),
+            nn.Upsample(scale_factor=2, mode='bilinear') if self.size is None else nn.Upsample(size=self.size,
+                                                                                               mode='bilinear'),
             SpatialChannelSEBlock(out_channels)
         )
 
