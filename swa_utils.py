@@ -50,8 +50,8 @@ def bn_update(loader, model):
     model.apply(reset_bn)
     model.apply(lambda module: _get_momenta(module, momenta))
     n = 0
-    for input, _ in loader:
-        input = input.cuda(async=True)
+    for batch in loader:
+        input = batch[0].cuda(async=True)
         input_var = torch.autograd.Variable(input)
         b = input_var.data.size(0)
 
