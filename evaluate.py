@@ -99,12 +99,12 @@ def calculate_predictions(df, model, use_tta):
 
 def calculate_prediction_masks(df, threshold):
     df["prediction_masks"] = [np.int32(p > threshold) for p in df.predictions]
+    df["predictions_cc"] = df.prediction_masks.map(calculate_coverage_class)
     df["prediction_masks_otsu"] = [np.int32(compute_otsu_mask(p)) for p in df.predictions]
     df["prediction_masks_crf"] = crf_batch(df.images, df.prediction_masks)
     df["prediction_masks_best"] = [calculate_best_prediction_mask(pm1, pm2, pm3, cc) for pm1, pm2, pm3, cc in
                                    zip(df.prediction_masks, df.prediction_masks_otsu, df.prediction_masks_crf,
                                        df.predictions_cc)]
-    df["predictions_cc"] = df.prediction_masks.map(calculate_coverage_class)
 
 
 def calculate_precisions(df):
