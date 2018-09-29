@@ -261,6 +261,10 @@ def main():
             ensemble_models.append(m)
     ensemble_models.append(swa_model)
 
+    for ensemble_model in ensemble_models:
+        val_loss_avg, val_precision_avg = evaluate(ensemble_model, val_set_data_loader, criterion)
+        print("ensemble: val_loss=%.3f, val_precision=%.3f" % (val_loss_avg, val_precision_avg))
+
     model = Ensemble(ensemble_models)
     mask_threshold_global, mask_threshold_per_cc = analyze(model, train_data.val_set_df, use_tta=True)
 
