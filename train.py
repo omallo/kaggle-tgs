@@ -185,17 +185,10 @@ def main():
             global_val_precision_best_avg = val_precision_avg
             ckpt_saved = True
 
-        swa_model_improved = False
-        if epoch + 1 >= swa_epoch_to_start:
-            if model_improved_within_sgdr_cycle:
-                swa_update_count += 1
-                moving_average(swa_model, model, 1.0 / swa_update_count)
-                bn_update(train_set_data_loader, swa_model)
-
-            swa_model_improved = val_precision_avg > global_swa_val_precision_best_avg
-            if swa_model_improved:
-                torch.save(swa_model.state_dict(), "{}/swa_model.pth".format(output_dir))
-                global_swa_val_precision_best_avg = val_precision_avg
+        swa_model_improved = epoch + 1 >= swa_epoch_to_start and val_precision_avg > global_swa_val_precision_best_avg
+        if swa_model_improved:
+            torch.save(swa_model.state_dict(), "{}/swa_model.pth".format(output_dir))
+            global_swa_val_precision_best_avg = val_precision_avg
 
         if model_improved or swa_model_improved:
             epoch_of_last_improval = epoch
@@ -204,6 +197,15 @@ def main():
         if (epoch + 1 >= sgdr_next_cycle_end_epoch) and (epoch - epoch_of_last_improval >= sgdr_cycle_end_patience):
             sgdr_iterations = 0
             sgdr_next_cycle_end_epoch = epoch + 1 + sgdr_cycle_epochs + sgdr_cycle_epoch_prolongation
+
+            if epoch + 1 >= swa_epoch_to_start:
+                m = create_model(pretrained=False).to(device)
+                m.load_state_dict(
+                    torch.load("{}/model-{}.pth".format(output_dir, ensemble_model_index), map_location=device))
+                swa_update_count += 1
+                moving_average(swa_model, m, 1.0 / swa_update_count)
+                bn_update(train_set_data_loader, swa_model)
+
             ensemble_model_index += 1
             sgdr_cycle_val_precision_best_avg = float("-inf")
             sgdr_cycle_count += 1
