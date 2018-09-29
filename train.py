@@ -117,6 +117,8 @@ def main():
     print('{"chart": "val_precision", "axis": "epoch"}')
     print('{"chart": "val_loss", "axis": "epoch"}')
     print('{"chart": "sgdr_reset", "axis": "epoch"}')
+    print('{"chart": "precision", "axis": "epoch"}')
+    print('{"chart": "loss", "axis": "epoch"}')
     print('{"chart": "swa_val_precision", "axis": "epoch"}')
     print('{"chart": "swa_val_loss", "axis": "epoch"}')
 
@@ -227,6 +229,8 @@ def main():
         print('{"chart": "val_precision", "x": %d, "y": %.3f}' % (epoch + 1, val_precision_avg))
         print('{"chart": "val_loss", "x": %d, "y": %.3f}' % (epoch + 1, val_loss_avg))
         print('{"chart": "sgdr_reset", "x": %d, "y": %.3f}' % (epoch + 1, sgdr_reset_count))
+        print('{"chart": "precision", "x": %d, "y": %.3f}' % (epoch + 1, train_precision_avg))
+        print('{"chart": "loss", "x": %d, "y": %.3f}' % (epoch + 1, train_loss_avg))
         print('{"chart": "swa_val_precision", "x": %d, "y": %.3f}' % (epoch + 1, swa_val_precision_avg))
         print('{"chart": "swa_val_loss", "x": %d, "y": %.3f}' % (epoch + 1, swa_val_loss_avg))
 
