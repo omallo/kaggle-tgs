@@ -92,6 +92,7 @@ def main():
     print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
 
     global_val_precision_best_avg = float("-inf")
+    global_swa_val_precision_best_avg = float("-inf")
     sgdr_cycle_val_precision_best_avg = float("-inf")
 
     epoch_iterations = len(train_set) // batch_size
@@ -166,23 +167,32 @@ def main():
 
         val_loss_avg, val_precision_avg = evaluate(model, val_set_data_loader, criterion)
 
+        model_improved_within_sgdr_cycle = val_precision_avg > sgdr_cycle_val_precision_best_avg
+        if model_improved_within_sgdr_cycle:
+            torch.save(model.state_dict(), "{}/model-{}.pth".format(output_dir, ensemble_model_index))
+            sgdr_cycle_val_precision_best_avg = val_precision_avg
+
         model_improved = val_precision_avg > global_val_precision_best_avg
         ckpt_saved = False
         if model_improved:
             torch.save(model.state_dict(), "{}/model.pth".format(output_dir))
             global_val_precision_best_avg = val_precision_avg
-            epoch_of_last_improval = epoch
             ckpt_saved = True
 
-        model_improved_within_sgdr_cycle = val_precision_avg > sgdr_cycle_val_precision_best_avg
-        if model_improved_within_sgdr_cycle:
-            torch.save(model.state_dict(), "{}/model-{}.pth".format(output_dir, ensemble_model_index))
-            sgdr_cycle_val_precision_best_avg = val_precision_avg
-            if epoch + 1 >= swa_epoch_to_start:
+        swa_model_improved = False
+        if epoch + 1 >= swa_epoch_to_start:
+            if model_improved_within_sgdr_cycle:
                 swa_update_count += 1
                 moving_average(swa_model, model, 1.0 / swa_update_count)
                 bn_update(train_set_data_loader, swa_model)
-                torch.save(model.state_dict(), "{}/swa_model.pth".format(output_dir))
+
+            swa_model_improved = val_precision_avg > global_swa_val_precision_best_avg
+            if swa_model_improved:
+                torch.save(swa_model.state_dict(), "{}/swa_model.pth".format(output_dir))
+                global_swa_val_precision_best_avg = val_precision_avg
+
+        if model_improved or swa_model_improved:
+            epoch_of_last_improval = epoch
 
         sgdr_reset = False
         if (epoch + 1 >= sgdr_next_cycle_end_epoch) and (epoch - epoch_of_last_improval >= sgdr_cycle_end_patience):
