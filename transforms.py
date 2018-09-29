@@ -6,7 +6,7 @@ from scipy.ndimage.interpolation import map_coordinates
 
 def upsample(image, image_size_target):
     if image.shape[0] == image_size_target:
-        return image
+        return image.copy()
     padding0 = (image_size_target - image.shape[0]) / 2
     padding1 = (image_size_target - image.shape[1]) / 2
     padding_start0 = int(np.ceil(padding0))
@@ -18,7 +18,7 @@ def upsample(image, image_size_target):
 
 def downsample(image, image_size_original):
     if image.shape[0] == image_size_original:
-        return image
+        return image.copy()
     padding = (image.shape[0] - image_size_original) / 2
     padding_start = int(np.ceil(padding))
     return image[padding_start:padding_start + image_size_original, padding_start:padding_start + image_size_original]
