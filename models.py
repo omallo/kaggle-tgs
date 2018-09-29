@@ -116,13 +116,13 @@ class UNetResNet(nn.Module):
         self.conv3 = self.encoder.layer3
         self.conv4 = self.encoder.layer4
 
-        self.dec4 = DecoderBlockV2(bottom_channel_nr, num_filters * 8 * 2, num_filters * 8, is_deconv, size=13)
+        self.dec4 = DecoderBlockV2(bottom_channel_nr, num_filters * 8 * 2, num_filters * 8, is_deconv)
         self.dec3 = DecoderBlockV2(bottom_channel_nr // 2 + num_filters * 8, num_filters * 8 * 2, num_filters * 8,
-                                   is_deconv, size=26)
+                                   is_deconv)
         self.dec2 = DecoderBlockV2(bottom_channel_nr // 4 + num_filters * 8, num_filters * 4 * 2, num_filters * 2,
-                                   is_deconv, size=51)
+                                   is_deconv)
         self.dec1 = DecoderBlockV2(bottom_channel_nr // 8 + num_filters * 2, num_filters * 2 * 2, num_filters * 2 * 2,
-                                   is_deconv, size=101)
+                                   is_deconv)
         self.final = nn.Conv2d(num_filters * 2 * 2, num_classes, kernel_size=1)
 
     def forward(self, x):

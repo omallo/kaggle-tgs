@@ -11,7 +11,7 @@ from processing import crf_batch
 from transforms import downsample
 
 image_size_original = 101
-image_size_target = 101
+image_size_target = 128
 batch_size = 32
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
