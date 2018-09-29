@@ -282,7 +282,7 @@ def main():
     submission_start_time = time.time()
 
     test_data = TestData(input_dir)
-    calculate_predictions(test_data.df, model, True)
+    calculate_predictions(test_data.df, model, use_tta=True)
     calculate_prediction_masks(test_data.df, mask_threshold_global)
 
     print()
