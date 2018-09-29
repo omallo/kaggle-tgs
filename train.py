@@ -1,4 +1,5 @@
 import datetime
+import glob
 import os
 import sys
 import time
@@ -198,7 +199,7 @@ def main():
         if (epoch + 1 >= sgdr_next_cycle_end_epoch) and (epoch - epoch_of_last_improval >= sgdr_cycle_end_patience):
             sgdr_iterations = 0
             sgdr_next_cycle_end_epoch = epoch + 1 + sgdr_cycle_epochs + sgdr_cycle_epoch_prolongation
-            ensemble_model_index = (ensemble_model_index + 1) % ensemble_model_count
+            ensemble_model_index += 1
             sgdr_cycle_val_precision_best_avg = float("-inf")
             sgdr_reset_count += 1
             sgdr_reset = True
@@ -266,15 +267,20 @@ def main():
     analyze(Ensemble([model]), train_data.val_set_df, use_tta=False)
     analyze(Ensemble([model]), train_data.val_set_df, use_tta=True)
 
-    ensemble_models = []
-    for i in range(ensemble_model_count):
-        model_file_name = "{}/model-{}.pth".format(output_dir, i)
-        if os.path.isfile(model_file_name):
-            m = create_model(pretrained=False).to(device)
-            m.load_state_dict(torch.load(model_file_name, map_location=device))
-            ensemble_models.append(m)
-    # ensemble_models.append(swa_model)
+    score_to_model = {}
+    ensemble_model_candidates = glob.glob("{}/model-*.pth".format(output_dir))
+    ensemble_model_candidates.append("{}/swa_model.pth".format(output_dir))
+    for model_file_path in ensemble_model_candidates:
+        model_file_name = os.path.basename(model_file_path)
+        m = create_model(pretrained=False).to(device)
+        m.load_state_dict(torch.load(model_file_path, map_location=device))
+        val_loss_avg, val_precision_avg = evaluate(m, val_set_data_loader, criterion)
+        print("ensemble '%s': val_loss=%.3f, val_precision=%.3f" % (model_file_name, val_loss_avg, val_precision_avg))
+        if len(score_to_model) < ensemble_model_count or min(score_to_model.keys()) < val_precision_avg:
+            del score_to_model[min(score_to_model.keys())]
+            score_to_model[val_precision_avg] = m
 
+    ensemble_models = list(score_to_model.values())
     for ensemble_model in ensemble_models:
         val_loss_avg, val_precision_avg = evaluate(ensemble_model, val_set_data_loader, criterion)
         print("ensemble: val_loss=%.3f, val_precision=%.3f" % (val_loss_avg, val_precision_avg))
