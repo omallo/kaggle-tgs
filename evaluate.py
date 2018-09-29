@@ -107,10 +107,6 @@ def analyze(model, df, use_tta):
 
     df["precisions_max"] = [max(p1, p2, p3) for p1, p2, p3 in zip(df.precisions, df.precisions_otsu, df.precisions_crf)]
 
-    df["prediction_masks_avg"] = [np.int32((p1 + p2 + p3) >= 2) for p1, p2, p3 in
-                                  zip(df.prediction_masks, df.prediction_masks_otsu, df.prediction_masks_crf)]
-    df["precisions_avg"] = [precision(pm, m) for pm, m in zip(df.prediction_masks_avg, df.masks)]
-
     mask_threshold_per_cc = {}
     for cc, cc_df in df.groupby("predictions_cc"):
         mask_threshold_per_cc[cc] = calculate_best_threshold(cc_df)
@@ -120,13 +116,12 @@ def analyze(model, df, use_tta):
 
     print()
     print(
-        "threshold: %.3f, precision: %.3f, precision_crf: %.3f, precision_otsu: %.3f, precision_max: %.3f, precision_avg: %.3f, precision_cc: %.3f" % (
+        "threshold: %.3f, precision: %.3f, precision_crf: %.3f, precision_otsu: %.3f, precision_max: %.3f, precision_cc: %.3f" % (
             mask_threshold_global,
             df.precisions.mean(),
             df.precisions_crf.mean(),
             df.precisions_otsu.mean(),
             df.precisions_max.mean(),
-            df.precisions_avg.mean(),
             df.precisions_cc.mean()))
 
     print()
@@ -137,7 +132,6 @@ def analyze(model, df, use_tta):
         "precisions_crf": "mean",
         "precisions_otsu": "mean",
         "precisions_max": "mean",
-        "precisions_avg": "mean",
         "precisions_cc": "mean",
         "coverage_class": "count"
     }))
@@ -150,7 +144,6 @@ def analyze(model, df, use_tta):
         "precisions_crf": "mean",
         "precisions_otsu": "mean",
         "precisions_max": "mean",
-        "precisions_avg": "mean",
         "precisions_cc": "mean",
         "predictions_cc": "count"
     }))
