@@ -82,7 +82,7 @@ def calculate_best_threshold(df):
     return thresholds[np.argmax(precisions_per_threshold)]
 
 
-def calculate_max_precision(precision, precision_otsu, precision_crf, prediction_cc):
+def calculate_best_precision(precision, precision_otsu, precision_crf, prediction_cc):
     if prediction_cc == 0 or prediction_cc == 9:
         return precision
     elif prediction_cc == 10:
@@ -114,8 +114,8 @@ def analyze(model, df, use_tta):
     df["prediction_masks_crf"] = [crf(i, pm) for i, pm in zip(df.images, df.prediction_masks)]
     df["precisions_crf"] = [precision(pm, m) for pm, m in zip(df.prediction_masks_crf, df.masks)]
 
-    df["precisions_max"] = [calculate_max_precision(p1, p2, p3, cc) for p1, p2, p3, cc in
-                            zip(df.precisions, df.precisions_otsu, df.precisions_crf, df.predictions_cc)]
+    df["precisions_best"] = [calculate_best_precision(p1, p2, p3, cc) for p1, p2, p3, cc in
+                             zip(df.precisions, df.precisions_otsu, df.precisions_crf, df.predictions_cc)]
 
     mask_threshold_per_cc = {}
     for cc, cc_df in df.groupby("predictions_cc"):
@@ -126,12 +126,12 @@ def analyze(model, df, use_tta):
 
     print()
     print(
-        "threshold: %.3f, precision: %.3f, precision_crf: %.3f, precision_otsu: %.3f, precision_max: %.3f, precision_cc: %.3f" % (
+        "threshold: %.3f, precision: %.3f, precision_crf: %.3f, precision_otsu: %.3f, precision_best: %.3f, precision_cc: %.3f" % (
             mask_threshold_global,
             df.precisions.mean(),
             df.precisions_crf.mean(),
             df.precisions_otsu.mean(),
-            df.precisions_max.mean(),
+            df.precisions_best.mean(),
             df.precisions_cc.mean()))
 
     print()
@@ -141,7 +141,7 @@ def analyze(model, df, use_tta):
         "precisions": "mean",
         "precisions_crf": "mean",
         "precisions_otsu": "mean",
-        "precisions_max": "mean",
+        "precisions_best": "mean",
         "precisions_cc": "mean",
         "coverage_class": "count"
     }))
@@ -153,7 +153,7 @@ def analyze(model, df, use_tta):
         "precisions": "mean",
         "precisions_crf": "mean",
         "precisions_otsu": "mean",
-        "precisions_max": "mean",
+        "precisions_best": "mean",
         "precisions_cc": "mean",
         "predictions_cc": "count"
     }))
