@@ -285,6 +285,9 @@ def main():
     calculate_predictions(test_data.df, model, True)
     calculate_prediction_masks(test_data.df, mask_threshold_global)
 
+    print()
+    print(test_data.df.groupby("predictions_cc").agg({"predictions_cc": "count"}))
+
     write_submission(test_data.df, "prediction_masks", "{}/{}".format(output_dir, "submission.csv"))
     write_submission(test_data.df, "prediction_masks_best", "{}/{}".format(output_dir, "submission_best.csv"))
 
