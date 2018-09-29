@@ -32,7 +32,7 @@ def evaluate(model, data_loader, criterion):
     step_count = 0
 
     with torch.no_grad():
-        for _, batch in enumerate(data_loader):
+        for batch in data_loader:
             images, masks, mask_weights = \
                 batch[0].to(device, non_blocking=True), \
                 batch[1].to(device, non_blocking=True), \
@@ -137,7 +137,7 @@ def main():
         train_loss_sum = 0.0
         train_precision_sum = 0.0
         train_step_count = 0
-        for _, batch in enumerate(train_set_data_loader):
+        for batch in train_set_data_loader:
             images, masks, mask_weights = \
                 batch[0].to(device, non_blocking=True), \
                 batch[1].to(device, non_blocking=True), \

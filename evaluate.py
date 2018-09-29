@@ -52,7 +52,7 @@ def predict(model, data_loader, use_tta):
     model.eval()
     val_predictions = []
     with torch.no_grad():
-        for _, image in enumerate(data_loader):
+        for image in data_loader:
             image = image.to(device)
 
             if use_tta:
