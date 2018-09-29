@@ -95,7 +95,6 @@ def calculate_predictions(df, model, use_tta):
     data_set = TestDataset(df, image_size_target)
     data_loader = DataLoader(data_set, batch_size=batch_size, shuffle=False, num_workers=4)
     df["predictions"] = predict(model, data_loader, use_tta)
-    df["predictions_cc"] = df.prediction_masks.map(calculate_coverage_class)
 
 
 def calculate_prediction_masks(df, threshold):
@@ -105,6 +104,7 @@ def calculate_prediction_masks(df, threshold):
     df["prediction_masks_best"] = [calculate_best_prediction_mask(pm1, pm2, pm3, cc) for pm1, pm2, pm3, cc in
                                    zip(df.prediction_masks, df.prediction_masks_otsu, df.prediction_masks_crf,
                                        df.predictions_cc)]
+    df["predictions_cc"] = df.prediction_masks.map(calculate_coverage_class)
 
 
 def calculate_precisions(df):
