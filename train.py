@@ -65,7 +65,7 @@ def main():
     sgdr_cycle_epochs = 20
     sgdr_cycle_epoch_prolongation = 3
     sgdr_cycle_end_patience = 3
-    train_abort_epochs_without_improval = 25
+    train_abort_epochs_without_improval = 30
     ensemble_model_count = 3
     swa_epoch_to_start = 30
 
