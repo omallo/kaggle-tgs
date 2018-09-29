@@ -5,8 +5,6 @@ from scipy.ndimage.interpolation import map_coordinates
 
 
 def upsample(image, image_size_target):
-    if image.shape[0] == image_size_target:
-        return image.copy()
     padding0 = (image_size_target - image.shape[0]) / 2
     padding1 = (image_size_target - image.shape[1]) / 2
     padding_start0 = int(np.ceil(padding0))
@@ -17,8 +15,6 @@ def upsample(image, image_size_target):
 
 
 def downsample(image, image_size_original):
-    if image.shape[0] == image_size_original:
-        return image.copy()
     padding = (image.shape[0] - image_size_original) / 2
     padding_start = int(np.ceil(padding))
     return image[padding_start:padding_start + image_size_original, padding_start:padding_start + image_size_original]
@@ -28,14 +24,14 @@ def augment(image, mask):
     if np.random.rand() < 0.5:
         image = np.fliplr(image)
         mask = np.fliplr(mask)
-  
+
     if np.random.rand() < 0.5:
         c = np.random.choice(2)
         if c == 0:
             image = multiply_brightness(image, np.random.uniform(1 - 0.1, 1 + 0.1))
         elif c == 1:
             image = adjust_gamma(image, np.random.uniform(1 - 0.1, 1 + 0.1))
-   
+
     if np.random.rand() < 0.5:
         c = np.random.choice(3)
         if c == 0:
