@@ -12,9 +12,9 @@ from tensorboardX import SummaryWriter
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
 
-from dataset import TrainData, TrainDataset, TestData, TestDataset, calculate_coverage_class
+from dataset import TrainData, TrainDataset, TestData
 from ensemble import Ensemble
-from evaluate import analyze, predict
+from evaluate import analyze, calculate_predictions, calculate_prediction_masks
 from metrics import precision_batch
 from models import create_model
 from swa_utils import moving_average, bn_update
@@ -282,22 +282,10 @@ def main():
     submission_start_time = time.time()
 
     test_data = TestData(input_dir)
-
-    test_set = TestDataset(test_data.df, image_size_target)
-    test_data_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=4)
-
-    test_data.df["predictions"] = predict(model, test_data_loader, use_tta=True)
-    test_data.df["prediction_masks"] = [np.int32(p > mask_threshold_global) for p in test_data.df.predictions]
-
-    test_data.df["predictions_cc"] = test_data.df.prediction_masks.map(calculate_coverage_class)
-    test_data.df["prediction_masks_cc"] = [np.int32(p > mask_threshold_per_cc[cc]) for p, cc in
-                                           zip(test_data.df.predictions, test_data.df.predictions_cc)]
-
-    # test_data.df["prediction_masks_crf"] = crf_batch(test_data.df.images, test_data.df.prediction_masks)
+    calculate_predictions(test_data.df, model, True)
+    calculate_prediction_masks(test_data.df, mask_threshold_global, calculate_crf=False)
 
     write_submission(test_data.df, "prediction_masks", "{}/{}".format(output_dir, "submission.csv"))
-    # write_submission(test_data.df, "prediction_masks_cc", "{}/{}".format(output_dir, "submission_cc.csv"))
-    # write_submission(test_data.df, "prediction_masks_crf", "{}/{}".format(output_dir, "submission_crf.csv"))
 
     submission_end_time = time.time()
     print()
