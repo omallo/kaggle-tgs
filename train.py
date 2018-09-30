@@ -59,7 +59,7 @@ def main():
     output_dir = "/artifacts"
     image_size_target = 128
     batch_size = 32
-    epochs_to_train = 0
+    epochs_to_train = 300
     bce_loss_weight_gamma = 0.98
     sgdr_min_lr = 0.0001  # 0.0001, 0.001
     sgdr_max_lr = 0.001  # 0.001, 0.03
