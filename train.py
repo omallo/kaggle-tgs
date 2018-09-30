@@ -59,7 +59,7 @@ def main():
     output_dir = "/artifacts"
     image_size_target = 128
     batch_size = 32
-    epochs_to_train = 0
+    epochs_to_train = 300
     bce_loss_weight_gamma = 0.98
     sgdr_min_lr = 0.0001  # 0.0001, 0.001
     sgdr_max_lr = 0.001  # 0.001, 0.03
@@ -251,21 +251,6 @@ def main():
         if sgdr_reset and sgdr_cycle_count >= ensemble_model_count and epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
             print("early abort")
             break
-
-    for fp in sorted(glob.glob("{}/model-*.pth".format(output_dir))):
-        m = create_model(pretrained=False).to(device)
-        m.load_state_dict(torch.load(fp, map_location=device))
-
-        swa_update_count += 1
-        moving_average(swa_model, m, 1.0 / swa_update_count)
-        bn_update(train_set_data_loader, swa_model)
-
-        swa_val_loss_avg, swa_val_precision_avg = evaluate(swa_model, val_set_data_loader, criterion)
-
-        swa_model_improved = swa_val_precision_avg > global_swa_val_precision_best_avg
-        if swa_model_improved:
-            torch.save(swa_model.state_dict(), "{}/swa_model.pth".format(output_dir))
-            global_swa_val_precision_best_avg = swa_val_precision_avg
 
     optim_summary_writer.close()
     train_summary_writer.close()
