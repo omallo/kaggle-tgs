@@ -98,7 +98,7 @@ def main():
 
     epoch_iterations = len(train_set) // batch_size
 
-    optimizer = optim.SGD(model.parameters(), lr=sgdr_max_lr, weight_decay=1e-4, momentum=0.9, nesterov=True)
+    optimizer = optim.SGD(model.parameters(), lr=sgdr_max_lr, weight_decay=0, momentum=0.9, nesterov=True)
     # optimizer = optim.Adam(model.parameters(), lr=sgdr_max_lr)
     lr_scheduler = CosineAnnealingLR(optimizer, T_max=sgdr_cycle_epochs, eta_min=sgdr_min_lr)
 
