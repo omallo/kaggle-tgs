@@ -28,7 +28,6 @@ def calculate_mask_weights(mask):
     weights[mask == 0] = salt_mean / (1.0 - salt_mean)
     weights[mask == 1] = 1.0
     weights[contour == 1] = 3.0
-    print(np.unique(weights))
 
     return weights
 
