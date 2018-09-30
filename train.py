@@ -68,7 +68,7 @@ def main():
     sgdr_cycle_end_patience = 3
     train_abort_epochs_without_improval = 30
     ensemble_model_count = 3
-    swa_epoch_to_start = 30
+    swa_epoch_to_start = 0
 
     model_dir = sys.argv[1] if len(sys.argv) > 1 else None
 
