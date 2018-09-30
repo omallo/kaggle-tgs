@@ -284,7 +284,7 @@ def main():
         val_loss_avg, val_precision_avg = evaluate(m, val_set_data_loader, criterion)
         print("ensemble '%s': val_loss=%.3f, val_precision=%.3f" % (model_file_name, val_loss_avg, val_precision_avg))
         if len(score_to_model) < ensemble_model_count or min(score_to_model.keys()) < val_precision_avg:
-            if len(score_to_model) > 0:
+            if len(score_to_model) >= ensemble_model_count:
                 del score_to_model[min(score_to_model.keys())]
             score_to_model[val_precision_avg] = m
 
