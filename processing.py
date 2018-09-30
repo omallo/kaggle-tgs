@@ -20,10 +20,16 @@ def calculate_contour(mask, width=3):
 
 
 def calculate_mask_weights(mask):
-    uniform_weights = np.ones_like(mask)
-    contour_weights = uniform_weights + 2 * calculate_contour(mask)
-    weight_scale_factor = uniform_weights.sum() / contour_weights.sum()
-    return weight_scale_factor * contour_weights
+    salt_mean = 0.247966
+
+    contour = calculate_contour(mask)
+
+    weights = np.zeros_like(mask)
+    weights[mask == 0] = (1.0 - salt_mean) / salt_mean
+    weights[mask == 1] = 1.0
+    weights[contour == 1] = 3.0
+
+    return weights
 
 
 # https://www.microsoft.com/developerblog/2018/05/17/using-otsus-method-generate-data-training-deep-learning-image-segmentation-models/
