@@ -24,10 +24,11 @@ def calculate_mask_weights(mask):
 
     contour = calculate_contour(mask)
 
-    weights = np.zeros_like(mask)
-    weights[mask == 0] = (1.0 - salt_mean) / salt_mean
+    weights = np.zeros_like(mask, np.float32)
+    weights[mask == 0] = salt_mean / (1.0 - salt_mean)
     weights[mask == 1] = 1.0
     weights[contour == 1] = 3.0
+    print(np.unique(weights))
 
     return weights
 
