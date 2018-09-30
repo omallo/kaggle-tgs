@@ -7,6 +7,7 @@ import time
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
+import torch.nn as nn
 import torch.optim as optim
 from tensorboardX import SummaryWriter
 from torch.optim.lr_scheduler import CosineAnnealingLR
@@ -15,7 +16,6 @@ from torch.utils.data import DataLoader
 from dataset import TrainData, TrainDataset, TestData
 from ensemble import Ensemble
 from evaluate import analyze, calculate_predictions, calculate_prediction_masks
-from losses import RobustFocalLoss2d
 from metrics import precision_batch
 from models import create_model
 from swa_utils import moving_average, bn_update
@@ -131,9 +131,7 @@ def main():
 
     train_start_time = time.time()
 
-    # criterion = nn.BCEWithLogitsLoss()
-    criterion = RobustFocalLoss2d(gamma=1.0)
-    # criterion = LovaszLoss()
+    criterion = nn.BCEWithLogitsLoss()
 
     for epoch in range(epochs_to_train):
         epoch_start_time = time.time()
