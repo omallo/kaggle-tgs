@@ -280,7 +280,8 @@ def main():
 
     score_to_model = {}
     ensemble_model_candidates = glob.glob("{}/model-*.pth".format(output_dir))
-    ensemble_model_candidates.append("{}/swa_model.pth".format(output_dir))
+    if os.path.isfile("{}/swa_model.pth".format(output_dir)):
+        ensemble_model_candidates.append("{}/swa_model.pth".format(output_dir))
     for model_file_path in ensemble_model_candidates:
         model_file_name = os.path.basename(model_file_path)
         m = create_model(pretrained=False).to(device)
