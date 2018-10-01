@@ -54,6 +54,30 @@ def evaluate(model, data_loader, criterion):
     return loss_avg, precision_avg
 
 
+def load_ensemble_model(ensemble_model_count, base_dir, val_set_data_loader, criterion):
+    score_to_model = {}
+    ensemble_model_candidates = glob.glob("{}/model-*.pth".format(base_dir))
+    if os.path.isfile("{}/swa_model.pth".format(base_dir)):
+        ensemble_model_candidates.append("{}/swa_model.pth".format(base_dir))
+    for model_file_path in ensemble_model_candidates:
+        model_file_name = os.path.basename(model_file_path)
+        m = create_model(pretrained=False).to(device)
+        m.load_state_dict(torch.load(model_file_path, map_location=device))
+        val_loss_avg, val_precision_avg = evaluate(m, val_set_data_loader, criterion)
+        print("ensemble '%s': val_loss=%.3f, val_precision=%.3f" % (model_file_name, val_loss_avg, val_precision_avg))
+        if len(score_to_model) < ensemble_model_count or min(score_to_model.keys()) < val_precision_avg:
+            if len(score_to_model) >= ensemble_model_count:
+                del score_to_model[min(score_to_model.keys())]
+            score_to_model[val_precision_avg] = m
+    ensemble_models = list(score_to_model.values())
+
+    for ensemble_model in ensemble_models:
+        val_loss_avg, val_precision_avg = evaluate(ensemble_model, val_set_data_loader, criterion)
+        print("ensemble: val_loss=%.3f, val_precision=%.3f" % (val_loss_avg, val_precision_avg))
+
+    return Ensemble(ensemble_models)
+
+
 def main():
     input_dir = "/storage/kaggle/tgs"
     output_dir = "/artifacts"
@@ -278,27 +302,8 @@ def main():
     analyze(Ensemble([model]), train_data.val_set_df, use_tta=False)
     analyze(Ensemble([model]), train_data.val_set_df, use_tta=True)
 
-    score_to_model = {}
-    ensemble_model_candidates = glob.glob("{}/model-*.pth".format(output_dir))
-    if os.path.isfile("{}/swa_model.pth".format(output_dir)):
-        ensemble_model_candidates.append("{}/swa_model.pth".format(output_dir))
-    for model_file_path in ensemble_model_candidates:
-        model_file_name = os.path.basename(model_file_path)
-        m = create_model(pretrained=False).to(device)
-        m.load_state_dict(torch.load(model_file_path, map_location=device))
-        val_loss_avg, val_precision_avg = evaluate(m, val_set_data_loader, criterion)
-        print("ensemble '%s': val_loss=%.3f, val_precision=%.3f" % (model_file_name, val_loss_avg, val_precision_avg))
-        if len(score_to_model) < ensemble_model_count or min(score_to_model.keys()) < val_precision_avg:
-            if len(score_to_model) >= ensemble_model_count:
-                del score_to_model[min(score_to_model.keys())]
-            score_to_model[val_precision_avg] = m
+    model = load_ensemble_model(ensemble_model_count, output_dir, val_set_data_loader, criterion)
 
-    ensemble_models = list(score_to_model.values())
-    for ensemble_model in ensemble_models:
-        val_loss_avg, val_precision_avg = evaluate(ensemble_model, val_set_data_loader, criterion)
-        print("ensemble: val_loss=%.3f, val_precision=%.3f" % (val_loss_avg, val_precision_avg))
-
-    model = Ensemble(ensemble_models)
     mask_threshold_global, mask_threshold_per_cc = analyze(model, train_data.val_set_df, use_tta=True)
 
     eval_end_time = time.time()
