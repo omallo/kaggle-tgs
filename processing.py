@@ -115,3 +115,22 @@ def rlenc(img, order='F', format=True):
         return z[:-1]
     else:
         return runs
+
+
+def rldec(rle_mask):
+    '''
+    rle_mask: run-length as string formated (start length)
+    shape: (height,width) of array to return
+    Returns numpy array, 1 - mask, 0 - background
+
+    '''
+    if rle_mask == "nan":
+        return np.zeros((101, 101))
+    s = rle_mask.split()
+    starts, lengths = [np.asarray(x, dtype=int) for x in (s[0:][::2], s[1:][::2])]
+    starts -= 1
+    ends = starts + lengths
+    img = np.zeros(101 * 101, dtype=np.uint8)
+    for lo, hi in zip(starts, ends):
+        img[lo:hi] = 1
+    return img.reshape(101, 101).transpose((1, 0))
