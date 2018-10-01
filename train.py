@@ -65,7 +65,7 @@ def main():
     sgdr_max_lr = 0.001  # 0.001, 0.03
     fine_tuning_lr = 0.00001  # 0.00001, 0.0001
     sgdr_cycle_epochs = 20
-    sgdr_cycle_epoch_prolongation = 3
+    sgdr_cycle_epoch_prolongation = 0
     sgdr_cycle_end_patience = 3
     train_abort_epochs_without_improval = 30
     ensemble_model_count = 3
