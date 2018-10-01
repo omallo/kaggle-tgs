@@ -56,7 +56,7 @@ class TrainDataset(Dataset):
         image = self.df.images[index % len(self.df)]
         mask = self.df.masks[index % len(self.df)]
 
-        if self.augment and index < len(self.df):
+        if self.augment:
             image, mask = augment(image, mask)
 
         mask_weights = calculate_mask_weights(mask)
