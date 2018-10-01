@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -e
+set -o pipefail
 
 apt-get update >/dev/null
 apt-get -y install python3-dev libsm-dev libxrender1 libxext6 zip git >/dev/null
