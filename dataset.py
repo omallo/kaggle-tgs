@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 from torchvision.transforms.functional import normalize
 
 from processing import calculate_mask_weights, rldec
-from transforms import augment, upsample
+from transforms import augment, upsample, reduce_salt_coverage
 
 
 class TrainData:
@@ -71,6 +71,9 @@ class TrainDataset(Dataset):
 
         if self.augment:
             image, mask = augment(image, mask)
+
+        if index >= len(self.df.images):
+            image, mask = reduce_salt_coverage(image, mask)
 
         mask_weights = calculate_mask_weights(mask)
 
