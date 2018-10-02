@@ -19,7 +19,7 @@ from evaluate import analyze, calculate_predictions, calculate_prediction_masks
 from metrics import precision_batch
 from models import create_model
 from swa_utils import moving_average, bn_update
-from utils import get_learning_rate, write_submission, adjust_learning_rate
+from utils import get_learning_rate, write_submission
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
@@ -87,7 +87,6 @@ def main():
     bce_loss_weight_gamma = 0.98
     sgdr_min_lr = 0.0001  # 0.0001, 0.001
     sgdr_max_lr = 0.001  # 0.001, 0.03
-    fine_tuning_lr = 0.00001  # 0.00001, 0.0001
     sgdr_cycle_epochs = 20
     sgdr_cycle_epoch_prolongation = 0
     sgdr_cycle_end_patience = 3
@@ -138,7 +137,6 @@ def main():
     epoch_of_last_improval = 0
     sgdr_next_cycle_end_epoch = sgdr_cycle_epochs + sgdr_cycle_epoch_prolongation
     swa_update_count = 0
-    is_fine_tuning = False
 
     ensemble_model_index = 0
     for model_file_path in glob.glob("{}/model-*.pth".format(output_dir)):
@@ -175,10 +173,7 @@ def main():
                 batch[1].to(device, non_blocking=True), \
                 batch[2].to(device, non_blocking=True)
 
-            if is_fine_tuning:
-                adjust_learning_rate(optimizer, fine_tuning_lr)
-            else:
-                lr_scheduler.step(epoch=min(sgdr_cycle_epochs, sgdr_iterations / epoch_iterations))
+            lr_scheduler.step(epoch=min(sgdr_cycle_epochs, sgdr_iterations / epoch_iterations))
 
             optimizer.zero_grad()
             prediction_logits = model(images)
@@ -278,11 +273,7 @@ def main():
         print('{"chart": "loss", "x": %d, "y": %.3f}' % (epoch + 1, train_loss_avg))
 
         if sgdr_reset and sgdr_cycle_count >= ensemble_model_count and epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
-            if is_fine_tuning:
-                print("early abort")
-                break
-            else:
-                is_fine_tuning = True
+            print("early abort")
 
     optim_summary_writer.close()
     train_summary_writer.close()
