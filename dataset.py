@@ -72,7 +72,7 @@ class TrainDataset(Dataset):
         if self.augment:
             image, mask = augment(image, mask)
 
-        if index >= len(self.df.images):
+        if index >= len(self.df):
             image, mask = reduce_salt_coverage(image, mask)
 
         mask_weights = calculate_mask_weights(mask)
