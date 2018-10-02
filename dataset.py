@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
 from torchvision.transforms.functional import normalize
 
-from processing import calculate_mask_weights
+from processing import calculate_mask_weights, rldec
 from transforms import augment, upsample
 
 
@@ -22,12 +22,25 @@ class TrainData:
 
         train_set_ids, val_set_ids = train_test_split(
             sorted(train_df.index.values),
-            test_size=0.2,
+            train_size=0.8,
             stratify=train_df.coverage_class,
             random_state=42)
 
         self.train_set_df = train_df[train_df.index.isin(train_set_ids)].copy()
         self.val_set_df = train_df[train_df.index.isin(val_set_ids)].copy()
+
+        if False:
+            test_df = pd.read_csv("/storage/models/tgs/scse-2/submission_best.csv", index_col="id")
+            test_df["rle_mask"] = test_df.rle_mask.astype(str)
+            test_df["masks"] = test_df.rle_mask.map(rldec)
+            test_df["images"] = load_images("{}/test/images".format(base_dir), test_df.index)
+            test_df["coverage_class"] = test_df.masks.map(calculate_coverage_class)
+
+            test_train_set_ids, test_lefover_ids = train_test_split(
+                sorted(test_df.index.values),
+                train_size=int(0.5 * len(train_set_ids)),
+                stratify=test_df.coverage_class,
+                random_state=42)
 
 
 class TestData:
