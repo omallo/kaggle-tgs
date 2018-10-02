@@ -27,27 +27,6 @@ def compute_otsu_mask(image):
     return cv2.threshold(image_grayscale, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1] / 255
 
 
-def predict_image_over_4_crops(image, model):
-    b, _, h, w = image.shape
-
-    predictions = torch.zeros((b, 1, h, w), dtype=image.dtype, layout=image.layout, device=image.device)
-    weights = torch.zeros_like(predictions)
-
-    predictions[:, :, 0:96, 0:96] += model(image[:, :, 0:96, 0:96].contiguous())
-    weights[:, :, 0:96, 0:96] += 1
-
-    predictions[:, :, 5:101, 0:96] += model(image[:, :, 5:101, 0:96].contiguous())
-    weights[:, :, 5:101, 0:96] += 1
-
-    predictions[:, :, 0:96, 5:101] += model(image[:, :, 0:96, 5:101].contiguous())
-    weights[:, :, 0:96, 5:101] += 1
-
-    predictions[:, :, 5:101, 5:101] += model(image[:, :, 5:101, 5:101].contiguous())
-    weights[:, :, 5:101, 5:101] += 1
-
-    return predictions / weights
-
-
 def predict(model, data_loader, use_tta):
     model.eval()
     val_predictions = []
