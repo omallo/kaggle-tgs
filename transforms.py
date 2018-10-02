@@ -139,3 +139,42 @@ def random_crop_to_size(image, mask, size):
     cropped_mask = mask[dx:dx + size, dy:dy + size]
 
     return cropped_image, cropped_mask
+
+
+def reduce_salt_coverage(image, mask):
+    max_rounds = 2
+    min_crop_per_round = 5
+    max_crop_per_round = 20
+
+    rounds = np.random.randint(max_rounds) + 1
+    for _ in range(rounds):
+        crop = np.random.randint(min_crop_per_round, max_crop_per_round) + 1
+
+        salt_left = mask[:, :crop].astype(np.int32).sum()
+        salt_right = mask[:, -crop:].astype(np.int32).sum()
+        salt_top = mask[:crop, :].astype(np.int32).sum()
+        salt_bottom = mask[-crop:, :].astype(np.int32).sum()
+
+        salt_diffs = [
+            salt_left - salt_right,
+            salt_right - salt_left,
+            salt_top - salt_bottom,
+            salt_bottom - salt_top
+        ]
+
+        max_salt_diff_index = np.argmax(salt_diffs)
+
+        if max_salt_diff_index == 0:
+            image = np.pad(image[:, crop:, :], ((0, 0), (0, crop), (0, 0)), mode="reflect")
+            mask = np.pad(mask[:, crop:], ((0, 0), (0, crop)), mode="reflect")
+        elif max_salt_diff_index == 1:
+            image = np.pad(image[:, :-crop, :], ((0, 0), (crop, 0), (0, 0)), mode="reflect")
+            mask = np.pad(mask[:, :-crop], ((0, 0), (crop, 0)), mode="reflect")
+        elif max_salt_diff_index == 2:
+            image = np.pad(image[crop:, :, :], ((0, crop), (0, 0), (0, 0)), mode="reflect")
+            mask = np.pad(mask[crop:, :], ((0, crop), (0, 0)), mode="reflect")
+        else:
+            image = np.pad(image[:-crop, :, :], ((crop, 0), (0, 0), (0, 0)), mode="reflect")
+            mask = np.pad(mask[:-crop, :], ((crop, 0), (0, 0)), mode="reflect")
+
+    return image, mask
