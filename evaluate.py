@@ -73,10 +73,8 @@ def calculate_predictions_cc(df, threshold):
 
 
 def calculate_best_prediction_mask(prediction_mask, prediction_mask_otsu, prediction_mask_crf, prediction_cc):
-    if prediction_cc == 0 or prediction_cc == 9:
+    if prediction_cc == 0 or prediction_cc == 9 or prediction_cc == 10:
         return prediction_mask
-    elif prediction_cc == 10:
-        return prediction_mask_crf
     else:
         return prediction_mask_otsu
 
