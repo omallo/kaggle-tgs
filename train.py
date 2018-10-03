@@ -17,6 +17,7 @@ from torch.utils.data import DataLoader
 from dataset import TrainData, TrainDataset, TestData
 from ensemble import Ensemble
 from evaluate import analyze, calculate_predictions, calculate_prediction_masks
+from losses import LovaszLoss, RobustFocalLoss2d
 from metrics import precision_batch
 from models import create_model
 from swa_utils import moving_average, bn_update
@@ -35,11 +36,15 @@ argparser.add_argument("--batch_size", default=32, type=int)
 argparser.add_argument("--lr_min", default=0.0001, type=float)
 argparser.add_argument("--lr_max", default=0.001, type=float)
 argparser.add_argument("--patience", default=30, type=int)
+argparser.add_argument("--optimizer", default="adam")
+argparser.add_argument("--loss", default="bce")
 argparser.add_argument("--sgdr_cycle_epochs", default=20, type=int)
 argparser.add_argument("--sgdr_cycle_end_patience", default=3, type=int)
 argparser.add_argument("--ensemble_model_count", default=3, type=int)
 argparser.add_argument("--swa_enabled", default=False, type=bool)
 argparser.add_argument("--swa_epoch_to_start", default=0, type=int)
+argparser.add_argument("--train_size", default=0.8, type=float)
+argparser.add_argument("--pseudo_labeling_enabled", default=False, type=bool)
 
 
 def evaluate(model, data_loader, criterion):
@@ -108,17 +113,20 @@ def main():
     image_size_target = args.image_size
     batch_size = args.batch_size
     epochs_to_train = args.epochs
-    # bce_loss_weight_gamma = 0.98
     lr_min = args.lr_min  # 0.0001, 0.001
     lr_max = args.lr_max  # 0.001, 0.03
+    optimizer_type = args.optimizer
+    loss_type = args.loss
     patience = args.patience
     sgdr_cycle_epochs = args.sgdr_cycle_epochs
     sgdr_cycle_end_patience = args.sgdr_cycle_end_patience
     ensemble_model_count = args.ensemble_model_count
     swa_enabled = args.swa_enabled
     swa_epoch_to_start = args.swa_epoch_to_start
+    train_size = args.train_size
+    pseudo_labeling_enabled = args.pseudo_labeling_enabled
 
-    train_data = TrainData(input_dir)
+    train_data = TrainData(input_dir, train_size, pseudo_labeling_enabled)
 
     train_set = TrainDataset(train_data.train_set_df, image_size_target, augment=True)
     train_set_data_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=False)
@@ -146,8 +154,13 @@ def main():
 
     epoch_iterations = len(train_set) // batch_size
 
-    # optimizer = optim.SGD(model.parameters(), lr=lr_max, weight_decay=0, momentum=0.9, nesterov=True)
-    optimizer = optim.Adam(model.parameters(), lr=lr_max)
+    if optimizer_type == "adam":
+        optimizer = optim.Adam(model.parameters(), lr=lr_max)
+    elif optimizer_type == "sgd":
+        optimizer = optim.SGD(model.parameters(), lr=lr_max, weight_decay=0, momentum=0.9, nesterov=True)
+    else:
+        raise Exception("Unsupported optimizer type: '{}".format(optimizer_type))
+
     lr_scheduler = CosineAnnealingLR(optimizer, T_max=sgdr_cycle_epochs, eta_min=lr_min)
 
     optim_summary_writer = SummaryWriter(log_dir="{}/logs/optim".format(output_dir))
@@ -181,12 +194,17 @@ def main():
 
     train_start_time = time.time()
 
-    criterion = nn.BCEWithLogitsLoss()
+    if loss_type == "bce":
+        criterion = nn.BCEWithLogitsLoss()
+    elif loss_type == "lovasz":
+        criterion = LovaszLoss()
+    elif loss_type == "focal":
+        criterion = RobustFocalLoss2d(gamma=1)
+    else:
+        raise Exception("Unsupported loss type: '{}".format(loss_type))
 
     for epoch in range(epochs_to_train):
         epoch_start_time = time.time()
-
-        # criterion = BCELovaszLoss(bce_weight=bce_loss_weight_gamma ** epoch)
 
         model.train()
 
