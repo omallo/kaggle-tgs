@@ -274,6 +274,7 @@ def main():
 
         if sgdr_reset and sgdr_cycle_count >= ensemble_model_count and epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
             print("early abort")
+            break
 
     optim_summary_writer.close()
     train_summary_writer.close()
