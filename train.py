@@ -266,13 +266,13 @@ def main():
                 int(sgdr_reset)),
             flush=True)
 
-        print('{"chart": "best_val_precision", "x": %d, "y": %.3f}' % (epoch + 1, global_val_precision_best_avg))
-        print('{"chart": "val_precision", "x": %d, "y": %.3f}' % (epoch + 1, val_precision_avg))
-        print('{"chart": "val_loss", "x": %d, "y": %.3f}' % (epoch + 1, val_loss_avg))
-        print('{"chart": "sgdr_cycle", "x": %d, "y": %.3f}' % (epoch + 1, sgdr_cycle_count))
-        print('{"chart": "precision", "x": %d, "y": %.3f}' % (epoch + 1, train_precision_avg))
-        print('{"chart": "loss", "x": %d, "y": %.3f}' % (epoch + 1, train_loss_avg))
-        print('{"chart": "lr", "x": %d, "y": %.3f}' % (epoch + 1, get_learning_rate(optimizer)))
+        print('{"chart": "best_val_precision", "x": %d, "y": %.4f}' % (epoch + 1, global_val_precision_best_avg))
+        print('{"chart": "val_precision", "x": %d, "y": %.4f}' % (epoch + 1, val_precision_avg))
+        print('{"chart": "val_loss", "x": %d, "y": %.4f}' % (epoch + 1, val_loss_avg))
+        print('{"chart": "sgdr_cycle", "x": %d, "y": %d}' % (epoch + 1, sgdr_cycle_count))
+        print('{"chart": "precision", "x": %d, "y": %.4f}' % (epoch + 1, train_precision_avg))
+        print('{"chart": "loss", "x": %d, "y": %.4f}' % (epoch + 1, train_loss_avg))
+        print('{"chart": "lr", "x": %d, "y": %.6f}' % (epoch + 1, get_learning_rate(optimizer)))
 
         if sgdr_reset and sgdr_cycle_count >= ensemble_model_count and epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
             print("early abort")
