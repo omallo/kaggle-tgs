@@ -300,7 +300,7 @@ def main():
         epoch_duration_time = epoch_end_time - epoch_start_time
 
         print(
-            "[%03d/%03d] %ds, lr: %.6f, loss: %.3f, val_loss: %.3f, prec: %.3f, val_prec: %.3f, ckpt: %d, rst: %d" % (
+            "[%03d/%03d] %ds, lr: %.6f, loss: %.4f, val_loss: %.4f, prec: %.4f, val_prec: %.4f, ckpt: %d, rst: %d" % (
                 epoch + 1,
                 epochs_to_train,
                 epoch_duration_time,
