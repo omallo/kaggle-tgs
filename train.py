@@ -85,14 +85,14 @@ def main():
     batch_size = 32
     epochs_to_train = 300
     bce_loss_weight_gamma = 0.98
-    sgdr_min_lr = 0.0001  # 0.0001, 0.001
-    sgdr_max_lr = 0.001  # 0.001, 0.03
-    sgdr_cycle_epochs = 20
+    sgdr_min_lr = 0.00005  # 0.0001, 0.001
+    sgdr_max_lr = 0.002  # 0.001, 0.03
+    sgdr_cycle_epochs = 50
     sgdr_cycle_epoch_prolongation = 0
     sgdr_cycle_end_patience = 3
-    train_abort_epochs_without_improval = 30
+    train_abort_epochs_without_improval = 55
     ensemble_model_count = 3
-    swa_epoch_to_start = 1000
+    swa_epoch_to_start = 0
 
     model_dir = sys.argv[1] if len(sys.argv) > 1 else None
 
