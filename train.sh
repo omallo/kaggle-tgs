@@ -31,7 +31,7 @@ do
 done
 
 
-python -m cProfile -o /artifacts/train.prof train.py "$*" 2>/artifacts/err.log | tee -a /artifacts/out.log
+python -m cProfile -o /artifacts/train.prof train.py $* 2>/artifacts/err.log | tee -a /artifacts/out.log
 
 
 ( cd /artifacts && zip -r logs.zip logs )
