@@ -343,7 +343,7 @@ def main():
 
     model = load_ensemble_model(ensemble_model_count, output_dir, val_set_data_loader, criterion, swa_enabled)
 
-    mask_threshold_global, mask_threshold_per_cc = analyze(model, train_data.val_set_df, use_tta=True)
+    mask_threshold_global = analyze(model, train_data.val_set_df, use_tta=True)
 
     eval_end_time = time.time()
     print()
@@ -363,6 +363,7 @@ def main():
 
     write_submission(test_data.df, "prediction_masks", "{}/{}".format(output_dir, "submission.csv"))
     write_submission(test_data.df, "prediction_masks_best", "{}/{}".format(output_dir, "submission_best.csv"))
+    write_submission(test_data.df, "prediction_masks_cc", "{}/{}".format(output_dir, "submission_cc.csv"))
 
     submission_end_time = time.time()
     print()
