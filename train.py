@@ -233,8 +233,8 @@ def main():
                 swa_val_summary_writer.add_scalar("loss", swa_val_loss_avg, epoch + 1)
                 swa_val_summary_writer.add_scalar("precision", swa_val_precision_avg, epoch + 1)
 
-                print('{"chart": "swa_val_precision", "x": %d, "y": %.3f}' % (epoch + 1, swa_val_precision_avg))
-                print('{"chart": "swa_val_loss", "x": %d, "y": %.3f}' % (epoch + 1, swa_val_loss_avg))
+                print('{"chart": "swa_val_precision", "x": %d, "y": %.4f}' % (epoch + 1, swa_val_precision_avg))
+                print('{"chart": "swa_val_loss", "x": %d, "y": %.4f}' % (epoch + 1, swa_val_loss_avg))
 
             ensemble_model_index += 1
             sgdr_cycle_val_precision_best_avg = float("-inf")
