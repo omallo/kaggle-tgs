@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 
 from dataset import TrainData, TrainDataset, TestData
 from ensemble import Ensemble
-from evaluate import analyze, calculate_predictions, calculate_prediction_masks
+from evaluate import analyze, calculate_predictions, calculate_prediction_masks, calculate_predictions_cc
 from losses import LovaszLoss, RobustFocalLoss2d, SoftDiceLoss
 from metrics import precision_batch
 from models import create_model
@@ -359,13 +359,15 @@ def main():
 
     test_data = TestData(input_dir)
     calculate_predictions(test_data.df, model, use_tta=True)
-    calculate_prediction_masks(test_data.df, mask_threshold_global)
+    calculate_predictions_cc(test_data.df, mask_threshold_global)
+    calculate_prediction_masks(test_data.df, mask_threshold_global, mask_threshold_per_cc)
 
     print()
     print(test_data.df.groupby("predictions_cc").agg({"predictions_cc": "count"}))
 
     write_submission(test_data.df, "prediction_masks", "{}/{}".format(output_dir, "submission.csv"))
     write_submission(test_data.df, "prediction_masks_best", "{}/{}".format(output_dir, "submission_best.csv"))
+    write_submission(test_data.df, "prediction_masks_cc", "{}/{}".format(output_dir, "submission_cc.csv"))
 
     submission_end_time = time.time()
     print()
