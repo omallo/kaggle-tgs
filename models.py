@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -8,8 +9,8 @@ from torchvision.models.resnet import model_urls
 from se_models import SEBasicBlock, SEBottleneck, SpatialChannelSEBlock
 
 
-def create_model(pretrained):
-    return UNetResNet(34, 1, num_filters=32, dropout_2d=0.2, pretrained=pretrained, is_deconv=False)
+def create_model(input_size, pretrained):
+    return UNetResNet(34, 1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained, is_deconv=False)
 
 
 class ConvBnRelu(nn.Module):
@@ -74,7 +75,7 @@ class UNetResNet(nn.Module):
                 Defaults to False.
     """
 
-    def __init__(self, encoder_depth, num_classes, num_filters=32, dropout_2d=0.2,
+    def __init__(self, encoder_depth, num_classes, input_size, num_filters=32, dropout_2d=0.2,
                  pretrained=False, is_deconv=False):
         super().__init__()
         self.num_classes = num_classes
@@ -116,13 +117,14 @@ class UNetResNet(nn.Module):
         self.conv3 = self.encoder.layer3
         self.conv4 = self.encoder.layer4
 
-        self.dec4 = DecoderBlockV2(bottom_channel_nr, num_filters * 8 * 2, num_filters * 8, is_deconv)
+        self.dec4 = DecoderBlockV2(bottom_channel_nr, num_filters * 8 * 2, num_filters * 8, is_deconv,
+                                   size=int(np.ceil(input_size / 8)))
         self.dec3 = DecoderBlockV2(bottom_channel_nr // 2 + num_filters * 8, num_filters * 8 * 2, num_filters * 8,
-                                   is_deconv)
+                                   is_deconv, size=int(np.ceil(input_size / 4)))
         self.dec2 = DecoderBlockV2(bottom_channel_nr // 4 + num_filters * 8, num_filters * 4 * 2, num_filters * 2,
-                                   is_deconv)
+                                   is_deconv, size=int(np.ceil(input_size / 2)))
         self.dec1 = DecoderBlockV2(bottom_channel_nr // 8 + num_filters * 2, num_filters * 2 * 2, num_filters * 2 * 2,
-                                   is_deconv)
+                                   is_deconv, size=input_size)
         self.final = nn.Conv2d(num_filters * 2 * 2, num_classes, kernel_size=1)
 
     def forward(self, x):

@@ -77,14 +77,14 @@ def evaluate(model, data_loader, criterion):
     return loss_avg, precision_avg
 
 
-def load_ensemble_model(ensemble_model_count, base_dir, val_set_data_loader, criterion, swa_enabled):
+def load_ensemble_model(ensemble_model_count, base_dir, val_set_data_loader, criterion, swa_enabled, input_size):
     score_to_model = {}
     ensemble_model_candidates = glob.glob("{}/model-*.pth".format(base_dir))
     if swa_enabled and os.path.isfile("{}/swa_model.pth".format(base_dir)):
         ensemble_model_candidates.append("{}/swa_model.pth".format(base_dir))
     for model_file_path in ensemble_model_candidates:
         model_file_name = os.path.basename(model_file_path)
-        m = create_model(pretrained=False).to(device)
+        m = create_model(input_size=input_size, pretrained=False).to(device)
         m.load_state_dict(torch.load(model_file_path, map_location=device))
         val_loss_avg, val_precision_avg = evaluate(m, val_set_data_loader, criterion)
         print("ensemble '%s': val_loss=%.4f, val_precision=%.4f" % (model_file_name, val_loss_avg, val_precision_avg))
@@ -139,14 +139,14 @@ def main():
     if base_model_dir:
         for model_file_path in glob.glob("{}/model*.pth".format(base_model_dir)):
             copyfile(model_file_path, "{}/{}".format(output_dir, os.path.basename(model_file_path)))
-        model = create_model(pretrained=False).to(device)
+        model = create_model(input_size=image_size_target, pretrained=False).to(device)
         model.load_state_dict(torch.load("{}/model.pth".format(output_dir), map_location=device))
     else:
-        model = create_model(pretrained=True).to(device)
+        model = create_model(input_size=image_size_target, pretrained=True).to(device)
 
     torch.save(model.state_dict(), "{}/model.pth".format(output_dir))
 
-    swa_model = create_model(pretrained=False).to(device)
+    swa_model = create_model(input_size=image_size_target, pretrained=False).to(device)
 
     print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
 
@@ -263,7 +263,7 @@ def main():
             sgdr_next_cycle_end_epoch = epoch + 1 + sgdr_cycle_epochs
 
             if swa_enabled and epoch + 1 >= swa_epoch_to_start:
-                m = create_model(pretrained=False).to(device)
+                m = create_model(input_size=image_size_target, pretrained=False).to(device)
                 m.load_state_dict(
                     torch.load("{}/model-{}.pth".format(output_dir, ensemble_model_index), map_location=device))
                 swa_update_count += 1
@@ -343,7 +343,8 @@ def main():
     analyze(Ensemble([model]), train_data.val_set_df, use_tta=False)
     analyze(Ensemble([model]), train_data.val_set_df, use_tta=True)
 
-    model = load_ensemble_model(ensemble_model_count, output_dir, val_set_data_loader, criterion, swa_enabled)
+    model = load_ensemble_model(
+        ensemble_model_count, output_dir, val_set_data_loader, criterion, swa_enabled, image_size_target)
 
     mask_threshold_global = analyze(model, train_data.val_set_df, use_tta=True)
 
