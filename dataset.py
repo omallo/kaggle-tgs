@@ -22,7 +22,7 @@ class TrainData:
 
         train_set_ids, val_set_ids = train_test_split(
             sorted(train_df.index.values),
-            train_size=0.8,
+            train_size=0.9,
             stratify=train_df.coverage_class,
             random_state=42)
 
