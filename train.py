@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 from dataset import TrainData, TrainDataset, TestData
 from ensemble import Ensemble
 from evaluate import analyze, calculate_predictions, calculate_prediction_masks
-from losses import LovaszLoss, RobustFocalLoss2d, DiceLoss
+from losses import LovaszLoss, RobustFocalLoss2d, SoftDiceLoss
 from metrics import precision_batch
 from models import create_model
 from swa_utils import moving_average, bn_update
@@ -199,7 +199,7 @@ def main():
     elif loss_type == "lovasz":
         criterion = LovaszLoss()
     elif loss_type == "dice":
-        criterion = DiceLoss()
+        criterion = SoftDiceLoss()
     elif loss_type == "focal":
         criterion = RobustFocalLoss2d(gamma=1)
     else:

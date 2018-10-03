@@ -37,9 +37,9 @@ class LovaszLoss(nn.Module):
         return lovasz_hinge(logits, targets, per_image=False)
 
 
-class DiceLoss(nn.Module):
+class SoftDiceLoss(nn.Module):
     def __init__(self):
-        super(DiceLoss, self).__init__()
+        super(SoftDiceLoss, self).__init__()
 
     def forward(self, logits, targets):
         smooth = 1
