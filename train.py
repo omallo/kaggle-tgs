@@ -152,7 +152,7 @@ def main():
     print('{"chart": "loss", "axis": "epoch"}')
     print('{"chart": "swa_val_precision", "axis": "epoch"}')
     print('{"chart": "swa_val_loss", "axis": "epoch"}')
-    print('{"chart": "lr", "axis": "epoch"}')
+    print('{"chart": "lr_scaled", "axis": "epoch"}')
 
     train_start_time = time.time()
 
@@ -272,7 +272,7 @@ def main():
         print('{"chart": "sgdr_cycle", "x": %d, "y": %d}' % (epoch + 1, sgdr_cycle_count))
         print('{"chart": "precision", "x": %d, "y": %.4f}' % (epoch + 1, train_precision_avg))
         print('{"chart": "loss", "x": %d, "y": %.4f}' % (epoch + 1, train_loss_avg))
-        print('{"chart": "lr", "x": %d, "y": %.6f}' % (epoch + 1, get_learning_rate(optimizer)))
+        print('{"chart": "lr_scaled", "x": %d, "y": %.4f}' % (epoch + 1, 100 * get_learning_rate(optimizer)))
 
         if sgdr_reset and sgdr_cycle_count >= ensemble_model_count and epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
             print("early abort")
