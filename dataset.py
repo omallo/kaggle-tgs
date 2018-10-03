@@ -26,21 +26,29 @@ class TrainData:
             stratify=train_df.coverage_class,
             random_state=42)
 
-        self.train_set_df = train_df[train_df.index.isin(train_set_ids)].copy()
-        self.val_set_df = train_df[train_df.index.isin(val_set_ids)].copy()
+        train_set_df = train_df[train_df.index.isin(train_set_ids)].copy()
+        val_set_df = train_df[train_df.index.isin(val_set_ids)].copy()
 
-        if False:
-            test_df = pd.read_csv("/storage/models/tgs/scse-2/submission_best.csv", index_col="id")
-            test_df["rle_mask"] = test_df.rle_mask.astype(str)
-            test_df["masks"] = test_df.rle_mask.map(rldec)
-            test_df["images"] = load_images("{}/test/images".format(base_dir), test_df.index)
-            test_df["coverage_class"] = test_df.masks.map(calculate_coverage_class)
+        test_df = pd.read_csv("/storage/models/tgs/scse-2/submission_best.csv", index_col="id")
+        test_df["rle_mask"] = test_df.rle_mask.astype(str)
+        test_df["masks"] = test_df.rle_mask.map(rldec)
+        test_df["images"] = load_images("{}/test/images".format(base_dir), test_df.index)
+        test_df["coverage_class"] = test_df.masks.map(calculate_coverage_class)
 
-            test_train_set_ids, test_lefover_ids = train_test_split(
-                sorted(test_df.index.values),
-                train_size=int(0.5 * len(train_set_ids)),
-                stratify=test_df.coverage_class,
-                random_state=42)
+        test_df = test_df.drop(columns=["rle_mask"])
+        test_df = test_df.drop(test_df.index[test_df.coverage_class == 1])
+
+        test_train_set_ids, _ = train_test_split(
+            sorted(test_df.index.values),
+            train_size=int(0.5 * len(train_set_ids)),
+            stratify=test_df.coverage_class,
+            random_state=42)
+
+        test_train_set_df = test_df[test_df.index.isin(test_train_set_ids)].copy()
+        train_set_df = pd.concat([train_set_df, test_train_set_df])
+
+        self.train_set_df = train_set_df
+        self.val_set_df = val_set_df
 
 
 class TestData:
