@@ -1,8 +1,9 @@
+import argparse
 import datetime
 import glob
 import os
-import sys
 import time
+from shutil import copyfile
 
 import numpy as np
 import torch
@@ -23,6 +24,22 @@ from utils import get_learning_rate, write_submission
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
+
+argparser = argparse.ArgumentParser()
+argparser.add_argument("--input_dir", default="/storage/kaggle/tgs")
+argparser.add_argument("--output_dir", default="/artifacts")
+argparser.add_argument("--base_model_dir")
+argparser.add_argument("--image_size", default=128, type=int)
+argparser.add_argument("--epochs", default=300, type=int)
+argparser.add_argument("--batch_size", default=32, type=int)
+argparser.add_argument("--lr_min", default=0.0001, type=float)
+argparser.add_argument("--lr_max", default=0.001, type=float)
+argparser.add_argument("--patience", default=30, type=int)
+argparser.add_argument("--sgdr_cycle_epochs", default=20, type=int)
+argparser.add_argument("--sgdr_cycle_end_patience", default=3, type=int)
+argparser.add_argument("--ensemble_model_count", default=3, type=int)
+argparser.add_argument("--swa_enabled", default=False, type=bool)
+argparser.add_argument("--swa_epoch_to_start", default=0, type=int)
 
 
 def evaluate(model, data_loader, criterion):
@@ -54,17 +71,17 @@ def evaluate(model, data_loader, criterion):
     return loss_avg, precision_avg
 
 
-def load_ensemble_model(ensemble_model_count, base_dir, val_set_data_loader, criterion):
+def load_ensemble_model(ensemble_model_count, base_dir, val_set_data_loader, criterion, swa_enabled):
     score_to_model = {}
     ensemble_model_candidates = glob.glob("{}/model-*.pth".format(base_dir))
-    if os.path.isfile("{}/swa_model.pth".format(base_dir)):
+    if swa_enabled and os.path.isfile("{}/swa_model.pth".format(base_dir)):
         ensemble_model_candidates.append("{}/swa_model.pth".format(base_dir))
     for model_file_path in ensemble_model_candidates:
         model_file_name = os.path.basename(model_file_path)
         m = create_model(pretrained=False).to(device)
         m.load_state_dict(torch.load(model_file_path, map_location=device))
         val_loss_avg, val_precision_avg = evaluate(m, val_set_data_loader, criterion)
-        print("ensemble '%s': val_loss=%.3f, val_precision=%.3f" % (model_file_name, val_loss_avg, val_precision_avg))
+        print("ensemble '%s': val_loss=%.4f, val_precision=%.4f" % (model_file_name, val_loss_avg, val_precision_avg))
         if len(score_to_model) < ensemble_model_count or min(score_to_model.keys()) < val_precision_avg:
             if len(score_to_model) >= ensemble_model_count:
                 del score_to_model[min(score_to_model.keys())]
@@ -73,28 +90,33 @@ def load_ensemble_model(ensemble_model_count, base_dir, val_set_data_loader, cri
 
     for ensemble_model in ensemble_models:
         val_loss_avg, val_precision_avg = evaluate(ensemble_model, val_set_data_loader, criterion)
-        print("ensemble: val_loss=%.3f, val_precision=%.3f" % (val_loss_avg, val_precision_avg))
+        print("ensemble: val_loss=%.4f, val_precision=%.4f" % (val_loss_avg, val_precision_avg))
 
     return Ensemble(ensemble_models)
 
 
 def main():
-    input_dir = "/storage/kaggle/tgs"
-    output_dir = "/artifacts"
-    image_size_target = 128
-    batch_size = 32
-    epochs_to_train = 300
-    bce_loss_weight_gamma = 0.98
-    sgdr_min_lr = 0.0001  # 0.0001, 0.001
-    sgdr_max_lr = 0.001  # 0.001, 0.03
-    sgdr_cycle_epochs = 20
-    sgdr_cycle_epoch_prolongation = 0
-    sgdr_cycle_end_patience = 3
-    train_abort_epochs_without_improval = 30
-    ensemble_model_count = 3
-    swa_epoch_to_start = 0
+    args = argparser.parse_args()
+    print("Arguments:")
+    for arg in vars(args):
+        print("  {}: {}".format(arg, getattr(args, arg)))
+    print()
 
-    model_dir = sys.argv[1] if len(sys.argv) > 1 else None
+    input_dir = args.input_dir
+    output_dir = args.output_dir
+    base_model_dir = args.base_model_dir
+    image_size_target = args.image_size
+    batch_size = args.batch_size
+    epochs_to_train = args.epochs
+    # bce_loss_weight_gamma = 0.98
+    lr_min = args.lr_min  # 0.0001, 0.001
+    lr_max = args.lr_max  # 0.001, 0.03
+    patience = args.patience
+    sgdr_cycle_epochs = args.sgdr_cycle_epochs
+    sgdr_cycle_end_patience = args.sgdr_cycle_end_patience
+    ensemble_model_count = args.ensemble_model_count
+    swa_enabled = args.swa_enabled
+    swa_epoch_to_start = args.swa_epoch_to_start
 
     train_data = TrainData(input_dir)
 
@@ -104,9 +126,11 @@ def main():
     val_set = TrainDataset(train_data.val_set_df, image_size_target, augment=False)
     val_set_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=False)
 
-    if model_dir:
+    if base_model_dir:
+        for model_file_path in glob.glob("{}/model*.pth".format(base_model_dir)):
+            copyfile(model_file_path, "{}/{}".format(output_dir, os.path.basename(model_file_path)))
         model = create_model(pretrained=False).to(device)
-        model.load_state_dict(torch.load("{}/model.pth".format(model_dir), map_location=device))
+        model.load_state_dict(torch.load("{}/model.pth".format(output_dir), map_location=device))
     else:
         model = create_model(pretrained=True).to(device)
 
@@ -122,9 +146,9 @@ def main():
 
     epoch_iterations = len(train_set) // batch_size
 
-    # optimizer = optim.SGD(model.parameters(), lr=sgdr_max_lr, weight_decay=0, momentum=0.9, nesterov=True)
-    optimizer = optim.Adam(model.parameters(), lr=sgdr_max_lr)
-    lr_scheduler = CosineAnnealingLR(optimizer, T_max=sgdr_cycle_epochs, eta_min=sgdr_min_lr)
+    # optimizer = optim.SGD(model.parameters(), lr=lr_max, weight_decay=0, momentum=0.9, nesterov=True)
+    optimizer = optim.Adam(model.parameters(), lr=lr_max)
+    lr_scheduler = CosineAnnealingLR(optimizer, T_max=sgdr_cycle_epochs, eta_min=lr_min)
 
     optim_summary_writer = SummaryWriter(log_dir="{}/logs/optim".format(output_dir))
     train_summary_writer = SummaryWriter(log_dir="{}/logs/train".format(output_dir))
@@ -135,7 +159,7 @@ def main():
     sgdr_cycle_count = 0
     batch_count = 0
     epoch_of_last_improval = 0
-    sgdr_next_cycle_end_epoch = sgdr_cycle_epochs + sgdr_cycle_epoch_prolongation
+    sgdr_next_cycle_end_epoch = sgdr_cycle_epochs
     swa_update_count = 0
 
     ensemble_model_index = 0
@@ -150,8 +174,9 @@ def main():
     print('{"chart": "sgdr_cycle", "axis": "epoch"}')
     print('{"chart": "precision", "axis": "epoch"}')
     print('{"chart": "loss", "axis": "epoch"}')
-    print('{"chart": "swa_val_precision", "axis": "epoch"}')
-    print('{"chart": "swa_val_loss", "axis": "epoch"}')
+    if swa_enabled:
+        print('{"chart": "swa_val_precision", "axis": "epoch"}')
+        print('{"chart": "swa_val_loss", "axis": "epoch"}')
     print('{"chart": "lr_scaled", "axis": "epoch"}')
 
     train_start_time = time.time()
@@ -213,9 +238,9 @@ def main():
         sgdr_reset = False
         if (epoch + 1 >= sgdr_next_cycle_end_epoch) and (epoch - epoch_of_last_improval >= sgdr_cycle_end_patience):
             sgdr_iterations = 0
-            sgdr_next_cycle_end_epoch = epoch + 1 + sgdr_cycle_epochs + sgdr_cycle_epoch_prolongation
+            sgdr_next_cycle_end_epoch = epoch + 1 + sgdr_cycle_epochs
 
-            if epoch + 1 >= swa_epoch_to_start:
+            if swa_enabled and epoch + 1 >= swa_epoch_to_start:
                 m = create_model(pretrained=False).to(device)
                 m.load_state_dict(
                     torch.load("{}/model-{}.pth".format(output_dir, ensemble_model_index), map_location=device))
@@ -272,9 +297,9 @@ def main():
         print('{"chart": "sgdr_cycle", "x": %d, "y": %d}' % (epoch + 1, sgdr_cycle_count))
         print('{"chart": "precision", "x": %d, "y": %.4f}' % (epoch + 1, train_precision_avg))
         print('{"chart": "loss", "x": %d, "y": %.4f}' % (epoch + 1, train_loss_avg))
-        print('{"chart": "lr_scaled", "x": %d, "y": %.4f}' % (epoch + 1, 100 * get_learning_rate(optimizer)))
+        print('{"chart": "lr_scaled", "x": %d, "y": %.4f}' % (epoch + 1, 1000 * get_learning_rate(optimizer)))
 
-        if sgdr_reset and sgdr_cycle_count >= ensemble_model_count and epoch - epoch_of_last_improval >= train_abort_epochs_without_improval:
+        if sgdr_reset and sgdr_cycle_count >= ensemble_model_count and epoch - epoch_of_last_improval >= patience:
             print("early abort")
             break
 
@@ -296,7 +321,7 @@ def main():
     analyze(Ensemble([model]), train_data.val_set_df, use_tta=False)
     analyze(Ensemble([model]), train_data.val_set_df, use_tta=True)
 
-    model = load_ensemble_model(ensemble_model_count, output_dir, val_set_data_loader, criterion)
+    model = load_ensemble_model(ensemble_model_count, output_dir, val_set_data_loader, criterion, swa_enabled)
 
     mask_threshold_global, mask_threshold_per_cc = analyze(model, train_data.val_set_df, use_tta=True)
 
