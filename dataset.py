@@ -11,7 +11,7 @@ from transforms import augment, upsample
 
 
 class TrainData:
-    def __init__(self, base_dir, train_size, pseudo_labeling_enabled):
+    def __init__(self, base_dir, train_size, pseudo_labeling_enabled, pseudo_labeling_test_train_ratio):
         train_df = pd.read_csv("{}/train.csv".format(base_dir), index_col="id", usecols=[0])
         depths_df = pd.read_csv("{}/depths.csv".format(base_dir), index_col="id")
         train_df = train_df.join(depths_df)
@@ -41,7 +41,7 @@ class TrainData:
 
             test_train_set_ids, _ = train_test_split(
                 sorted(test_df.index.values),
-                train_size=int(0.5 * len(train_set_ids)),
+                train_size=int(pseudo_labeling_test_train_ratio * len(train_set_ids)),
                 stratify=test_df.coverage_class,
                 random_state=42)
 

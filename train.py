@@ -45,6 +45,7 @@ argparser.add_argument("--swa_enabled", default=False, type=bool)
 argparser.add_argument("--swa_epoch_to_start", default=0, type=int)
 argparser.add_argument("--train_size", default=0.8, type=float)
 argparser.add_argument("--pseudo_labeling_enabled", default=False, type=bool)
+argparser.add_argument("--pseudo_labeling_test_train_ratio", default=0.5, type=float)
 
 
 def evaluate(model, data_loader, criterion):
@@ -125,8 +126,9 @@ def main():
     swa_epoch_to_start = args.swa_epoch_to_start
     train_size = args.train_size
     pseudo_labeling_enabled = args.pseudo_labeling_enabled
+    pseudo_labeling_test_train_ratio = args.pseudo_labeling_test_train_ratio
 
-    train_data = TrainData(input_dir, train_size, pseudo_labeling_enabled)
+    train_data = TrainData(input_dir, train_size, pseudo_labeling_enabled, pseudo_labeling_test_train_ratio)
 
     train_set = TrainDataset(train_data.train_set_df, image_size_target, augment=True)
     train_set_data_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=False)
