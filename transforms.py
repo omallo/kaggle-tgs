@@ -20,7 +20,7 @@ def downsample(image, image_size_original):
     return image[padding_start:padding_start + image_size_original, padding_start:padding_start + image_size_original]
 
 
-def augment(image, mask, is_reduce_salt):
+def augment(image, mask):
     if np.random.rand() < 0.5:
         image = np.fliplr(image)
         mask = np.fliplr(mask)
@@ -42,10 +42,7 @@ def augment(image, mask, is_reduce_salt):
             image, mask = apply_elastic_transform(image, mask, alpha=150, sigma=10, alpha_affine=5)
 
     if np.random.rand() < 0.5:
-        if is_reduce_salt:
-            image, mask = reduce_salt_coverage(image, mask)
-        else:
-            image, mask = random_crop_and_pad(image, mask)
+        image, mask = random_crop_and_pad(image, mask)
 
     return image, mask
 
