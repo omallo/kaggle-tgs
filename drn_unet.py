@@ -3,7 +3,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from drn import drn_d_105
+from drn import drn_d_38
 from se_models import SpatialChannelSEBlock
 
 
@@ -42,9 +42,9 @@ class UNetDrn(nn.Module):
         channels = (16, 32, 64, 128, 256, 512, 512, 512)
         basic_factors = (1, 1, 1, 1, 1, 1, 1, 1)
         bottleneck_factors = (1, 1, 4, 4, 4, 4, 1, 1)
-        expchannels = tuple([f * c for c, f in zip(channels, bottleneck_factors)])
+        expchannels = tuple([f * c for c, f in zip(channels, basic_factors)])
 
-        self.encoder = drn_d_105(pretrained=pretrained, channels=channels)
+        self.encoder = drn_d_38(pretrained=pretrained, channels=channels)
 
         self.conv0 = self.encoder.layer0
         self.conv1 = self.encoder.layer1
