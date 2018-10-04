@@ -19,9 +19,8 @@ from ensemble import Ensemble
 from evaluate import analyze, calculate_predictions, calculate_prediction_masks, calculate_predictions_cc
 from losses import LovaszLoss, RobustFocalLoss2d, SoftDiceLoss
 from metrics import precision_batch
-from models import create_model
 from swa_utils import moving_average, bn_update
-from utils import get_learning_rate, write_submission
+from utils import get_learning_rate, write_submission, create_model
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
@@ -35,7 +34,7 @@ argparser.add_argument("--epochs", default=300, type=int)
 argparser.add_argument("--batch_size", default=32, type=int)
 argparser.add_argument("--lr_min", default=0.0001, type=float)
 argparser.add_argument("--lr_max", default=0.001, type=float)
-argparser.add_argument("--model", default="unet")
+argparser.add_argument("--model", default="unet_resnet")
 argparser.add_argument("--patience", default=30, type=int)
 argparser.add_argument("--optimizer", default="adam")
 argparser.add_argument("--loss", default="bce")
@@ -80,7 +79,8 @@ def evaluate(model, data_loader, criterion):
     return loss_avg, precision_avg
 
 
-def load_ensemble_model(ensemble_model_count, base_dir, val_set_data_loader, criterion, swa_enabled, model_type, input_size):
+def load_ensemble_model(ensemble_model_count, base_dir, val_set_data_loader, criterion, swa_enabled, model_type,
+                        input_size):
     score_to_model = {}
     ensemble_model_candidates = glob.glob("{}/model-*.pth".format(base_dir))
     if swa_enabled and os.path.isfile("{}/swa_model.pth".format(base_dir)):
@@ -141,7 +141,8 @@ def main():
         pseudo_labeling_test_train_ratio,
         pseudo_labeling_submission_csv)
 
-    train_set = TrainDataset(train_data.train_set_df, image_size_target, augment=True, train_set_scale_factor=train_set_scale_factor)
+    train_set = TrainDataset(train_data.train_set_df, image_size_target, augment=True,
+                             train_set_scale_factor=train_set_scale_factor)
     train_set_data_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=False)
 
     val_set = TrainDataset(train_data.val_set_df, image_size_target, augment=False)

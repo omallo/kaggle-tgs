@@ -5,6 +5,7 @@ from torch.nn import functional as F
 
 from drn import drn_d_38
 
+
 class ConvBnRelu(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
@@ -30,7 +31,7 @@ class DecoderBlockV2(nn.Module):
         return self.delegate(x)
 
 
-class DrnUNet(nn.Module):
+class UNetDrn(nn.Module):
     def __init__(self, num_classes, input_size, dropout_2d=0.2, pretrained=False):
         super().__init__()
         self.dropout_2d = dropout_2d
@@ -50,13 +51,13 @@ class DrnUNet(nn.Module):
         self.conv8 = self.encoder.layer8
 
         self.dec8 = DecoderBlockV2(channels[7], channels[6], size=int(np.ceil(input_size / 8)))
-        self.dec7 = DecoderBlockV2(channels[6], channels[5], size=int(np.ceil(input_size / 8)))
-        self.dec6 = DecoderBlockV2(channels[5], channels[4], size=int(np.ceil(input_size / 8)))
-        self.dec5 = DecoderBlockV2(channels[4], channels[3], size=int(np.ceil(input_size / 8)))
-        self.dec4 = DecoderBlockV2(channels[3], channels[2], size=int(np.ceil(input_size / 4)))
-        self.dec3 = DecoderBlockV2(channels[2], channels[1], size=int(np.ceil(input_size / 2)))
-        self.dec2 = DecoderBlockV2(channels[1], channels[0], size=int(np.ceil(input_size / 1)))
-        self.dec1 = DecoderBlockV2(channels[0], channels[0], size=int(np.ceil(input_size / 1)))
+        self.dec7 = DecoderBlockV2(2 * channels[6], channels[5], size=int(np.ceil(input_size / 8)))
+        self.dec6 = DecoderBlockV2(2 * channels[5], channels[4], size=int(np.ceil(input_size / 8)))
+        self.dec5 = DecoderBlockV2(2 * channels[4], channels[3], size=int(np.ceil(input_size / 8)))
+        self.dec4 = DecoderBlockV2(2 * channels[3], channels[2], size=int(np.ceil(input_size / 4)))
+        self.dec3 = DecoderBlockV2(2 * channels[2], channels[1], size=int(np.ceil(input_size / 2)))
+        self.dec2 = DecoderBlockV2(2 * channels[1], channels[0], size=int(np.ceil(input_size / 1)))
+        self.dec1 = DecoderBlockV2(2 * channels[0], channels[0], size=int(np.ceil(input_size / 1)))
 
         self.final = nn.Conv2d(channels[0], num_classes, kernel_size=1)
 

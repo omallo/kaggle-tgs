@@ -3,7 +3,18 @@ from multiprocessing import Pool
 import pandas as pd
 from torch import nn
 
+from drn_unet import UNetDrn
+from models import UNetResNet
 from processing import rlenc
+
+
+def create_model(type, input_size, pretrained):
+    if type == "unet_resnet":
+        return UNetResNet(34, 1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained, is_deconv=False)
+    if type == "unet_drn":
+        return UNetDrn(1, input_size, pretrained=pretrained)
+    else:
+        raise Exception("Unsupported model type: '{}".format(type))
 
 
 def adjust_learning_rate(optimizer, lr):
