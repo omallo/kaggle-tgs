@@ -3,6 +3,8 @@ import math
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 
+from se_models import SpatialChannelSEBlock
+
 BatchNorm = nn.BatchNorm2d
 
 # __all__ = ['DRN', 'drn26', 'drn42', 'drn58']
@@ -40,6 +42,7 @@ class BasicBlock(nn.Module):
         self.conv2 = conv3x3(planes, planes,
                              padding=dilation[1], dilation=dilation[1])
         self.bn2 = BatchNorm(planes)
+        self.se = SpatialChannelSEBlock(planes, 16)
         self.downsample = downsample
         self.stride = stride
         self.residual = residual
@@ -53,6 +56,7 @@ class BasicBlock(nn.Module):
 
         out = self.conv2(out)
         out = self.bn2(out)
+        out = self.se(out)
 
         if self.downsample is not None:
             residual = self.downsample(x)
@@ -371,7 +375,7 @@ def drn_d_24(pretrained=False, **kwargs):
 def drn_d_38(pretrained=False, **kwargs):
     model = DRN(BasicBlock, [1, 1, 3, 4, 6, 3, 1, 1], arch='D', **kwargs)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['drn-d-38']))
+        model.load_state_dict(model_zoo.load_url(model_urls['drn-d-38']), strict=False)
     return model
 
 
@@ -399,7 +403,7 @@ def drn_d_56(pretrained=False, **kwargs):
 def drn_d_105(pretrained=False, **kwargs):
     model = DRN(Bottleneck, [1, 1, 3, 4, 23, 3, 1, 1], arch='D', **kwargs)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['drn-d-105']))
+        model.load_state_dict(model_zoo.load_url(model_urls['drn-d-105']), strict=False)
     return model
 
 

@@ -4,6 +4,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from drn import drn_d_38
+from se_models import SpatialChannelSEBlock
 
 
 class ConvBnRelu(nn.Module):
@@ -25,7 +26,8 @@ class DecoderBlockV2(nn.Module):
         self.delegate = nn.Sequential(
             ConvBnRelu(in_channels, out_channels),
             ConvBnRelu(out_channels, out_channels),
-            nn.Upsample(size=size, mode="bilinear", align_corners=False)
+            nn.Upsample(size=size, mode="bilinear", align_corners=False),
+            SpatialChannelSEBlock(out_channels)
         )
 
     def forward(self, x):
