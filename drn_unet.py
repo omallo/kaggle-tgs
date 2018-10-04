@@ -37,6 +37,10 @@ class UNetDrn(nn.Module):
         self.dropout_2d = dropout_2d
 
         channels = (16, 32, 64, 128, 256, 512, 512, 512)
+        d_105_factors = (1, 1, 4, 4, 4, 4, 1, 1)
+        d_38_factors = (1, 1, 1, 1, 1, 1, 1, 1)
+
+        expchannels = tuple([f * c for c, f in zip(channels, d_38_factors)])
 
         self.encoder = drn_d_38(pretrained=pretrained, channels=channels)
 
@@ -50,16 +54,16 @@ class UNetDrn(nn.Module):
         self.conv7 = self.encoder.layer7
         self.conv8 = self.encoder.layer8
 
-        self.dec8 = DecoderBlockV2(channels[7], channels[6], size=int(np.ceil(input_size / 8)))
-        self.dec7 = DecoderBlockV2(2 * channels[6], channels[5], size=int(np.ceil(input_size / 8)))
-        self.dec6 = DecoderBlockV2(2 * channels[5], channels[4], size=int(np.ceil(input_size / 8)))
-        self.dec5 = DecoderBlockV2(2 * channels[4], channels[3], size=int(np.ceil(input_size / 8)))
-        self.dec4 = DecoderBlockV2(2 * channels[3], channels[2], size=int(np.ceil(input_size / 4)))
-        self.dec3 = DecoderBlockV2(2 * channels[2], channels[1], size=int(np.ceil(input_size / 2)))
-        self.dec2 = DecoderBlockV2(2 * channels[1], channels[0], size=int(np.ceil(input_size / 1)))
-        self.dec1 = DecoderBlockV2(2 * channels[0], channels[0], size=int(np.ceil(input_size / 1)))
+        self.dec8 = DecoderBlockV2(expchannels[7], expchannels[6], size=int(np.ceil(input_size / 8)))
+        self.dec7 = DecoderBlockV2(2 * expchannels[6], expchannels[5], size=int(np.ceil(input_size / 8)))
+        self.dec6 = DecoderBlockV2(2 * expchannels[5], expchannels[4], size=int(np.ceil(input_size / 8)))
+        self.dec5 = DecoderBlockV2(2 * expchannels[4], expchannels[3], size=int(np.ceil(input_size / 8)))
+        self.dec4 = DecoderBlockV2(2 * expchannels[3], expchannels[2], size=int(np.ceil(input_size / 4)))
+        self.dec3 = DecoderBlockV2(2 * expchannels[2], expchannels[1], size=int(np.ceil(input_size / 2)))
+        self.dec2 = DecoderBlockV2(2 * expchannels[1], expchannels[0], size=int(np.ceil(input_size / 1)))
+        self.dec1 = DecoderBlockV2(2 * expchannels[0], expchannels[0], size=int(np.ceil(input_size / 1)))
 
-        self.final = nn.Conv2d(channels[0], num_classes, kernel_size=1)
+        self.final = nn.Conv2d(expchannels[0], num_classes, kernel_size=1)
 
     def forward(self, x):
         conv0 = self.conv0(x)
