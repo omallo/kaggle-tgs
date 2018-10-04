@@ -9,8 +9,11 @@ from torchvision.models.resnet import model_urls
 from se_models import SEBasicBlock, SEBottleneck, SpatialChannelSEBlock
 
 
-def create_model(input_size, pretrained):
-    return UNetResNet(34, 1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained, is_deconv=False)
+def create_model(type, input_size, pretrained):
+    if type == "unet":
+        return UNetResNet(34, 1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained, is_deconv=False)
+    else:
+        raise Exception("Unsupported model type: '{}".format(type))
 
 
 class ConvBnRelu(nn.Module):
