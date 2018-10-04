@@ -37,10 +37,9 @@ class UNetDrn(nn.Module):
         self.dropout_2d = dropout_2d
 
         channels = (16, 32, 64, 128, 256, 512, 512, 512)
-        d_105_factors = (1, 1, 4, 4, 4, 4, 1, 1)
-        d_38_factors = (1, 1, 1, 1, 1, 1, 1, 1)
-
-        expchannels = tuple([f * c for c, f in zip(channels, d_38_factors)])
+        basic_factors = (1, 1, 1, 1, 1, 1, 1, 1)
+        bottleneck_factors = (1, 1, 4, 4, 4, 4, 1, 1)
+        expchannels = tuple([f * c for c, f in zip(channels, basic_factors)])
 
         self.encoder = drn_d_38(pretrained=pretrained, channels=channels)
 
