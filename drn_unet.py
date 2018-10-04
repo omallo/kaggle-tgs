@@ -24,6 +24,7 @@ class DecoderBlockV2(nn.Module):
         super().__init__()
         self.delegate = nn.Sequential(
             ConvBnRelu(in_channels, out_channels),
+            ConvBnRelu(out_channels, out_channels),
             nn.Upsample(size=size, mode="bilinear", align_corners=False)
         )
 
