@@ -38,7 +38,7 @@ class UNetDrn(nn.Module):
 
         channels = (16, 32, 64, 128, 256, 512, 512, 512)
 
-        self.encoder = drn_d_38(pretrained=pretrained, num_classes=num_classes, channels=channels)
+        self.encoder = drn_d_38(pretrained=pretrained, channels=channels)
 
         self.conv0 = self.encoder.layer0
         self.conv1 = self.encoder.layer1
