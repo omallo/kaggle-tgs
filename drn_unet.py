@@ -31,13 +31,13 @@ class DecoderBlockV2(nn.Module):
 
 
 class DrnUNet(nn.Module):
-    def __init__(self, encoder_depth, num_classes, input_size, num_filters=32, dropout_2d=0.2, pretrained=False):
+    def __init__(self, num_classes, input_size, dropout_2d=0.2, pretrained=False):
         super().__init__()
         self.dropout_2d = dropout_2d
 
         channels = (16, 32, 64, 128, 256, 512, 512, 512)
 
-        self.encoder = drn_d_38(pretrained=True, num_classes=num_classes, channels=channels)
+        self.encoder = drn_d_38(pretrained=pretrained, num_classes=num_classes, channels=channels)
 
         self.conv0 = self.encoder.layer0
         self.conv1 = self.encoder.layer1
