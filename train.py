@@ -44,6 +44,7 @@ argparser.add_argument("--ensemble_model_count", default=3, type=int)
 argparser.add_argument("--swa_enabled", default=False, type=bool)
 argparser.add_argument("--swa_epoch_to_start", default=0, type=int)
 argparser.add_argument("--train_size", default=0.8, type=float)
+argparser.add_argument("--train_set_scale_factor", default=2.0, type=float)
 argparser.add_argument("--pseudo_labeling_enabled", default=False, type=bool)
 argparser.add_argument("--pseudo_labeling_test_train_ratio", default=0.5, type=float)
 argparser.add_argument("--pseudo_labeling_submission_csv")
@@ -126,6 +127,7 @@ def main():
     swa_enabled = args.swa_enabled
     swa_epoch_to_start = args.swa_epoch_to_start
     train_size = args.train_size
+    train_set_scale_factor = args.train_set_scale_factor
     pseudo_labeling_enabled = args.pseudo_labeling_enabled
     pseudo_labeling_test_train_ratio = args.pseudo_labeling_test_train_ratio
     pseudo_labeling_submission_csv = args.pseudo_labeling_submission_csv
@@ -137,7 +139,7 @@ def main():
         pseudo_labeling_test_train_ratio,
         pseudo_labeling_submission_csv)
 
-    train_set = TrainDataset(train_data.train_set_df, image_size_target, augment=True)
+    train_set = TrainDataset(train_data.train_set_df, image_size_target, augment=True, train_set_scale_factor=train_set_scale_factor)
     train_set_data_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=False)
 
     val_set = TrainDataset(train_data.val_set_df, image_size_target, augment=False)

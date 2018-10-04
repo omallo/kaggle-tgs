@@ -65,14 +65,15 @@ class TestData:
 
 
 class TrainDataset(Dataset):
-    def __init__(self, df, image_size_target, augment):
+    def __init__(self, df, image_size_target, augment, train_set_scale_factor=1.0):
         super().__init__()
         self.df = df
         self.image_size_target = image_size_target
         self.augment = augment
+        self.train_set_scale_factor = train_set_scale_factor
 
     def __len__(self):
-        return 2 * len(self.df) if self.augment else len(self.df)
+        return int(self.train_set_scale_factor * len(self.df))
 
     def __getitem__(self, index):
         image = self.df.images[index % len(self.df)]
