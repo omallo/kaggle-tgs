@@ -11,7 +11,7 @@ from transforms import augment, upsample
 
 
 class TrainData:
-    def __init__(self, base_dir, train_size, pseudo_labeling_enabled, pseudo_labeling_test_train_ratio):
+    def __init__(self, base_dir, train_size, pseudo_labeling_enabled, pseudo_labeling_test_train_ratio, pseudo_labeling_submission_csv):
         train_df = pd.read_csv("{}/train.csv".format(base_dir), index_col="id", usecols=[0])
         depths_df = pd.read_csv("{}/depths.csv".format(base_dir), index_col="id")
         train_df = train_df.join(depths_df)
@@ -30,7 +30,7 @@ class TrainData:
         val_set_df = train_df[train_df.index.isin(val_set_ids)].copy()
 
         if pseudo_labeling_enabled:
-            test_df = pd.read_csv("/storage/models/tgs/scse-2/submission_best.csv", index_col="id")
+            test_df = pd.read_csv(pseudo_labeling_submission_csv, index_col="id")
             test_df["rle_mask"] = test_df.rle_mask.astype(str)
             test_df["masks"] = test_df.rle_mask.map(rldec)
             test_df["images"] = load_images("{}/test/images".format(base_dir), test_df.index)
