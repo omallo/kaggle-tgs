@@ -20,7 +20,10 @@ from evaluate import analyze, calculate_predictions, calculate_prediction_masks,
 from losses import LovaszLoss, RobustFocalLoss2d, SoftDiceLoss
 from metrics import precision_batch
 from swa_utils import moving_average, bn_update
-from utils import get_learning_rate, write_submission, create_model
+from utils import get_learning_rate, write_submission
+from deeplab_resnet import DeepLabv3_plus
+from drn_unet import UNetDrn
+from models import UNetResNet
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
@@ -48,6 +51,17 @@ argparser.add_argument("--train_set_scale_factor", default=2.0, type=float)
 argparser.add_argument("--pseudo_labeling_enabled", default=False, type=bool)
 argparser.add_argument("--pseudo_labeling_test_train_ratio", default=1.0, type=float)
 argparser.add_argument("--pseudo_labeling_submission_csv")
+
+
+def create_model(type, input_size, pretrained):
+    if type == "unet_resnet":
+        return UNetResNet(34, 1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained, is_deconv=False)
+    elif type == "unet_drn":
+        return UNetDrn(1, input_size, pretrained=pretrained)
+    elif type == "deeplab":
+        return DeepLabv3_plus(n_classes=1, pretrained=pretrained)
+    else:
+        raise Exception("Unsupported model type: '{}".format(type))
 
 
 def evaluate(model, data_loader, criterion):
