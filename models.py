@@ -7,14 +7,13 @@ from torchvision.models import ResNet
 from torchvision.models.resnet import model_urls
 
 from se_models import SEBasicBlock, SEBottleneck, SpatialChannelSEBlock
-from utils import with_he_normal_weights
 
 
 class ConvBnRelu(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.conv = nn.Sequential(
-            with_he_normal_weights(nn.Conv2d(in_channels, out_channels, 3, padding=1)),
+            nn.Conv2d(in_channels, out_channels, 3, padding=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
         )
@@ -122,7 +121,7 @@ class UNetResNet(nn.Module):
                                    is_deconv, size=int(np.ceil(input_size / 2)))
         self.dec1 = DecoderBlockV2(bottom_channel_nr // 8 + num_filters * 2, num_filters * 2 * 2, num_filters * 2 * 2,
                                    is_deconv, size=input_size)
-        self.final = with_he_normal_weights(nn.Conv2d(num_filters * 2 * 2, num_classes, kernel_size=1))
+        self.final = nn.Conv2d(num_filters * 2 * 2, num_classes, kernel_size=1)
 
     def forward(self, x):
         input_adjust = self.input_adjust(x)

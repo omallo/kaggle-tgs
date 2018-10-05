@@ -1,7 +1,5 @@
 import torch.nn as nn
 
-from utils import with_he_normal_weights
-
 
 def conv3x3(in_planes, out_planes, stride=1):
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False)
@@ -38,7 +36,7 @@ class ChannelSEBlock(nn.Module):
 class SpatialSEBlock(nn.Module):
     def __init__(self, channel):
         super(SpatialSEBlock, self).__init__()
-        self.conv = with_he_normal_weights(nn.Conv2d(in_channels=channel, out_channels=1, kernel_size=1))
+        self.conv = nn.Conv2d(in_channels=channel, out_channels=1, kernel_size=1)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
