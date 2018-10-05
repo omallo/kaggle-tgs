@@ -38,7 +38,8 @@ class DecoderBlockV2(nn.Module):
         )
 
         self.upsample = nn.Sequential(
-            ConvBnRelu(in_channels, out_channels),
+            ConvBnRelu(in_channels, middle_channels),
+            ConvBnRelu(middle_channels, out_channels),
             SpatialChannelSEBlock(out_channels),
             nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False) if self.size is None else nn.Upsample(
                 size=self.size, mode="bilinear", align_corners=False)
