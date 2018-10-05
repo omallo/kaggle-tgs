@@ -46,7 +46,7 @@ argparser.add_argument("--swa_epoch_to_start", default=0, type=int)
 argparser.add_argument("--train_size", default=0.8, type=float)
 argparser.add_argument("--train_set_scale_factor", default=2.0, type=float)
 argparser.add_argument("--pseudo_labeling_enabled", default=False, type=bool)
-argparser.add_argument("--pseudo_labeling_test_train_ratio", default=0.5, type=float)
+argparser.add_argument("--pseudo_labeling_test_train_ratio", default=1.0, type=float)
 argparser.add_argument("--pseudo_labeling_submission_csv")
 
 
