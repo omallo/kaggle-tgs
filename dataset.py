@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 from torchvision.transforms.functional import normalize
 
 from processing import calculate_mask_weights, rldec
-from transforms import augment, upsample
+from transforms import augment, upsample, reduce_salt_coverage
 
 
 class TrainData:
@@ -35,17 +35,30 @@ class TrainData:
             test_df["masks"] = test_df.rle_mask.map(rldec)
             test_df["images"] = load_images("{}/test/images".format(base_dir), test_df.index)
             test_df["coverage_class"] = test_df.masks.map(calculate_coverage_class)
-
             test_df = test_df.drop(columns=["rle_mask"])
-            test_df = test_df.drop(test_df.index[test_df.coverage_class == 1])
 
-            test_train_set_ids, _ = train_test_split(
+            test_train_set_ids, leftover_train_set_ids = train_test_split(
                 sorted(test_df.index.values),
                 train_size=int(pseudo_labeling_test_train_ratio * len(train_set_ids)),
                 stratify=test_df.coverage_class,
                 random_state=42)
 
             test_train_set_df = test_df[test_df.index.isin(test_train_set_ids)].copy()
+
+            cc1_count = np.sum(test_train_set_df.coverage_class == 1)
+            np.random.shuffle(leftover_train_set_ids)
+            ids_with_reduced_cc1 = []
+            for id in leftover_train_set_ids:
+                image = test_df.loc[id].images
+                mask = test_df.loc[id].masks
+                if calculate_coverage_class(mask) > 2:
+                    image, mask = reduce_salt_coverage(image, mask)
+                    if calculate_coverage_class(mask) == 1:
+                        ids_with_reduced_cc1.append(id)
+            print("reduced the salt coverage of {} test images to 1, picking out {} of them".format(len(ids_with_reduced_cc1), cc1_count))
+            test_train_set_df = test_train_set_df.drop(test_train_set_df.index[test_train_set_df.coverage_class == 1])
+            test_train_set_df = pd.concat([test_train_set_df, test_df[test_df.index.isin(ids_with_reduced_cc1[:cc1_count])].copy()])
+
             train_set_df = pd.concat([train_set_df, test_train_set_df])
 
         self.train_set_df = train_set_df
