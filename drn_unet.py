@@ -5,13 +5,14 @@ from torch.nn import functional as F
 
 from drn import drn_d_38
 from se_models import SpatialChannelSEBlock
+from utils import with_he_normal_weights
 
 
 class ConvBnRelu(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.conv = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, 3, padding=1),
+            with_he_normal_weights(nn.Conv2d(in_channels, out_channels, 3, padding=1)),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
         )
@@ -26,8 +27,8 @@ class DecoderBlockV2(nn.Module):
         self.delegate = nn.Sequential(
             ConvBnRelu(in_channels, out_channels),
             ConvBnRelu(out_channels, out_channels),
-            nn.Upsample(size=size, mode="bilinear", align_corners=False),
-            SpatialChannelSEBlock(out_channels)
+            SpatialChannelSEBlock(out_channels),
+            nn.Upsample(size=size, mode="bilinear", align_corners=False)
         )
 
     def forward(self, x):
