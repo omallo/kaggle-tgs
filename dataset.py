@@ -21,7 +21,7 @@ class TrainData:
         train_df["coverage_class"] = train_df.masks.map(calculate_coverage_class)
 
         train_set_ids, val_set_ids = train_test_split(
-            sorted(train_df.index.values),
+            train_df.index.values,
             train_size=train_size,
             stratify=train_df.coverage_class,
             random_state=42)
@@ -38,7 +38,7 @@ class TrainData:
             test_df = test_df.drop(columns=["rle_mask"])
 
             test_train_set_ids, leftover_train_set_ids = train_test_split(
-                sorted(test_df.index.values),
+                test_df.index.values,
                 train_size=int(pseudo_labeling_test_train_ratio * len(train_set_ids)),
                 stratify=test_df.coverage_class,
                 random_state=42)
