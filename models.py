@@ -31,17 +31,17 @@ class DecoderBlockV2(nn.Module):
 
         self.deconv = nn.Sequential(
             ConvBnRelu(in_channels, middle_channels),
+            SpatialChannelSEBlock(middle_channels),
             nn.ConvTranspose2d(middle_channels, out_channels, kernel_size=4, stride=2, padding=1),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
-            SpatialChannelSEBlock(out_channels)
+            nn.ReLU(inplace=True)
         )
 
         self.upsample = nn.Sequential(
             ConvBnRelu(in_channels, out_channels),
+            SpatialChannelSEBlock(out_channels),
             nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False) if self.size is None else nn.Upsample(
-                size=self.size, mode="bilinear", align_corners=False),
-            SpatialChannelSEBlock(out_channels)
+                size=self.size, mode="bilinear", align_corners=False)
         )
 
     def forward(self, x):
