@@ -15,15 +15,15 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
 
 from dataset import TrainData, TrainDataset, TestData
+from deeplab_resnet import DeepLabv3_plus
+from drn_unet import UNetDrn
 from ensemble import Ensemble
 from evaluate import analyze, calculate_predictions, calculate_prediction_masks, calculate_predictions_cc
 from losses import LovaszLoss, RobustFocalLoss2d, SoftDiceLoss
 from metrics import precision_batch
+from models import UNetResNet
 from swa_utils import moving_average, bn_update
 from utils import get_learning_rate, write_submission
-from deeplab_resnet import DeepLabv3_plus
-from drn_unet import UNetDrn
-from models import UNetResNet
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
@@ -46,10 +46,10 @@ argparser.add_argument("--sgdr_cycle_end_patience", default=3, type=int)
 argparser.add_argument("--ensemble_model_count", default=3, type=int)
 argparser.add_argument("--swa_enabled", default=False, type=bool)
 argparser.add_argument("--swa_epoch_to_start", default=0, type=int)
-argparser.add_argument("--train_size", default=0.8, type=float)
+argparser.add_argument("--kfold_count", default=5, type=int)
+argparser.add_argument("--kfold_index", default=0, type=int)
 argparser.add_argument("--train_set_scale_factor", default=2.0, type=float)
 argparser.add_argument("--pseudo_labeling_enabled", default=False, type=bool)
-argparser.add_argument("--pseudo_labeling_test_train_ratio", default=1.0, type=float)
 argparser.add_argument("--pseudo_labeling_submission_csv")
 
 
@@ -142,17 +142,17 @@ def main():
     ensemble_model_count = args.ensemble_model_count
     swa_enabled = args.swa_enabled
     swa_epoch_to_start = args.swa_epoch_to_start
-    train_size = args.train_size
+    kfold_count = args.kfold_count
+    kfold_index = args.kfold_index
     train_set_scale_factor = args.train_set_scale_factor
     pseudo_labeling_enabled = args.pseudo_labeling_enabled
-    pseudo_labeling_test_train_ratio = args.pseudo_labeling_test_train_ratio
     pseudo_labeling_submission_csv = args.pseudo_labeling_submission_csv
 
     train_data = TrainData(
         input_dir,
-        train_size,
+        kfold_count,
+        kfold_index,
         pseudo_labeling_enabled,
-        pseudo_labeling_test_train_ratio,
         pseudo_labeling_submission_csv)
 
     train_set = TrainDataset(train_data.train_set_df, image_size_target, augment=True,
