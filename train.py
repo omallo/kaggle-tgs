@@ -174,6 +174,9 @@ def main():
 
     swa_model = create_model(type=model_type, input_size=image_size_target, pretrained=False).to(device)
 
+    if pseudo_labeling_submission_csv:
+        copyfile(pseudo_labeling_submission_csv, "{}/{}".format(output_dir, "base_pseudo_labeling_submission.csv"))
+
     print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
 
     global_val_precision_best_avg = float("-inf")
