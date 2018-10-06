@@ -52,6 +52,7 @@ argparser.add_argument("--kfold_index", default=0, type=int)
 argparser.add_argument("--train_set_scale_factor", default=2.0, type=float)
 argparser.add_argument("--pseudo_labeling_enabled", default=False, type=bool)
 argparser.add_argument("--pseudo_labeling_submission_csv")
+argparser.add_argument("--pseudo_labeling_all_in", default=False, type=bool)
 
 
 def create_model(type, input_size, pretrained):
@@ -154,13 +155,15 @@ def main():
     train_set_scale_factor = args.train_set_scale_factor
     pseudo_labeling_enabled = args.pseudo_labeling_enabled
     pseudo_labeling_submission_csv = args.pseudo_labeling_submission_csv
+    pseudo_labeling_all_in = args.pseudo_labeling_all_in
 
     train_data = TrainData(
         input_dir,
         kfold_count,
         kfold_index,
         pseudo_labeling_enabled,
-        pseudo_labeling_submission_csv)
+        pseudo_labeling_submission_csv,
+        pseudo_labeling_all_in)
 
     train_set = TrainDataset(train_data.train_set_df, image_size_target, augment=True,
                              train_set_scale_factor=train_set_scale_factor)
