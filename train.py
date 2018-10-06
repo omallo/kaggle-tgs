@@ -192,7 +192,7 @@ def main():
     print("train_set_samples: {}, val_set_samples: {}, samples_per_epoch: {}".format(
         len(train_set),
         len(val_set),
-        len(train_set) if max_epoch_iterations == 0 else max_epoch_iterations * batch_size),
+        len(train_set) if max_epoch_iterations == 0 else min(len(train_set), max_epoch_iterations * batch_size)),
         flush=True)
     print()
 
