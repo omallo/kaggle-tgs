@@ -67,13 +67,14 @@ class TrainData:
 
             if pseudo_labeling_all_in:
                 reduced_test_df = test_df[test_df.index.isin(ids_with_reduced_cc1)].copy()
-                # reduced_test_df = reduced_test_df.reindex(["reduced_" + i for i in reduced_test_df.index])
             else:
                 reduced_test_df = test_df[test_df.index.isin(ids_with_reduced_cc1[:cc1_count])].copy()
 
             test_train_set_df = pd.concat([test_train_set_df, reduced_test_df])
 
             train_set_df = pd.concat([train_set_df, test_train_set_df])
+
+        train_set_df.reset_index()
 
         self.train_set_df = train_set_df
         self.val_set_df = val_set_df
