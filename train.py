@@ -48,8 +48,8 @@ argparser.add_argument("--sgdr_cycle_end_patience", default=5, type=int)
 argparser.add_argument("--ensemble_model_count", default=3, type=int)
 argparser.add_argument("--swa_enabled", default=False, type=bool)
 argparser.add_argument("--swa_epoch_to_start", default=0, type=int)
-argparser.add_argument("--kfold_count", default=5, type=int)
-argparser.add_argument("--kfold_index", default=0, type=int)
+argparser.add_argument("--fold_count", default=5, type=int)
+argparser.add_argument("--fold_index", default=0, type=int)
 argparser.add_argument("--train_set_scale_factor", default=2.0, type=float)
 argparser.add_argument("--pseudo_labeling_enabled", default=False, type=bool)
 argparser.add_argument("--pseudo_labeling_submission_csv")
@@ -152,8 +152,8 @@ def main():
     ensemble_model_count = args.ensemble_model_count
     swa_enabled = args.swa_enabled
     swa_epoch_to_start = args.swa_epoch_to_start
-    kfold_count = args.kfold_count
-    kfold_index = args.kfold_index
+    fold_count = args.fold_count
+    fold_index = args.fold_index
     train_set_scale_factor = args.train_set_scale_factor
     pseudo_labeling_enabled = args.pseudo_labeling_enabled
     pseudo_labeling_submission_csv = args.pseudo_labeling_submission_csv
@@ -161,8 +161,8 @@ def main():
 
     train_data = TrainData(
         input_dir,
-        kfold_count,
-        kfold_index,
+        fold_count,
+        fold_index,
         pseudo_labeling_enabled,
         pseudo_labeling_submission_csv,
         pseudo_labeling_all_in)

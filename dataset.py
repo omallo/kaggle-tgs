@@ -12,7 +12,7 @@ from utils import kfold_split
 
 
 class TrainData:
-    def __init__(self, base_dir, kfold_count, kfold_index, pseudo_labeling_enabled, pseudo_labeling_submission_csv,
+    def __init__(self, base_dir, fold_count, fold_index, pseudo_labeling_enabled, pseudo_labeling_submission_csv,
                  pseudo_labeling_all_in):
         train_df = pd.read_csv("{}/train.csv".format(base_dir), index_col="id", usecols=[0])
         depths_df = pd.read_csv("{}/depths.csv".format(base_dir), index_col="id")
@@ -30,7 +30,7 @@ class TrainData:
                 random_state=42)
         else:
             train_set_ids, val_set_ids = \
-                list(kfold_split(kfold_count, sorted(train_df.index.values), train_df.coverage_class))[kfold_index]
+                list(kfold_split(fold_count, sorted(train_df.index.values), train_df.coverage_class))[fold_index]
 
         train_set_df = train_df[train_df.index.isin(train_set_ids)].copy()
         val_set_df = train_df[train_df.index.isin(val_set_ids)].copy()
@@ -47,7 +47,7 @@ class TrainData:
                 test_leftover_set_ids, test_train_set_ids = test_df.index.values, test_df.index.values
             else:
                 test_leftover_set_ids, test_train_set_ids = \
-                    list(kfold_split(kfold_count, sorted(test_df.index.values), test_df.coverage_class))[kfold_index]
+                    list(kfold_split(fold_count, sorted(test_df.index.values), test_df.coverage_class))[fold_index]
 
             test_train_set_df = test_df[test_df.index.isin(test_train_set_ids)].copy()
             test_leftover_set_df = test_df[test_df.index.isin(test_leftover_set_ids)].copy()
