@@ -60,9 +60,11 @@ def create_model(type, input_size, pretrained):
     elif type == "unet_drn":
         return UNetDrn(1, input_size, pretrained=pretrained)
     elif type == "unet_seresnet":
-        return UNetSeNet(num_classes=1, backbone="se_resnet50", input_size=input_size)
+        return UNetSeNet(backbone="se_resnet50", num_classes=1, input_size=input_size)
+    elif type == "unet_seresnext":
+        return UNetSeNet(backbone="se_resnext50", num_classes=1, input_size=input_size)
     elif type == "unet_senet":
-        return UNetSeNet(num_classes=1, backbone="senet154", input_size=input_size)
+        return UNetSeNet(backbone="senet154", num_classes=1, input_size=input_size)
     elif type == "deeplab":
         return DeepLabv3_plus(n_classes=1, pretrained=pretrained)
     else:
