@@ -34,7 +34,7 @@ class TrainData:
             test_df["coverage_class"] = test_df.masks.map(calculate_coverage_class)
             test_df = test_df.drop(columns=["rle_mask"])
 
-            test_train_set_ids, leftover_train_set_ids = \
+            leftover_train_set_ids, test_train_set_ids = \
                 list(kfold_split(kfold_count, sorted(test_df.index.values), test_df.coverage_class))[kfold_index]
 
             test_train_set_df = test_df[test_df.index.isin(test_train_set_ids)].copy()
