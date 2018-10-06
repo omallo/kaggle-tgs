@@ -6,7 +6,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from se_models import SpatialChannelSEBlock
-from senet import se_resnet50
+from senet import se_resnet50, senet154
 
 
 class ConvBnRelu(nn.Module):
@@ -36,19 +36,37 @@ class DecoderBlockV2(nn.Module):
 
 
 class UNetSeNet(nn.Module):
-    def __init__(self, num_classes, input_size, num_filters=32, dropout_2d=0.2):
+    def __init__(self, backbone, num_classes, input_size, num_filters=32, dropout_2d=0.2):
         super().__init__()
         self.num_classes = num_classes
         self.dropout_2d = dropout_2d
 
-        self.encoder = se_resnet50()
-        bottom_channel_nr = 2048
+        if backbone == "senet154":
+            self.encoder = senet154()
+            bottom_channel_nr = 2048
 
-        layer0_modules = [
-            ('conv1', self.encoder.layer0.conv1),
-            ('bn1', self.encoder.layer0.bn1),
-            ('relu1', self.encoder.layer0.relu1),
-        ]
+            layer0_modules = [
+                ('conv1', self.encoder.layer0.conv1),
+                ('bn1', self.encoder.layer0.bn1),
+                ('relu1', self.encoder.layer0.relu1),
+                ('conv2', self.encoder.layer0.conv2),
+                ('bn2', self.encoder.layer0.bn2),
+                ('relu2', self.encoder.layer0.relu2),
+                ('conv3', self.encoder.layer0.conv3),
+                ('bn3', self.encoder.layer0.bn3),
+                ('relu3', self.encoder.layer0.relu3),
+            ]
+        elif backbone == "se_resnet50":
+            self.encoder = se_resnet50()
+            bottom_channel_nr = 2048
+
+            layer0_modules = [
+                ('conv1', self.encoder.layer0.conv1),
+                ('bn1', self.encoder.layer0.bn1),
+                ('relu1', self.encoder.layer0.relu1),
+            ]
+        else:
+            raise Exception("Unsupported backbone type: '{}".format(backbone))
 
         self.input_adjust = nn.Sequential(OrderedDict(layer0_modules))
 
