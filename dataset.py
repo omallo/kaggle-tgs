@@ -49,7 +49,7 @@ class TrainData:
                     image, mask = reduce_salt_coverage(image, mask)
                     if calculate_coverage_class(mask) == 1:
                         ids_with_reduced_cc1.append(id)
-            print("reduced the salt coverage of {} test images to 1, picking out {} of them".format(
+            print("reduced the salt coverage of {} test images to 1, {} had been dropped".format(
                 len(ids_with_reduced_cc1), cc1_count))
             test_train_set_df = test_train_set_df.drop(test_train_set_df.index[test_train_set_df.coverage_class == 1])
             test_train_set_df = pd.concat(
