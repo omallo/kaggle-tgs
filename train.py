@@ -23,6 +23,7 @@ from losses import LovaszLoss, RobustFocalLoss2d, SoftDiceLoss
 from metrics import precision_batch
 from models import UNetResNet
 from swa_utils import moving_average, bn_update
+from unet_senet import UNetSeNet
 from utils import get_learning_rate, write_submission
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -58,6 +59,8 @@ def create_model(type, input_size, pretrained):
         return UNetResNet(34, 1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained, is_deconv=False)
     elif type == "unet_drn":
         return UNetDrn(1, input_size, pretrained=pretrained)
+    elif type == "unet_senet":
+        return UNetSeNet(num_classes=1, input_size=input_size)
     elif type == "deeplab":
         return DeepLabv3_plus(n_classes=1, pretrained=pretrained)
     else:
