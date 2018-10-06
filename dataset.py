@@ -66,11 +66,12 @@ class TrainData:
             test_train_set_df = test_train_set_df.drop(test_train_set_df.index[test_train_set_df.coverage_class == 1])
 
             if pseudo_labeling_all_in:
-                test_train_set_df = pd.concat(
-                    [test_train_set_df, test_df[test_df.index.isin(ids_with_reduced_cc1)].copy()])
+                reduced_test_df = test_df[test_df.index.isin(ids_with_reduced_cc1)].copy()
+                reduced_test_df = reduced_test_df.reindex(["reduced_" + i for i in reduced_test_df.index])
             else:
-                test_train_set_df = pd.concat(
-                    [test_train_set_df, test_df[test_df.index.isin(ids_with_reduced_cc1[:cc1_count])].copy()])
+                reduced_test_df = test_df[test_df.index.isin(ids_with_reduced_cc1[:cc1_count])].copy()
+
+            test_train_set_df = pd.concat([test_train_set_df, reduced_test_df])
 
             train_set_df = pd.concat([train_set_df, test_train_set_df])
 
