@@ -57,7 +57,7 @@ class TrainData:
             for id in leftover_train_set_ids:
                 image = test_df.loc[id].images
                 mask = test_df.loc[id].masks
-                if calculate_coverage_class(mask) > 2:
+                if calculate_coverage_class(mask) > 1:
                     image, mask = reduce_salt_coverage(image, mask)
                     if calculate_coverage_class(mask) == 1:
                         ids_with_reduced_cc1.append(id)
