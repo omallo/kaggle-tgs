@@ -273,14 +273,15 @@ def main():
 
             optimizer.zero_grad()
             prediction_logits = model(images)
-            predictions = torch.sigmoid(prediction_logits)
             criterion.weight = mask_weights
             loss = criterion(prediction_logits, masks)
             loss.backward()
             optimizer.step()
 
             train_loss_sum += loss.item()
-            train_precision_sum += np.mean(precision_batch(predictions, masks))
+            with torch.no_grad():
+                predictions = torch.sigmoid(prediction_logits)
+                train_precision_sum += np.mean(precision_batch(predictions, masks))
             sgdr_iterations += 1
             iteration_count += 1
             batch_count += 1
