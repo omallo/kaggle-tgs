@@ -200,7 +200,9 @@ def main():
     global_swa_val_precision_best_avg = float("-inf")
     sgdr_cycle_val_precision_best_avg = float("-inf")
 
-    epoch_iterations = max_epoch_iterations if max_epoch_iterations > 0 else len(train_set) // batch_size
+    epoch_iterations = len(train_set) // batch_size
+    if max_epoch_iterations > 0:
+        epoch_iterations = min(epoch_iterations, max_epoch_iterations)
 
     if optimizer_type == "adam":
         optimizer = optim.Adam(model.parameters(), lr=lr_max)
