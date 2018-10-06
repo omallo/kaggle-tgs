@@ -67,7 +67,7 @@ class TrainData:
 
             if pseudo_labeling_all_in:
                 reduced_test_df = test_df[test_df.index.isin(ids_with_reduced_cc1)].copy()
-                reduced_test_df = reduced_test_df.reindex(["reduced_" + i for i in reduced_test_df.index])
+                # reduced_test_df = reduced_test_df.reindex(["reduced_" + i for i in reduced_test_df.index])
             else:
                 reduced_test_df = test_df[test_df.index.isin(ids_with_reduced_cc1[:cc1_count])].copy()
 
