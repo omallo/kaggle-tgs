@@ -189,7 +189,12 @@ def main():
     if pseudo_labeling_submission_csv:
         copyfile(pseudo_labeling_submission_csv, "{}/{}".format(output_dir, "base_pseudo_labeling_submission.csv"))
 
-    print("train_set_samples: %d, val_set_samples: %d" % (len(train_set), len(val_set)))
+    print("train_set_samples: {}, val_set_samples: {}, samples_per_epoch: {}".format(
+        len(train_set),
+        len(val_set),
+        len(train_set) if max_epoch_iterations == 0 else max_epoch_iterations * batch_size),
+        flush=True)
+    print()
 
     global_val_precision_best_avg = float("-inf")
     global_swa_val_precision_best_avg = float("-inf")
