@@ -35,6 +35,7 @@ argparser.add_argument("--output_dir", default="/artifacts")
 argparser.add_argument("--base_model_dir")
 argparser.add_argument("--image_size", default=128, type=int)
 argparser.add_argument("--epochs", default=300, type=int)
+argparser.add_argument("--max_epoch_iterations", default=0, type=int)
 argparser.add_argument("--batch_size", default=32, type=int)
 argparser.add_argument("--lr_min", default=0.0001, type=float)
 argparser.add_argument("--lr_max", default=0.001, type=float)
@@ -139,6 +140,7 @@ def main():
     image_size_target = args.image_size
     batch_size = args.batch_size
     epochs_to_train = args.epochs
+    max_epoch_iterations = args.max_epoch_iterations
     lr_min = args.lr_min  # 0.0001, 0.001
     lr_max = args.lr_max  # 0.001, 0.03
     optimizer_type = args.optimizer
@@ -193,7 +195,7 @@ def main():
     global_swa_val_precision_best_avg = float("-inf")
     sgdr_cycle_val_precision_best_avg = float("-inf")
 
-    epoch_iterations = len(train_set) // batch_size
+    epoch_iterations = max_epoch_iterations if max_epoch_iterations > 0 else len(train_set) // batch_size
 
     if optimizer_type == "adam":
         optimizer = optim.Adam(model.parameters(), lr=lr_max)
@@ -253,7 +255,7 @@ def main():
 
         train_loss_sum = 0.0
         train_precision_sum = 0.0
-        train_step_count = 0
+        iteration_count = 0
         for batch in train_set_data_loader:
             images, masks, mask_weights = \
                 batch[0].to(device, non_blocking=True), \
@@ -273,13 +275,16 @@ def main():
             train_loss_sum += loss.item()
             train_precision_sum += np.mean(precision_batch(predictions, masks))
             sgdr_iterations += 1
-            train_step_count += 1
+            iteration_count += 1
             batch_count += 1
 
             optim_summary_writer.add_scalar("lr", get_learning_rate(optimizer), batch_count + 1)
 
-        train_loss_avg = train_loss_sum / train_step_count
-        train_precision_avg = train_precision_sum / train_step_count
+            if max_epoch_iterations > 0 and iteration_count > max_epoch_iterations:
+                break
+
+        train_loss_avg = train_loss_sum / iteration_count
+        train_precision_avg = train_precision_sum / iteration_count
 
         val_loss_avg, val_precision_avg = evaluate(model, val_set_data_loader, criterion)
 
