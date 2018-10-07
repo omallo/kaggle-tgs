@@ -31,35 +31,14 @@ from utils import get_learning_rate, write_submission
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
 
-argparser = argparse.ArgumentParser()
-argparser.add_argument("--input_dir", default="/storage/kaggle/tgs")
-argparser.add_argument("--output_dir", default="/artifacts")
-argparser.add_argument("--base_model_dir")
-argparser.add_argument("--image_size", default=128, type=int)
-argparser.add_argument("--epochs", default=500, type=int)
-argparser.add_argument("--max_epoch_iterations", default=300, type=int)
-argparser.add_argument("--batch_size", default=32, type=int)
-argparser.add_argument("--lr_min", default=0.0001, type=float)
-argparser.add_argument("--lr_max", default=0.001, type=float)
-argparser.add_argument("--model", default="unet_resnet")
-argparser.add_argument("--parallel_model", default=True, type=bool)
-argparser.add_argument("--patience", default=30, type=int)
-argparser.add_argument("--optimizer", default="adam")
-argparser.add_argument("--loss", default="bce")
-argparser.add_argument("--bce_loss_weight", default=0.3, type=float)
-argparser.add_argument("--augment", default=True, type=bool)
-argparser.add_argument("--sgdr_cycle_epochs", default=20, type=int)
-argparser.add_argument("--sgdr_cycle_end_prolongation", default=2, type=int)
-argparser.add_argument("--sgdr_cycle_end_patience", default=5, type=int)
-argparser.add_argument("--ensemble_model_count", default=3, type=int)
-argparser.add_argument("--swa_enabled", default=False, type=bool)
-argparser.add_argument("--swa_epoch_to_start", default=0, type=int)
-argparser.add_argument("--fold_count", default=5, type=int)
-argparser.add_argument("--fold_index", default=0, type=int)
-argparser.add_argument("--train_set_scale_factor", default=2.0, type=float)
-argparser.add_argument("--pseudo_labeling_enabled", default=False, type=bool)
-argparser.add_argument("--pseudo_labeling_submission_csv")
-argparser.add_argument("--pseudo_labeling_all_in", default=False, type=bool)
+
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
 def create_model(type, input_size, pretrained, parallel):
@@ -454,4 +433,34 @@ def main():
 
 
 if __name__ == "__main__":
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument("--input_dir", default="/storage/kaggle/tgs")
+    argparser.add_argument("--output_dir", default="/artifacts")
+    argparser.add_argument("--base_model_dir")
+    argparser.add_argument("--image_size", default=128, type=int)
+    argparser.add_argument("--epochs", default=500, type=int)
+    argparser.add_argument("--max_epoch_iterations", default=300, type=int)
+    argparser.add_argument("--batch_size", default=32, type=int)
+    argparser.add_argument("--lr_min", default=0.0001, type=float)
+    argparser.add_argument("--lr_max", default=0.001, type=float)
+    argparser.add_argument("--model", default="unet_resnet")
+    argparser.add_argument("--parallel_model", default=True, type=str2bool)
+    argparser.add_argument("--patience", default=30, type=int)
+    argparser.add_argument("--optimizer", default="adam")
+    argparser.add_argument("--loss", default="bce")
+    argparser.add_argument("--bce_loss_weight", default=0.3, type=float)
+    argparser.add_argument("--augment", default=True, type=str2bool)
+    argparser.add_argument("--sgdr_cycle_epochs", default=20, type=int)
+    argparser.add_argument("--sgdr_cycle_end_prolongation", default=2, type=int)
+    argparser.add_argument("--sgdr_cycle_end_patience", default=5, type=int)
+    argparser.add_argument("--ensemble_model_count", default=3, type=int)
+    argparser.add_argument("--swa_enabled", default=False, type=str2bool)
+    argparser.add_argument("--swa_epoch_to_start", default=0, type=int)
+    argparser.add_argument("--fold_count", default=5, type=int)
+    argparser.add_argument("--fold_index", default=0, type=int)
+    argparser.add_argument("--train_set_scale_factor", default=2.0, type=float)
+    argparser.add_argument("--pseudo_labeling_enabled", default=False, type=str2bool)
+    argparser.add_argument("--pseudo_labeling_submission_csv")
+    argparser.add_argument("--pseudo_labeling_all_in", default=False, type=str2bool)
+
     main()
