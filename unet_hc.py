@@ -14,7 +14,7 @@ class ConvBnRelu(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.conv = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, 3, padding=1),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
         )
@@ -74,13 +74,17 @@ class UNetResNetHc(nn.Module):
         ]
 
         final_in_channels = dec_out_channels[3] + sum(dec_in_channels)
+        final_mid_channels = dec_out_channels[3]
 
         self.dec4 = DecoderBlock(dec_in_channels[0], dec_out_channels[0], ceil(input_size / 8), input_size)
         self.dec3 = DecoderBlock(dec_in_channels[1], dec_out_channels[1], ceil(input_size / 4), input_size)
         self.dec2 = DecoderBlock(dec_in_channels[2], dec_out_channels[2], ceil(input_size / 2), input_size)
         self.dec1 = DecoderBlock(dec_in_channels[3], dec_out_channels[3], input_size, input_size)
 
-        self.final = nn.Conv2d(final_in_channels, num_classes, kernel_size=1)
+        self.final = nn.Sequential(
+            ConvBnRelu(final_in_channels, final_mid_channels),
+            nn.Conv2d(final_mid_channels, num_classes, kernel_size=1)
+        )
 
     def forward(self, x):
         conv0 = self.conv0(x)
