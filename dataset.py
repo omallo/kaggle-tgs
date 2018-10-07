@@ -62,8 +62,8 @@ class TrainData:
                     for _ in range(2):
                         reduced_image, reduced_mask = reduce_salt_coverage(image, mask)
                         if calculate_coverage_class(reduced_mask) == 1:
-                            test_leftover_set_df.loc[id].images = reduced_image
-                            test_leftover_set_df.loc[id].masks = reduced_mask
+                            test_leftover_set_df.at[id, "images"] = reduced_image
+                            test_leftover_set_df.at[id, "masks"] = reduced_mask
                             ids_with_reduced_cc1.append(id)
                             break
             print("reduced the salt coverage of {} test images to 1, {} had been dropped".format(
