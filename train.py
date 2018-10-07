@@ -20,7 +20,7 @@ from drn_unet import UNetDrn
 from ensemble import Ensemble
 from evaluate import analyze, calculate_predictions, calculate_prediction_masks, calculate_predictions_cc, \
     calculate_best_prediction_masks
-from losses import LovaszLoss, RobustFocalLoss2d, SoftDiceLoss
+from losses import LovaszLoss, RobustFocalLoss2d, SoftDiceLoss, BCELovaszLoss
 from metrics import precision_batch
 from models import UNetResNet
 from swa_utils import moving_average, bn_update
@@ -45,6 +45,7 @@ argparser.add_argument("--model", default="unet_resnet")
 argparser.add_argument("--patience", default=30, type=int)
 argparser.add_argument("--optimizer", default="adam")
 argparser.add_argument("--loss", default="bce")
+argparser.add_argument("--bce_loss_weight_gamma", default=0.98, type=float)
 argparser.add_argument("--sgdr_cycle_epochs", default=20, type=int)
 argparser.add_argument("--sgdr_cycle_end_patience", default=5, type=int)
 argparser.add_argument("--ensemble_model_count", default=3, type=int)
@@ -149,6 +150,7 @@ def main():
     lr_max = args.lr_max  # 0.001, 0.03
     optimizer_type = args.optimizer
     loss_type = args.loss
+    bce_loss_weight_gamma = args.bce_loss_weight_gamma
     model_type = args.model
     patience = args.patience
     sgdr_cycle_epochs = args.sgdr_cycle_epochs
@@ -252,6 +254,8 @@ def main():
         criterion = nn.BCEWithLogitsLoss()
     elif loss_type == "lovasz":
         criterion = LovaszLoss()
+    elif loss_type == "bce_lovasz":
+        criterion = BCELovaszLoss(bce_weight=1.0)
     elif loss_type == "dice":
         criterion = SoftDiceLoss()
     elif loss_type == "focal":
@@ -263,6 +267,9 @@ def main():
         epoch_start_time = time.time()
 
         model.train()
+
+        if loss_type == "bce_lovasz":
+            criterion.bce_weight = bce_loss_weight_gamma ** epoch
 
         train_loss_sum = 0.0
         train_precision_sum = 0.0
