@@ -45,7 +45,7 @@ argparser.add_argument("--model", default="unet_resnet")
 argparser.add_argument("--patience", default=30, type=int)
 argparser.add_argument("--optimizer", default="adam")
 argparser.add_argument("--loss", default="bce")
-argparser.add_argument("--bce_loss_weight_gamma", default=0.98, type=float)
+argparser.add_argument("--bce_loss_weight", default=0.3, type=float)
 argparser.add_argument("--augment", default=True, type=bool)
 argparser.add_argument("--sgdr_cycle_epochs", default=20, type=int)
 argparser.add_argument("--sgdr_cycle_end_prolongation", default=2, type=int)
@@ -154,7 +154,7 @@ def main():
     lr_max = args.lr_max  # 0.001, 0.03
     optimizer_type = args.optimizer
     loss_type = args.loss
-    bce_loss_weight_gamma = args.bce_loss_weight_gamma
+    bce_loss_weight = args.bce_loss_weight
     augment = args.augment
     model_type = args.model
     patience = args.patience
@@ -265,7 +265,7 @@ def main():
     elif loss_type == "lovasz":
         criterion = LovaszLoss()
     elif loss_type == "bce_lovasz":
-        criterion = BCELovaszLoss(bce_weight=1.0)
+        criterion = BCELovaszLoss(bce_weight=bce_loss_weight)
     elif loss_type == "dice":
         criterion = SoftDiceLoss()
     elif loss_type == "focal":
@@ -277,9 +277,6 @@ def main():
         epoch_start_time = time.time()
 
         model.train()
-
-        if loss_type == "bce_lovasz":
-            criterion.bce_weight = bce_loss_weight_gamma ** epoch
 
         train_loss_sum = 0.0
         train_precision_sum = 0.0
