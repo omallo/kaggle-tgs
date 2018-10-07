@@ -47,6 +47,7 @@ argparser.add_argument("--optimizer", default="adam")
 argparser.add_argument("--loss", default="bce")
 argparser.add_argument("--bce_loss_weight_gamma", default=0.98, type=float)
 argparser.add_argument("--sgdr_cycle_epochs", default=20, type=int)
+argparser.add_argument("--sgdr_cycle_end_prolongation", default=2, type=int)
 argparser.add_argument("--sgdr_cycle_end_patience", default=5, type=int)
 argparser.add_argument("--ensemble_model_count", default=3, type=int)
 argparser.add_argument("--swa_enabled", default=False, type=bool)
@@ -154,6 +155,7 @@ def main():
     model_type = args.model
     patience = args.patience
     sgdr_cycle_epochs = args.sgdr_cycle_epochs
+    sgdr_cycle_end_prolongation = args.sgdr_cycle_end_prolongation
     sgdr_cycle_end_patience = args.sgdr_cycle_end_patience
     ensemble_model_count = args.ensemble_model_count
     swa_enabled = args.swa_enabled
@@ -228,7 +230,7 @@ def main():
     sgdr_cycle_count = 0
     batch_count = 0
     epoch_of_last_improval = 0
-    sgdr_next_cycle_end_epoch = sgdr_cycle_epochs
+    sgdr_next_cycle_end_epoch = sgdr_cycle_epochs + sgdr_cycle_end_prolongation
     swa_update_count = 0
 
     ensemble_model_index = 0
@@ -323,7 +325,7 @@ def main():
         sgdr_reset = False
         if (epoch + 1 >= sgdr_next_cycle_end_epoch) and (epoch - epoch_of_last_improval >= sgdr_cycle_end_patience):
             sgdr_iterations = 0
-            sgdr_next_cycle_end_epoch = epoch + 1 + sgdr_cycle_epochs
+            sgdr_next_cycle_end_epoch = epoch + 1 + sgdr_cycle_epochs + sgdr_cycle_end_prolongation
 
             if swa_enabled and epoch + 1 >= swa_epoch_to_start:
                 m = create_model(type=model_type, input_size=image_size_target, pretrained=False).to(device)
