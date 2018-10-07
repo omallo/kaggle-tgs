@@ -18,7 +18,8 @@ from dataset import TrainData, TrainDataset, TestData
 from deeplab_resnet import DeepLabv3_plus
 from drn_unet import UNetDrn
 from ensemble import Ensemble
-from evaluate import analyze, calculate_predictions, calculate_prediction_masks, calculate_predictions_cc
+from evaluate import analyze, calculate_predictions, calculate_prediction_masks, calculate_predictions_cc, \
+    calculate_best_prediction_masks
 from losses import LovaszLoss, RobustFocalLoss2d, SoftDiceLoss
 from metrics import precision_batch
 from models import UNetResNet
@@ -401,7 +402,7 @@ def main():
     model = load_ensemble_model(
         ensemble_model_count, output_dir, val_set_data_loader, criterion, swa_enabled, model_type, image_size_target)
 
-    mask_threshold_global, mask_threshold_per_cc = analyze(model, train_data.val_set_df, use_tta=True)
+    mask_threshold_global, mask_threshold_per_cc, best_mask_per_cc = analyze(model, train_data.val_set_df, use_tta=True)
 
     eval_end_time = time.time()
     print()
@@ -416,6 +417,7 @@ def main():
     calculate_predictions(test_data.df, model, use_tta=True)
     calculate_predictions_cc(test_data.df, mask_threshold_global)
     calculate_prediction_masks(test_data.df, mask_threshold_global, mask_threshold_per_cc)
+    calculate_best_prediction_masks(test_data.df, best_mask_per_cc)
 
     print()
     print(test_data.df.groupby("predictions_cc").agg({"predictions_cc": "count"}))
