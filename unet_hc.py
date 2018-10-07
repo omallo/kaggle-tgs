@@ -28,15 +28,17 @@ class DecoderBlock(nn.Module):
         super().__init__()
 
         self.conv = ConvBnRelu(in_channels, out_channels)
+
         self.up_next = nn.Upsample(size=up_size_next, mode="bilinear", align_corners=False)
+        self.se_next = SpatialChannelSEBlock(out_channels)
+
         self.up_input = nn.Upsample(size=up_size_input, mode="bilinear", align_corners=False)
-        self.se = SpatialChannelSEBlock(out_channels)
 
     def forward(self, x):
         x = self.conv(x)
 
         x_next = self.up_next(x)
-        x_next = self.se(x_next)
+        x_next = self.se_next(x_next)
 
         x_up = self.up_input(x)
 
@@ -46,7 +48,6 @@ class DecoderBlock(nn.Module):
 class UNetResNetHc(nn.Module):
     def __init__(self, num_classes, input_size, num_filters=32, dropout_2d=0.2, pretrained=False):
         super().__init__()
-        self.num_classes = num_classes
         self.dropout_2d = dropout_2d
 
         self.encoder = ResNet(SEBasicBlock, [3, 4, 6, 3])
