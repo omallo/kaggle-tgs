@@ -42,6 +42,7 @@ argparser.add_argument("--batch_size", default=32, type=int)
 argparser.add_argument("--lr_min", default=0.0001, type=float)
 argparser.add_argument("--lr_max", default=0.001, type=float)
 argparser.add_argument("--model", default="unet_resnet")
+argparser.add_argument("--parallel_model", default=True, type=bool)
 argparser.add_argument("--patience", default=30, type=int)
 argparser.add_argument("--optimizer", default="adam")
 argparser.add_argument("--loss", default="bce")
@@ -61,7 +62,7 @@ argparser.add_argument("--pseudo_labeling_submission_csv")
 argparser.add_argument("--pseudo_labeling_all_in", default=False, type=bool)
 
 
-def create_model(type, input_size, pretrained):
+def create_model(type, input_size, pretrained, parallel):
     if type == "unet_resnet":
         model = UNetResNet(34, 1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained, is_deconv=False)
     elif type == "unet_resnet_hc":
@@ -79,7 +80,7 @@ def create_model(type, input_size, pretrained):
     else:
         raise Exception("Unsupported model type: '{}".format(type))
 
-    return nn.DataParallel(model)
+    return nn.DataParallel(model) if parallel else model
 
 
 def evaluate(model, data_loader, criterion):
@@ -112,14 +113,15 @@ def evaluate(model, data_loader, criterion):
 
 
 def load_ensemble_model(ensemble_model_count, base_dir, val_set_data_loader, criterion, swa_enabled, model_type,
-                        input_size):
+                        input_size, use_parallel_model):
     score_to_model = {}
     ensemble_model_candidates = glob.glob("{}/model-*.pth".format(base_dir))
     if swa_enabled and os.path.isfile("{}/swa_model.pth".format(base_dir)):
         ensemble_model_candidates.append("{}/swa_model.pth".format(base_dir))
     for model_file_path in ensemble_model_candidates:
         model_file_name = os.path.basename(model_file_path)
-        m = create_model(type=model_type, input_size=input_size, pretrained=False).to(device)
+        m = create_model(type=model_type, input_size=input_size, pretrained=False, parallel=use_parallel_model).to(
+            device)
         m.load_state_dict(torch.load(model_file_path, map_location=device))
         val_loss_avg, val_precision_avg = evaluate(m, val_set_data_loader, criterion)
         print("ensemble '%s': val_loss=%.4f, val_precision=%.4f" % (model_file_name, val_loss_avg, val_precision_avg))
@@ -157,6 +159,7 @@ def main():
     bce_loss_weight = args.bce_loss_weight
     augment = args.augment
     model_type = args.model
+    use_parallel_model = args.parallel_model
     patience = args.patience
     sgdr_cycle_epochs = args.sgdr_cycle_epochs
     sgdr_cycle_end_prolongation = args.sgdr_cycle_end_prolongation
@@ -193,14 +196,17 @@ def main():
     if base_model_dir:
         for model_file_path in glob.glob("{}/model*.pth".format(base_model_dir)):
             copyfile(model_file_path, "{}/{}".format(output_dir, os.path.basename(model_file_path)))
-        model = create_model(type=model_type, input_size=image_size_target, pretrained=False).to(device)
+        model = create_model(type=model_type, input_size=image_size_target, pretrained=False,
+                             parallel=use_parallel_model).to(device)
         model.load_state_dict(torch.load("{}/model.pth".format(output_dir), map_location=device))
     else:
-        model = create_model(type=model_type, input_size=image_size_target, pretrained=True).to(device)
+        model = create_model(type=model_type, input_size=image_size_target, pretrained=True,
+                             parallel=use_parallel_model).to(device)
 
     torch.save(model.state_dict(), "{}/model.pth".format(output_dir))
 
-    swa_model = create_model(type=model_type, input_size=image_size_target, pretrained=False).to(device)
+    swa_model = create_model(type=model_type, input_size=image_size_target, pretrained=False,
+                             parallel=use_parallel_model).to(device)
 
     if pseudo_labeling_submission_csv:
         copyfile(pseudo_labeling_submission_csv, "{}/{}".format(output_dir, "base_pseudo_labeling_submission.csv"))
@@ -333,7 +339,8 @@ def main():
             sgdr_next_cycle_end_epoch = epoch + 1 + sgdr_cycle_epochs + sgdr_cycle_end_prolongation
 
             if swa_enabled and epoch + 1 >= swa_epoch_to_start:
-                m = create_model(type=model_type, input_size=image_size_target, pretrained=False).to(device)
+                m = create_model(type=model_type, input_size=image_size_target, pretrained=False,
+                                 parallel=use_parallel_model).to(device)
                 m.load_state_dict(
                     torch.load("{}/model-{}.pth".format(output_dir, ensemble_model_index), map_location=device))
                 swa_update_count += 1
@@ -414,7 +421,8 @@ def main():
     analyze(Ensemble([model]), train_data.val_set_df, use_tta=True)
 
     model = load_ensemble_model(
-        ensemble_model_count, output_dir, val_set_data_loader, criterion, swa_enabled, model_type, image_size_target)
+        ensemble_model_count, output_dir, val_set_data_loader, criterion, swa_enabled, model_type, image_size_target,
+        use_parallel_model=use_parallel_model)
 
     mask_threshold_global, mask_threshold_per_cc, best_mask_per_cc = analyze(model, train_data.val_set_df, use_tta=True)
 
