@@ -167,7 +167,7 @@ def analyze(model, df, use_tta):
 
     print()
     print("best masks per prediction coverage class:")
-    for cc, best_mask in best_mask_per_cc:
+    for cc, best_mask in best_mask_per_cc.items():
         print("  {}: {}".format(cc, best_mask))
 
     return mask_threshold_global, mask_threshold_per_cc, best_mask_per_cc
