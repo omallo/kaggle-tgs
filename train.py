@@ -23,6 +23,7 @@ from losses import LovaszLoss, RobustFocalLoss2d, SoftDiceLoss
 from metrics import precision_batch
 from models import UNetResNet
 from swa_utils import moving_average, bn_update
+from unet_hc import UNetResNetHc
 from unet_senet import UNetSeNet
 from utils import get_learning_rate, write_submission
 
@@ -59,6 +60,8 @@ argparser.add_argument("--pseudo_labeling_all_in", default=False, type=bool)
 def create_model(type, input_size, pretrained):
     if type == "unet_resnet":
         return UNetResNet(34, 1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained, is_deconv=False)
+    elif type == "unet_resnet_hc":
+        return UNetResNetHc(1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained)
     elif type == "unet_drn":
         return UNetDrn(1, input_size, pretrained=pretrained)
     elif type == "unet_seresnet":
