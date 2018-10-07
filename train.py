@@ -46,6 +46,7 @@ argparser.add_argument("--patience", default=30, type=int)
 argparser.add_argument("--optimizer", default="adam")
 argparser.add_argument("--loss", default="bce")
 argparser.add_argument("--bce_loss_weight_gamma", default=0.98, type=float)
+argparser.add_argument("--augment", default=True, type=bool)
 argparser.add_argument("--sgdr_cycle_epochs", default=20, type=int)
 argparser.add_argument("--sgdr_cycle_end_prolongation", default=2, type=int)
 argparser.add_argument("--sgdr_cycle_end_patience", default=5, type=int)
@@ -152,6 +153,7 @@ def main():
     optimizer_type = args.optimizer
     loss_type = args.loss
     bce_loss_weight_gamma = args.bce_loss_weight_gamma
+    augment = args.augment
     model_type = args.model
     patience = args.patience
     sgdr_cycle_epochs = args.sgdr_cycle_epochs
@@ -175,8 +177,12 @@ def main():
         pseudo_labeling_submission_csv,
         pseudo_labeling_all_in)
 
-    train_set = TrainDataset(train_data.train_set_df, image_size_target, augment=True,
-                             train_set_scale_factor=train_set_scale_factor)
+    train_set = TrainDataset(
+        train_data.train_set_df,
+        image_size_target,
+        augment=augment,
+        train_set_scale_factor=train_set_scale_factor)
+
     train_set_data_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=False)
 
     val_set = TrainDataset(train_data.val_set_df, image_size_target, augment=False)
