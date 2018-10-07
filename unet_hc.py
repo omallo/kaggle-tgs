@@ -24,28 +24,23 @@ class ConvBnRelu(nn.Module):
 
 
 class DecoderBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, up_size_next, up_size_input):
+    def __init__(self, in_channels, out_channels_next, up_size_next, out_channels_input, up_size_input):
         super().__init__()
 
-        self.conv = nn.Sequential(
-            ConvBnRelu(in_channels, out_channels),
-            ConvBnRelu(out_channels, out_channels)
-        )
-
+        self.conv_next = ConvBnRelu(in_channels, out_channels_next)
         self.up_next = nn.Upsample(size=up_size_next, mode="bilinear", align_corners=False)
-        self.se_next = SpatialChannelSEBlock(out_channels)
+        self.se_next = SpatialChannelSEBlock(out_channels_next)
 
+        self.conv_input = ConvBnRelu(in_channels, out_channels_input)
         self.up_input = nn.Upsample(size=up_size_input, mode="bilinear", align_corners=False)
-        self.se_input = SpatialChannelSEBlock(out_channels)
 
     def forward(self, x):
-        x = self.conv(x)
-
-        x_next = self.up_next(x)
+        x_next = self.conv_next(x)
+        x_next = self.up_next(x_next)
         x_next = self.se_next(x_next)
 
-        x_up = self.up_input(x)
-        x_up = self.se_input(x_up)
+        x_up = self.conv_input(x)
+        x_up = self.up_input(x_up)
 
         return x_next, x_up
 
@@ -80,18 +75,25 @@ class UNetResNetHc(nn.Module):
             num_filters * 2 * 2
         ]
 
-        final_in_channels = dec_out_channels[3] + sum(dec_out_channels)
+        dec_sizes = [
+            ceil(input_size / 8),
+            ceil(input_size / 4),
+            ceil(input_size / 2),
+            input_size
+        ]
+
+        hc_out_channels = dec_out_channels[3]
+        final_in_channels = dec_out_channels[3]
         final_mid_channels = dec_out_channels[3]
 
-        self.dec4 = DecoderBlock(dec_in_channels[0], dec_out_channels[0], ceil(input_size / 8), input_size)
-        self.dec3 = DecoderBlock(dec_in_channels[1], dec_out_channels[1], ceil(input_size / 4), input_size)
-        self.dec2 = DecoderBlock(dec_in_channels[2], dec_out_channels[2], ceil(input_size / 2), input_size)
-        self.dec1 = DecoderBlock(dec_in_channels[3], dec_out_channels[3], input_size, input_size)
+        self.dec4 = DecoderBlock(dec_in_channels[0], dec_out_channels[0], dec_sizes[0], hc_out_channels, input_size)
+        self.dec3 = DecoderBlock(dec_in_channels[1], dec_out_channels[1], dec_sizes[1], hc_out_channels, input_size)
+        self.dec2 = DecoderBlock(dec_in_channels[2], dec_out_channels[2], dec_sizes[2], hc_out_channels, input_size)
+        self.dec1 = DecoderBlock(dec_in_channels[3], dec_out_channels[3], dec_sizes[3], hc_out_channels, input_size)
 
         self.final = nn.Sequential(
-            ConvBnRelu(final_in_channels, final_mid_channels),
-            ConvBnRelu(final_mid_channels, final_mid_channels),
-            nn.Conv2d(final_mid_channels, num_classes, kernel_size=1)
+            ConvBnRelu(final_in_channels, final_mid_channels // 2),
+            nn.Conv2d(final_mid_channels // 2, num_classes, kernel_size=1)
         )
 
     def forward(self, x):
@@ -106,6 +108,6 @@ class UNetResNetHc(nn.Module):
         dec2, dec2_input = self.dec2(torch.cat([dec3, conv2], 1))
         dec1, dec1_input = self.dec1(torch.cat([dec2, conv1], 1))
 
-        out = torch.cat([dec1, dec1_input, dec2_input, dec3_input, dec4_input], 1)
+        out = dec1 + dec1_input + dec2_input + dec3_input + dec4_input
 
         return self.final(F.dropout2d(out, p=self.dropout_2d))
