@@ -63,21 +63,23 @@ argparser.add_argument("--pseudo_labeling_all_in", default=False, type=bool)
 
 def create_model(type, input_size, pretrained):
     if type == "unet_resnet":
-        return UNetResNet(34, 1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained, is_deconv=False)
+        model = UNetResNet(34, 1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained, is_deconv=False)
     elif type == "unet_resnet_hc":
-        return UNetResNetHc(1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained)
+        model = UNetResNetHc(1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained)
     elif type == "unet_drn":
-        return UNetDrn(1, input_size, pretrained=pretrained)
+        model = UNetDrn(1, input_size, pretrained=pretrained)
     elif type == "unet_seresnet":
-        return UNetSeNet(backbone="se_resnet50", num_classes=1, input_size=input_size)
+        model = UNetSeNet(backbone="se_resnet50", num_classes=1, input_size=input_size)
     elif type == "unet_seresnext":
-        return UNetSeNet(backbone="se_resnext50", num_classes=1, input_size=input_size)
+        model = UNetSeNet(backbone="se_resnext50", num_classes=1, input_size=input_size)
     elif type == "unet_senet":
-        return UNetSeNet(backbone="senet154", num_classes=1, input_size=input_size)
+        model = UNetSeNet(backbone="senet154", num_classes=1, input_size=input_size)
     elif type == "deeplab":
-        return DeepLabv3_plus(n_classes=1, pretrained=pretrained)
+        model = DeepLabv3_plus(n_classes=1, pretrained=pretrained)
     else:
         raise Exception("Unsupported model type: '{}".format(type))
+
+    return nn.DataParallel(model)
 
 
 def evaluate(model, data_loader, criterion):
