@@ -141,11 +141,7 @@ def random_crop_to_size(image, mask, size):
     return cropped_image, cropped_mask
 
 
-def reduce_salt_coverage(image, mask):
-    max_rounds = 2
-    min_crop_per_round = 5
-    max_crop_per_round = 20
-
+def reduce_salt_coverage(image, mask, max_rounds=2, min_crop_per_round=5, max_crop_per_round=20):
     rounds = np.random.randint(max_rounds) + 1
     for _ in range(rounds):
         crop = np.random.randint(min_crop_per_round, max_crop_per_round) + 1

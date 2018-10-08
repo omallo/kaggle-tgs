@@ -1,6 +1,7 @@
 from multiprocessing import Pool
 
 import pandas as pd
+from sklearn.model_selection import StratifiedKFold
 from torch import nn
 
 from processing import rlenc
@@ -40,3 +41,11 @@ def write_submission(df, mask_name, file_path):
     sub.index.names = ["id"]
     sub.columns = ["rle_mask"]
     sub.to_csv(file_path)
+
+
+def kfold_split(n_splits, values, classes):
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+    for train_value_indexes, test_value_indexes in skf.split(values, classes):
+        train_values = [values[i] for i in train_value_indexes]
+        test_values = [values[i] for i in test_value_indexes]
+        yield train_values, test_values

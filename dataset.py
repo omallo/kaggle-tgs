@@ -8,10 +8,12 @@ from torchvision.transforms.functional import normalize
 
 from processing import calculate_mask_weights, rldec
 from transforms import augment, upsample, reduce_salt_coverage
+from utils import kfold_split
 
 
 class TrainData:
-    def __init__(self, base_dir, train_size, pseudo_labeling_enabled, pseudo_labeling_test_train_ratio, pseudo_labeling_submission_csv):
+    def __init__(self, base_dir, fold_count, fold_index, pseudo_labeling_enabled, pseudo_labeling_submission_csv,
+                 pseudo_labeling_all_in):
         train_df = pd.read_csv("{}/train.csv".format(base_dir), index_col="id", usecols=[0])
         depths_df = pd.read_csv("{}/depths.csv".format(base_dir), index_col="id")
         train_df = train_df.join(depths_df)
@@ -20,11 +22,15 @@ class TrainData:
         train_df["masks"] = load_masks("{}/train/masks".format(base_dir), train_df.index)
         train_df["coverage_class"] = train_df.masks.map(calculate_coverage_class)
 
-        train_set_ids, val_set_ids = train_test_split(
-            train_df.index.values,
-            train_size=train_size,
-            stratify=train_df.coverage_class,
-            random_state=42)
+        if pseudo_labeling_all_in:
+            train_set_ids, val_set_ids = train_test_split(
+                sorted(train_df.index.values),
+                train_size=0.8,
+                stratify=train_df.coverage_class,
+                random_state=42)
+        else:
+            train_set_ids, val_set_ids = \
+                list(kfold_split(fold_count, sorted(train_df.index.values), train_df.coverage_class))[fold_index]
 
         train_set_df = train_df[train_df.index.isin(train_set_ids)].copy()
         val_set_df = train_df[train_df.index.isin(val_set_ids)].copy()
@@ -37,29 +43,47 @@ class TrainData:
             test_df["coverage_class"] = test_df.masks.map(calculate_coverage_class)
             test_df = test_df.drop(columns=["rle_mask"])
 
-            test_train_set_ids, leftover_train_set_ids = train_test_split(
-                test_df.index.values,
-                train_size=int(pseudo_labeling_test_train_ratio * len(train_set_ids)),
-                stratify=test_df.coverage_class,
-                random_state=42)
+            if pseudo_labeling_all_in:
+                test_leftover_set_ids, test_train_set_ids = test_df.index.values, test_df.index.values
+            else:
+                test_leftover_set_ids, test_train_set_ids = \
+                    list(kfold_split(fold_count, sorted(test_df.index.values), test_df.coverage_class))[fold_index]
 
             test_train_set_df = test_df[test_df.index.isin(test_train_set_ids)].copy()
+            test_leftover_set_df = test_df[test_df.index.isin(test_leftover_set_ids)].copy()
 
             cc1_count = np.sum(test_train_set_df.coverage_class == 1)
-            np.random.shuffle(leftover_train_set_ids)
+            np.random.shuffle(test_leftover_set_ids)
             ids_with_reduced_cc1 = []
-            for id in leftover_train_set_ids:
-                image = test_df.loc[id].images
-                mask = test_df.loc[id].masks
-                if calculate_coverage_class(mask) > 2:
-                    image, mask = reduce_salt_coverage(image, mask)
-                    if calculate_coverage_class(mask) == 1:
-                        ids_with_reduced_cc1.append(id)
-            print("reduced the salt coverage of {} test images to 1, picking out {} of them".format(len(ids_with_reduced_cc1), cc1_count))
+            for id in test_leftover_set_ids:
+                image = test_leftover_set_df.loc[id].images
+                mask = test_leftover_set_df.loc[id].masks
+                if test_leftover_set_df.loc[id].coverage_class > 1:
+                    for _ in range(2):
+                        reduced_image, reduced_mask = reduce_salt_coverage(image, mask)
+                        if calculate_coverage_class(reduced_mask) == 1:
+                            test_leftover_set_df.at[id, "images"] = reduced_image
+                            test_leftover_set_df.at[id, "masks"] = reduced_mask
+                            ids_with_reduced_cc1.append(id)
+                            break
+            print("reduced the salt coverage of {} test images to 1, {} had been dropped".format(
+                len(ids_with_reduced_cc1), cc1_count))
             test_train_set_df = test_train_set_df.drop(test_train_set_df.index[test_train_set_df.coverage_class == 1])
-            test_train_set_df = pd.concat([test_train_set_df, test_df[test_df.index.isin(ids_with_reduced_cc1[:cc1_count])].copy()])
 
-            train_set_df = pd.concat([train_set_df, test_train_set_df])
+            if pseudo_labeling_all_in:
+                reduced_test_df = test_leftover_set_df[test_leftover_set_df.index.isin(ids_with_reduced_cc1)].copy()
+            else:
+                reduced_test_df = \
+                    test_leftover_set_df[test_leftover_set_df.index.isin(ids_with_reduced_cc1[:cc1_count])].copy()
+
+            train_set_df = pd.concat([train_set_df, test_train_set_df, reduced_test_df])
+
+        train_set_df.reset_index()
+
+        print()
+        train_set_df["coverage_class"] = train_set_df.masks.map(calculate_coverage_class)
+        print(train_set_df.groupby("coverage_class").agg({"coverage_class": "count"}))
+        print()
 
         self.train_set_df = train_set_df
         self.val_set_df = val_set_df
