@@ -22,7 +22,13 @@ class TrainData:
         train_df["masks"] = load_masks("{}/train/masks".format(base_dir), train_df.index)
         train_df["coverage_class"] = train_df.masks.map(calculate_coverage_class)
 
-        if pseudo_labeling_all_in:
+        if fold_count == 0:
+            train_set_ids, val_set_ids = train_test_split(
+                sorted(train_df.index.values),
+                train_size=0.8,
+                stratify=train_df.coverage_class,
+                random_state=42)
+        elif pseudo_labeling_all_in:
             train_set_ids, val_set_ids = train_test_split(
                 sorted(train_df.index.values),
                 train_size=0.8,
