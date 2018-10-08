@@ -153,6 +153,7 @@ def main():
     pseudo_labeling_enabled = args.pseudo_labeling_enabled
     pseudo_labeling_submission_csv = args.pseudo_labeling_submission_csv
     pseudo_labeling_all_in = args.pseudo_labeling_all_in
+    submit = args.submit
 
     train_data = TrainData(
         input_dir,
@@ -411,6 +412,9 @@ def main():
     print()
     print("Eval time: %s" % str(datetime.timedelta(seconds=eval_end_time - eval_start_time)))
 
+    if not submit:
+        return
+
     print()
     print("submission preparation")
 
@@ -465,5 +469,6 @@ if __name__ == "__main__":
     argparser.add_argument("--pseudo_labeling_enabled", default=False, type=str2bool)
     argparser.add_argument("--pseudo_labeling_submission_csv")
     argparser.add_argument("--pseudo_labeling_all_in", default=False, type=str2bool)
+    argparser.add_argument("--submit", default=True, type=str2bool)
 
     main()
