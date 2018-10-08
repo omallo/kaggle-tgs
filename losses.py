@@ -42,7 +42,7 @@ class SoftDiceLoss(nn.Module):
         super(SoftDiceLoss, self).__init__()
 
     def forward(self, logits, targets):
-        smooth = 1
+        smooth = 1e-6
         num = targets.size(0)
         probs = F.sigmoid(logits)
         m1 = probs.view(-1)
