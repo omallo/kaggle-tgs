@@ -129,6 +129,7 @@ def main():
     base_model_dir = args.base_model_dir
     image_size_target = args.image_size
     batch_size = args.batch_size
+    num_workers = args.num_workers
     epochs_to_train = args.epochs
     max_epoch_iterations = args.max_epoch_iterations
     lr_min = args.lr_min  # 0.0001, 0.001
@@ -167,7 +168,7 @@ def main():
         augment=augment,
         train_set_scale_factor=train_set_scale_factor)
 
-    train_set_data_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=False)
+    train_set_data_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=False)
 
     val_set = TrainDataset(train_data.val_set_df, image_size_target, augment=False)
     val_set_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=False)
@@ -441,6 +442,7 @@ if __name__ == "__main__":
     argparser.add_argument("--epochs", default=500, type=int)
     argparser.add_argument("--max_epoch_iterations", default=0, type=int)
     argparser.add_argument("--batch_size", default=32, type=int)
+    argparser.add_argument("--num_workers", default=8, type=int)
     argparser.add_argument("--lr_min", default=0.0001, type=float)
     argparser.add_argument("--lr_max", default=0.001, type=float)
     argparser.add_argument("--model", default="unet_resnet")
