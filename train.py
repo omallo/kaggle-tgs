@@ -25,6 +25,7 @@ from metrics import precision_batch
 from models import UNetResNet
 from swa_utils import moving_average, bn_update
 from unet_hc import UNetResNetHc
+from unet_hc2 import UNetResNetHc2
 from unet_senet import UNetSeNet
 from utils import get_learning_rate, write_submission
 
@@ -46,6 +47,8 @@ def create_model(type, input_size, pretrained, parallel):
         model = UNetResNet(34, 1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained, is_deconv=False)
     elif type == "unet_resnet_hc":
         model = UNetResNetHc(1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained)
+    elif type == "unet_resnet_hc2":
+        model = UNetResNetHc2(1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained)
     elif type == "unet_drn":
         model = UNetDrn(1, input_size, pretrained=pretrained)
     elif type == "unet_seresnet":
@@ -168,7 +171,8 @@ def main():
         augment=augment,
         train_set_scale_factor=train_set_scale_factor)
 
-    train_set_data_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=False)
+    train_set_data_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=num_workers,
+                                       pin_memory=False)
 
     val_set = TrainDataset(train_data.val_set_df, image_size_target, augment=False)
     val_set_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=False)
