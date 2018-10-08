@@ -45,12 +45,12 @@ class SoftDiceLoss(nn.Module):
         smooth = 1e-6
         num = targets.size(0)
         probs = F.sigmoid(logits)
-        m1 = probs.view(-1)
-        m2 = targets.view(-1)
+        m1 = probs.view(num, -1)
+        m2 = targets.view(num, -1)
         intersection = m1 * m2
 
-        score = 2. * (intersection.sum() + smooth) / (m1.sum() + m2.sum() + smooth)
-        loss = 1 - score / num
+        score = 2. * (intersection.sum(1) + smooth) / (m1.sum(1) + m2.sum(1) + smooth)
+        loss = 1 - score.sum() / num
 
         return loss
 
