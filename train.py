@@ -26,6 +26,7 @@ from models import UNetResNet
 from swa_utils import moving_average, bn_update
 from unet_hc import UNetResNetHc
 from unet_senet import UNetSeNet
+from unet_senet_hc import UNetSeNetHc
 from utils import get_learning_rate, write_submission
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -54,6 +55,8 @@ def create_model(type, input_size, pretrained, parallel):
         model = UNetSeNet(backbone="se_resnext50", num_classes=1, input_size=input_size)
     elif type == "unet_senet":
         model = UNetSeNet(backbone="senet154", num_classes=1, input_size=input_size)
+    elif type == "unet_senet_hc":
+        model = UNetSeNetHc(1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained)
     elif type == "deeplab":
         model = DeepLabv3_plus(n_classes=1, pretrained=pretrained)
     else:
