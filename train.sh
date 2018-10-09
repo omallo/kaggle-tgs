@@ -44,8 +44,8 @@ do
   esac
 done
 
-printf "commit: $(git rev-parse HEAD)\n\n" | tee -a /artifacts/out.log
-
 install_dependencies
+
+printf "commit: $(git rev-parse HEAD)\n\n" | tee -a /artifacts/out.log
 
 python -m cProfile -o /artifacts/train.prof train.py $* 2>/artifacts/err.log | tee -a /artifacts/out.log
