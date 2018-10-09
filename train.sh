@@ -3,17 +3,31 @@
 set -e
 set -o pipefail
 
-apt-get update >/dev/null
-apt-get -y install python3-dev libsm-dev libxrender1 libxext6 zip git >/dev/null
-rm -rf /var/lib/apt/lists/*
+trap archive_artifacts EXIT
 
-pip -q install virtualenv
-virtualenv env --python=python3
-. env/bin/activate
+function install_dependencies() {
+  apt-get update >/dev/null
+  apt-get -y install python3-dev libsm-dev libxrender1 libxext6 zip git >/dev/null
+  rm -rf /var/lib/apt/lists/*
 
-pip -q install -r requirements.txt
+  pip -q install virtualenv
+  virtualenv env --python=python3
+  . env/bin/activate
 
-printf "commit: $(git rev-parse HEAD)\n\n" | tee -a /artifacts/out.log
+  pip -q install -r requirements.txt
+}
+
+function archive_artifacts() {
+  if [ -f /artifacts/logs ]
+  then
+    ( cd /artifacts && zip -r logs.zip logs )
+    rm -rf /artifacts/logs
+  fi
+
+  rm -rf /storage/models/tgs/${RUN_NAME}
+  mkdir -p /storage/models/tgs/${RUN_NAME}
+  cp -r /artifacts/* /storage/models/tgs/${RUN_NAME}
+}
 
 RUN_NAME=$1
 
@@ -30,18 +44,8 @@ do
   esac
 done
 
-trap 'on_exit' EXIT
+printf "commit: $(git rev-parse HEAD)\n\n" | tee -a /artifacts/out.log
+
+install_dependencies
 
 python -m cProfile -o /artifacts/train.prof train.py $* 2>/artifacts/err.log | tee -a /artifacts/out.log
-
-function on_exit() {
-  if [ -f /artifacts/logs ]
-  then
-    ( cd /artifacts && zip -r logs.zip logs )
-    rm -rf /artifacts/logs
-  fi
-
-  rm -rf /storage/models/tgs/${RUN_NAME}
-  mkdir -p /storage/models/tgs/${RUN_NAME}
-  cp -r /artifacts/* /storage/models/tgs/${RUN_NAME}
-}
