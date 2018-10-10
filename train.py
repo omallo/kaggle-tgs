@@ -4,7 +4,9 @@ import glob
 import os
 import time
 from math import ceil
+from queue import Queue
 from shutil import copyfile
+from threading import Thread
 
 import numpy as np
 import torch
@@ -128,6 +130,20 @@ def create_optimizer(type, model, lr):
         return optim.SGD(model.parameters(), lr=lr, weight_decay=0, momentum=0.9, nesterov=True)
     else:
         raise Exception("Unsupported optimizer type: '{}".format(type))
+
+
+def queue_batches(data_loader, count, queue):
+    data_loader_iter = iter(data_loader)
+
+    for _ in range(count):
+        batch = next(data_loader_iter)
+
+        images, masks, mask_weights = \
+            batch[0].to(device, non_blocking=True), \
+            batch[1].to(device, non_blocking=True), \
+            batch[2].to(device, non_blocking=True)
+
+        queue.put((images, masks, mask_weights))
 
 
 def main():
@@ -281,7 +297,12 @@ def main():
         train_loss_sum = 0.0
         train_precision_sum = 0.0
 
-        train_set_data_loader_iter = iter(train_set_data_loader)
+        batch_queue = Queue(maxsize=3)
+
+        batch_queuing_thread = Thread(
+            target=queue_batches,
+            args=(train_set_data_loader, epoch_iterations * batch_iters, batch_queue))
+        batch_queuing_thread.start()
 
         for _ in range(epoch_iterations):
             lr_scheduler.step(epoch=min(sgdr_cycle_epochs, sgdr_iterations / epoch_iterations))
@@ -292,12 +313,7 @@ def main():
             batch_precision_sum = 0.0
 
             for _ in range(batch_iters):
-                batch = next(train_set_data_loader_iter)
-
-                images, masks, mask_weights = \
-                    batch[0].to(device, non_blocking=True), \
-                    batch[1].to(device, non_blocking=True), \
-                    batch[2].to(device, non_blocking=True)
+                images, masks, mask_weights = batch_queue.get()
 
                 prediction_logits = model(images)
                 criterion.weight = mask_weights
