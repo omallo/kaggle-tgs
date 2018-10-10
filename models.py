@@ -1,3 +1,4 @@
+from math import ceil
 import numpy as np
 import torch
 from torch import nn
@@ -27,7 +28,7 @@ class DecoderBlock(nn.Module):
         super().__init__()
         self.upsample = nn.Sequential(
             ConvBnRelu(in_channels, out_channels),
-            nn.Upsample(nn.Upsample(size=size, mode="bilinear", align_corners=False),
+            nn.Upsample(nn.Upsample(size=size, mode="bilinear", align_corners=False)),
             SpatialChannelSEBlock(out_channels)
         )
 
