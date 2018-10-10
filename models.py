@@ -22,105 +22,60 @@ class ConvBnRelu(nn.Module):
         return self.conv(x)
 
 
-class DecoderBlockV2(nn.Module):
-    def __init__(self, in_channels, middle_channels, out_channels, is_deconv=True, size=None):
-        super(DecoderBlockV2, self).__init__()
-        self.is_deconv = is_deconv
-        self.size = size
-
-        self.deconv = nn.Sequential(
-            ConvBnRelu(in_channels, middle_channels),
-            nn.ConvTranspose2d(middle_channels, out_channels, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
-            SpatialChannelSEBlock(out_channels)
-        )
-
+class DecoderBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, size):
+        super().__init__()
         self.upsample = nn.Sequential(
             ConvBnRelu(in_channels, out_channels),
-            nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False) if self.size is None else nn.Upsample(
-                size=self.size, mode="bilinear", align_corners=False),
+            nn.Upsample(nn.Upsample(size=size, mode="bilinear", align_corners=False),
             SpatialChannelSEBlock(out_channels)
         )
 
     def forward(self, x):
-        if self.is_deconv:
-            x = self.deconv(x)
-        else:
-            x = self.upsample(x)
-        return x
+        return self.upsample(x)
 
 
 class UNetResNet(nn.Module):
-    """PyTorch U-Net model using ResNet(34, 50, 101 or 152) encoder.
-    UNet: https://arxiv.org/abs/1505.04597
-    ResNet: https://arxiv.org/abs/1512.03385
-    Proposed by Alexander Buslaev: https://www.linkedin.com/in/al-buslaev/
-    Args:
-            encoder_depth (int): Depth of a ResNet encoder (34, 101 or 152).
-            num_classes (int): Number of output classes.
-            num_filters (int, optional): Number of filters in the last layer of decoder. Defaults to 32.
-            dropout_2d (float, optional): Probability factor of dropout layer before output layer. Defaults to 0.2.
-            pretrained (bool, optional):
-                False - no pre-trained weights are being used.
-                True  - ResNet encoder is pre-trained on ImageNet.
-                Defaults to False.
-            is_deconv (bool, optional):
-                False: bilinear interpolation is used in decoder.
-                True: deconvolution is used in decoder.
-                Defaults to False.
-    """
-
-    def __init__(self, encoder_depth, num_classes, input_size, num_filters=32, dropout_2d=0.2,
-                 pretrained=False, is_deconv=False):
+    def __init__(self, num_classes, input_size, num_filters=32, dropout_2d=0.2, pretrained=False):
         super().__init__()
-        self.num_classes = num_classes
         self.dropout_2d = dropout_2d
 
-        if encoder_depth == 34:
-            # self.encoder = torchvision.models.resnet34(pretrained=pretrained)
-            self.encoder = ResNet(SEBasicBlock, [3, 4, 6, 3])
-            if pretrained:
-                self.encoder.load_state_dict(model_zoo.load_url(model_urls["resnet34"]), strict=False)
-            bottom_channel_nr = 512
-        elif encoder_depth == 50:
-            # self.encoder = torchvision.models.resnet50(pretrained=pretrained)
-            self.encoder = ResNet(SEBottleneck, [3, 4, 6, 3])
-            if pretrained:
-                self.encoder.load_state_dict(model_zoo.load_url(model_urls["resnet50"]), strict=False)
-            bottom_channel_nr = 2048
-        elif encoder_depth == 101:
-            # self.encoder = torchvision.models.resnet101(pretrained=pretrained)
-            self.encoder = ResNet(SEBottleneck, [3, 4, 23, 3])
-            if pretrained:
-                self.encoder.load_state_dict(model_zoo.load_url(model_urls["resnet101"]), strict=False)
-            bottom_channel_nr = 2048
-        elif encoder_depth == 152:
-            # self.encoder = torchvision.models.resnet152(pretrained=pretrained)
-            self.encoder = ResNet(SEBottleneck, [3, 8, 36, 3])
-            if pretrained:
-                self.encoder.load_state_dict(model_zoo.load_url(model_urls["resnet152"]), strict=False)
-            bottom_channel_nr = 2048
-        else:
-            raise NotImplementedError('only 34, 50, 101, 152 version of Resnet are implemented')
+        self.encoder = ResNet(SEBasicBlock, [3, 4, 6, 3])
+        if pretrained:
+            self.encoder.load_state_dict(model_zoo.load_url(model_urls["resnet34"]), strict=False)
+        bottom_channel_nr = 512
 
-        self.input_adjust = nn.Sequential(self.encoder.conv1,
-                                          self.encoder.bn1,
-                                          self.encoder.relu)
+        dec_in_channels = [
+            bottom_channel_nr,
+            bottom_channel_nr // 2 + num_filters * 8,
+            bottom_channel_nr // 4 + num_filters * 8,
+            bottom_channel_nr // 8 + num_filters * 2
+        ]
 
+        dec_out_channels = [
+            num_filters * 8,
+            num_filters * 8,
+            num_filters * 2,
+            num_filters * 2 * 2
+        ]
+
+        dec_sizes = [
+            ceil(input_size / 8),
+            ceil(input_size / 4),
+            ceil(input_size / 2),
+            input_size
+        ]
+
+        self.input_adjust = nn.Sequential(self.encoder.conv1, self.encoder.bn1, self.encoder.relu)
         self.conv1 = self.encoder.layer1
         self.conv2 = self.encoder.layer2
         self.conv3 = self.encoder.layer3
         self.conv4 = self.encoder.layer4
 
-        self.dec4 = DecoderBlockV2(bottom_channel_nr, num_filters * 8 * 2, num_filters * 8, is_deconv,
-                                   size=int(np.ceil(input_size / 8)))
-        self.dec3 = DecoderBlockV2(bottom_channel_nr // 2 + num_filters * 8, num_filters * 8 * 2, num_filters * 8,
-                                   is_deconv, size=int(np.ceil(input_size / 4)))
-        self.dec2 = DecoderBlockV2(bottom_channel_nr // 4 + num_filters * 8, num_filters * 4 * 2, num_filters * 2,
-                                   is_deconv, size=int(np.ceil(input_size / 2)))
-        self.dec1 = DecoderBlockV2(bottom_channel_nr // 8 + num_filters * 2, num_filters * 2 * 2, num_filters * 2 * 2,
-                                   is_deconv, size=input_size)
+        self.dec4 = DecoderBlock(dec_in_channels[0], dec_out_channels[0], size=dec_sizes[0])
+        self.dec3 = DecoderBlock(dec_in_channels[1], dec_out_channels[1], size=dec_sizes[1])
+        self.dec2 = DecoderBlock(dec_in_channels[2], dec_out_channels[2], size=dec_sizes[2])
+        self.dec1 = DecoderBlock(dec_in_channels[3], dec_out_channels[3], size=dec_sizes[3])
         self.final = nn.Conv2d(num_filters * 2 * 2, num_classes, kernel_size=1)
 
     def forward(self, x):
