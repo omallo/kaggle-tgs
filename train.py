@@ -3,8 +3,8 @@ import datetime
 import glob
 import os
 import time
-from shutil import copyfile
 from math import ceil
+from shutil import copyfile
 
 import numpy as np
 import torch
@@ -145,6 +145,7 @@ def main():
     augment = args.augment
     model_type = args.model
     use_parallel_model = args.parallel_model
+    pin_memory = args.pin_memory
     patience = args.patience
     sgdr_cycle_epochs = args.sgdr_cycle_epochs
     sgdr_cycle_end_prolongation = args.sgdr_cycle_end_prolongation
@@ -174,11 +175,12 @@ def main():
         augment=augment,
         train_set_scale_factor=train_set_scale_factor)
 
-    train_set_data_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=num_workers,
-                                       pin_memory=False)
+    train_set_data_loader = \
+        DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=pin_memory)
 
     val_set = TrainDataset(train_data.val_set_df, image_size_target, augment=False)
-    val_set_data_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=False)
+    val_set_data_loader = \
+        DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=pin_memory)
 
     if base_model_dir:
         for model_file_path in glob.glob("{}/model*.pth".format(base_model_dir)):
@@ -468,6 +470,7 @@ if __name__ == "__main__":
     argparser.add_argument("--lr_max", default=0.001, type=float)
     argparser.add_argument("--model", default="unet_resnet")
     argparser.add_argument("--parallel_model", default=True, type=str2bool)
+    argparser.add_argument("--pin_memory", default=False, type=str2bool)
     argparser.add_argument("--patience", default=30, type=int)
     argparser.add_argument("--optimizer", default="adam")
     argparser.add_argument("--loss", default="bce")
