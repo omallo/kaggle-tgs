@@ -4,6 +4,7 @@ import glob
 import os
 import time
 from shutil import copyfile
+from math import ceil
 
 import numpy as np
 import torch
@@ -197,7 +198,7 @@ def main():
     if pseudo_labeling_submission_csv:
         copyfile(pseudo_labeling_submission_csv, "{}/{}".format(output_dir, "base_pseudo_labeling_submission.csv"))
 
-    epoch_iterations = len(train_set) // (batch_size * batch_iters)
+    epoch_iterations = ceil(len(train_set) / (batch_size * batch_iters))
     if max_epoch_iterations > 0:
         epoch_iterations = min(epoch_iterations, max_epoch_iterations)
 
