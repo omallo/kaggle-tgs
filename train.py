@@ -475,7 +475,7 @@ if __name__ == "__main__":
     argparser.add_argument("--augment", default=True, type=str2bool)
     argparser.add_argument("--sgdr_cycle_epochs", default=20, type=int)
     argparser.add_argument("--sgdr_cycle_end_prolongation", default=0, type=int)
-    argparser.add_argument("--sgdr_cycle_end_patience", default=0, type=int)
+    argparser.add_argument("--sgdr_cycle_end_patience", default=3, type=int)
     argparser.add_argument("--ensemble_model_count", default=3, type=int)
     argparser.add_argument("--swa_enabled", default=False, type=str2bool)
     argparser.add_argument("--swa_epoch_to_start", default=0, type=int)
