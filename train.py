@@ -121,6 +121,15 @@ def load_ensemble_model(ensemble_model_count, base_dir, val_set_data_loader, cri
     return Ensemble(ensemble_models)
 
 
+def create_optimizer(type, model, lr):
+    if type == "adam":
+        return optim.Adam(model.parameters(), lr=lr)
+    elif type == "sgd":
+        return optim.SGD(model.parameters(), lr=lr, weight_decay=0, momentum=0.9, nesterov=True)
+    else:
+        raise Exception("Unsupported optimizer type: '{}".format(type))
+
+
 def main():
     args = argparser.parse_args()
     print("Arguments:")
@@ -139,6 +148,8 @@ def main():
     max_epoch_iterations = args.max_epoch_iterations
     lr_min = args.lr_min  # 0.0001, 0.001
     lr_max = args.lr_max  # 0.001, 0.03
+    lr_min_decay = args.lr_min_decay
+    lr_max_decay = args.lr_max_decay
     optimizer_type = args.optimizer
     loss_type = args.loss
     bce_loss_weight = args.bce_loss_weight
@@ -215,13 +226,7 @@ def main():
     global_swa_val_precision_best_avg = float("-inf")
     sgdr_cycle_val_precision_best_avg = float("-inf")
 
-    if optimizer_type == "adam":
-        optimizer = optim.Adam(model.parameters(), lr=lr_max)
-    elif optimizer_type == "sgd":
-        optimizer = optim.SGD(model.parameters(), lr=lr_max, weight_decay=0, momentum=0.9, nesterov=True)
-    else:
-        raise Exception("Unsupported optimizer type: '{}".format(optimizer_type))
-
+    optimizer = create_optimizer(optimizer_type, model, lr_max)
     lr_scheduler = CosineAnnealingLR(optimizer, T_max=sgdr_cycle_epochs, eta_min=lr_min)
 
     optim_summary_writer = SummaryWriter(log_dir="{}/logs/optim".format(output_dir))
@@ -359,6 +364,12 @@ def main():
                 print('{"chart": "swa_val_precision", "x": %d, "y": %.4f}' % (epoch + 1, swa_val_precision_avg))
                 print('{"chart": "swa_val_loss", "x": %d, "y": %.4f}' % (epoch + 1, swa_val_loss_avg))
 
+            new_lr_min = lr_min * (lr_min_decay ** sgdr_cycle_count)
+            new_lr_max = lr_max * (lr_max_decay ** sgdr_cycle_count)
+
+            optimizer = create_optimizer(optimizer_type, model, new_lr_max)
+            lr_scheduler = CosineAnnealingLR(optimizer, T_max=sgdr_cycle_epochs, eta_min=new_lr_min)
+
             ensemble_model_index += 1
             sgdr_cycle_val_precision_best_avg = float("-inf")
             sgdr_cycle_count += 1
@@ -468,6 +479,8 @@ if __name__ == "__main__":
     argparser.add_argument("--num_workers", default=8, type=int)
     argparser.add_argument("--lr_min", default=0.0001, type=float)
     argparser.add_argument("--lr_max", default=0.001, type=float)
+    argparser.add_argument("--lr_min_decay", default=1.0, type=float)
+    argparser.add_argument("--lr_max_decay", default=1.0, type=float)
     argparser.add_argument("--model", default="unet_resnet")
     argparser.add_argument("--parallel_model", default=True, type=str2bool)
     argparser.add_argument("--pin_memory", default=False, type=str2bool)
