@@ -364,16 +364,16 @@ def main():
                 print('{"chart": "swa_val_precision", "x": %d, "y": %.4f}' % (epoch + 1, swa_val_precision_avg))
                 print('{"chart": "swa_val_loss", "x": %d, "y": %.4f}' % (epoch + 1, swa_val_loss_avg))
 
+            ensemble_model_index += 1
+            sgdr_cycle_val_precision_best_avg = float("-inf")
+            sgdr_cycle_count += 1
+            sgdr_reset = True
+
             new_lr_min = lr_min * (lr_min_decay ** sgdr_cycle_count)
             new_lr_max = lr_max * (lr_max_decay ** sgdr_cycle_count)
 
             optimizer = create_optimizer(optimizer_type, model, new_lr_max)
             lr_scheduler = CosineAnnealingLR(optimizer, T_max=sgdr_cycle_epochs, eta_min=new_lr_min)
-
-            ensemble_model_index += 1
-            sgdr_cycle_val_precision_best_avg = float("-inf")
-            sgdr_cycle_count += 1
-            sgdr_reset = True
 
         optim_summary_writer.add_scalar("sgdr_cycle", sgdr_cycle_count, epoch + 1)
 
