@@ -132,6 +132,7 @@ def main():
     base_model_dir = args.base_model_dir
     image_size_target = args.image_size
     batch_size = args.batch_size
+    batch_iters = args.batch_iters
     num_workers = args.num_workers
     epochs_to_train = args.epochs
     max_epoch_iterations = args.max_epoch_iterations
@@ -196,20 +197,20 @@ def main():
     if pseudo_labeling_submission_csv:
         copyfile(pseudo_labeling_submission_csv, "{}/{}".format(output_dir, "base_pseudo_labeling_submission.csv"))
 
+    epoch_iterations = len(train_set) // (batch_size * batch_iters)
+    if max_epoch_iterations > 0:
+        epoch_iterations = min(epoch_iterations, max_epoch_iterations)
+
     print("train_set_samples: {}, val_set_samples: {}, samples_per_epoch: {}".format(
         len(train_set),
         len(val_set),
-        len(train_set) if max_epoch_iterations == 0 else min(len(train_set), max_epoch_iterations * batch_size)),
+        min(len(train_set), epoch_iterations * batch_size * batch_iters)),
         flush=True)
     print()
 
     global_val_precision_best_avg = float("-inf")
     global_swa_val_precision_best_avg = float("-inf")
     sgdr_cycle_val_precision_best_avg = float("-inf")
-
-    epoch_iterations = len(train_set) // batch_size
-    if max_epoch_iterations > 0:
-        epoch_iterations = min(epoch_iterations, max_epoch_iterations)
 
     if optimizer_type == "adam":
         optimizer = optim.Adam(model.parameters(), lr=lr_max)
@@ -271,37 +272,47 @@ def main():
 
         train_loss_sum = 0.0
         train_precision_sum = 0.0
-        iteration_count = 0
-        for batch in train_set_data_loader:
-            images, masks, mask_weights = \
-                batch[0].to(device, non_blocking=True), \
-                batch[1].to(device, non_blocking=True), \
-                batch[2].to(device, non_blocking=True)
 
+        train_set_data_loader_iter = iter(train_set_data_loader)
+
+        for _ in range(epoch_iterations):
             lr_scheduler.step(epoch=min(sgdr_cycle_epochs, sgdr_iterations / epoch_iterations))
 
             optimizer.zero_grad()
-            prediction_logits = model(images)
-            criterion.weight = mask_weights
-            loss = criterion(prediction_logits, masks)
-            loss.backward()
+
+            batch_loss_sum = 0.0
+            batch_precision_sum = 0.0
+
+            for _ in range(batch_iters):
+                batch = next(train_set_data_loader_iter)
+
+                images, masks, mask_weights = \
+                    batch[0].to(device, non_blocking=True), \
+                    batch[1].to(device, non_blocking=True), \
+                    batch[2].to(device, non_blocking=True)
+
+                prediction_logits = model(images)
+                criterion.weight = mask_weights
+                loss = criterion(prediction_logits, masks)
+                loss.backward()
+
+                with torch.no_grad():
+                    batch_loss_sum += loss.item()
+                    predictions = torch.sigmoid(prediction_logits)
+                    batch_precision_sum += np.mean(precision_batch(predictions, masks))
+
             optimizer.step()
 
-            train_loss_sum += loss.item()
-            with torch.no_grad():
-                predictions = torch.sigmoid(prediction_logits)
-                train_precision_sum += np.mean(precision_batch(predictions, masks))
+            train_loss_sum += batch_loss_sum / batch_iters
+            train_precision_sum += batch_precision_sum / batch_iters
+
             sgdr_iterations += 1
-            iteration_count += 1
             batch_count += 1
 
             optim_summary_writer.add_scalar("lr", get_learning_rate(optimizer), batch_count + 1)
 
-            if max_epoch_iterations > 0 and iteration_count > max_epoch_iterations:
-                break
-
-        train_loss_avg = train_loss_sum / iteration_count
-        train_precision_avg = train_precision_sum / iteration_count
+        train_loss_avg = train_loss_sum / epoch_iterations
+        train_precision_avg = train_precision_sum / epoch_iterations
 
         val_loss_avg, val_precision_avg = evaluate(model, val_set_data_loader, criterion)
 
@@ -450,6 +461,7 @@ if __name__ == "__main__":
     argparser.add_argument("--epochs", default=500, type=int)
     argparser.add_argument("--max_epoch_iterations", default=0, type=int)
     argparser.add_argument("--batch_size", default=32, type=int)
+    argparser.add_argument("--batch_iters", default=1, type=int)
     argparser.add_argument("--num_workers", default=8, type=int)
     argparser.add_argument("--lr_min", default=0.0001, type=float)
     argparser.add_argument("--lr_max", default=0.001, type=float)
