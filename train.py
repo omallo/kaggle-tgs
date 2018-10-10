@@ -297,7 +297,7 @@ def main():
         train_loss_sum = 0.0
         train_precision_sum = 0.0
 
-        batch_queue = Queue(maxsize=3)
+        batch_queue = Queue(maxsize=10)
 
         batch_queuing_thread = Thread(
             target=queue_batches,
