@@ -45,7 +45,7 @@ def str2bool(v):
 
 def create_model(type, input_size, pretrained, parallel):
     if type == "unet_resnet":
-        model = UNetResNet(1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained, is_deconv=False)
+        model = UNetResNet(1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained)
     elif type == "unet_resnet_hc":
         model = UNetResNetHc(1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained)
     elif type == "unet_drn":
