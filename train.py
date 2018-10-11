@@ -159,6 +159,7 @@ def main():
     pin_memory = args.pin_memory
     patience = args.patience
     sgdr_cycle_epochs = args.sgdr_cycle_epochs
+    sgdr_cycle_epochs_increase = args.sgdr_cycle_epochs_increase
     sgdr_cycle_end_prolongation = args.sgdr_cycle_end_prolongation
     sgdr_cycle_end_patience = args.sgdr_cycle_end_patience
     ensemble_model_count = args.ensemble_model_count
@@ -234,11 +235,12 @@ def main():
     val_summary_writer = SummaryWriter(log_dir="{}/logs/val".format(output_dir))
     swa_val_summary_writer = SummaryWriter(log_dir="{}/logs/swa_val".format(output_dir))
 
+    current_sgdr_cycle_epochs = sgdr_cycle_epochs
+    sgdr_next_cycle_end_epoch = current_sgdr_cycle_epochs + sgdr_cycle_end_prolongation
     sgdr_iterations = 0
     sgdr_cycle_count = 0
     batch_count = 0
     epoch_of_last_improval = 0
-    sgdr_next_cycle_end_epoch = sgdr_cycle_epochs + sgdr_cycle_end_prolongation
     swa_update_count = 0
 
     ensemble_model_index = 0
@@ -284,7 +286,7 @@ def main():
         train_set_data_loader_iter = iter(train_set_data_loader)
 
         for _ in range(epoch_iterations):
-            lr_scheduler.step(epoch=min(sgdr_cycle_epochs, sgdr_iterations / epoch_iterations))
+            lr_scheduler.step(epoch=min(current_sgdr_cycle_epochs, sgdr_iterations / epoch_iterations))
 
             optimizer.zero_grad()
 
@@ -339,9 +341,6 @@ def main():
 
         sgdr_reset = False
         if (epoch + 1 >= sgdr_next_cycle_end_epoch) and (epoch - epoch_of_last_improval >= sgdr_cycle_end_patience):
-            sgdr_iterations = 0
-            sgdr_next_cycle_end_epoch = epoch + 1 + sgdr_cycle_epochs + sgdr_cycle_end_prolongation
-
             if swa_enabled and epoch + 1 >= swa_epoch_to_start:
                 m = create_model(type=model_type, input_size=image_size_target, pretrained=False,
                                  parallel=use_parallel_model).to(device)
@@ -364,6 +363,10 @@ def main():
                 print('{"chart": "swa_val_precision", "x": %d, "y": %.4f}' % (epoch + 1, swa_val_precision_avg))
                 print('{"chart": "swa_val_loss", "x": %d, "y": %.4f}' % (epoch + 1, swa_val_loss_avg))
 
+            sgdr_iterations = 0
+            current_sgdr_cycle_epochs += sgdr_cycle_epochs_increase
+            sgdr_next_cycle_end_epoch = epoch + 1 + current_sgdr_cycle_epochs + sgdr_cycle_end_prolongation
+
             ensemble_model_index += 1
             sgdr_cycle_val_precision_best_avg = float("-inf")
             sgdr_cycle_count += 1
@@ -373,7 +376,7 @@ def main():
             new_lr_max = lr_max * (lr_max_decay ** sgdr_cycle_count)
 
             optimizer = create_optimizer(optimizer_type, model, new_lr_max)
-            lr_scheduler = CosineAnnealingLR(optimizer, T_max=sgdr_cycle_epochs, eta_min=new_lr_min)
+            lr_scheduler = CosineAnnealingLR(optimizer, T_max=current_sgdr_cycle_epochs, eta_min=new_lr_min)
 
         optim_summary_writer.add_scalar("sgdr_cycle", sgdr_cycle_count, epoch + 1)
 
@@ -490,6 +493,7 @@ if __name__ == "__main__":
     argparser.add_argument("--bce_loss_weight", default=0.3, type=float)
     argparser.add_argument("--augment", default=True, type=str2bool)
     argparser.add_argument("--sgdr_cycle_epochs", default=20, type=int)
+    argparser.add_argument("--sgdr_cycle_epochs_increase", default=0, type=int)
     argparser.add_argument("--sgdr_cycle_end_prolongation", default=2, type=int)
     argparser.add_argument("--sgdr_cycle_end_patience", default=3, type=int)
     argparser.add_argument("--ensemble_model_count", default=3, type=int)
