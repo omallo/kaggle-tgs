@@ -9,7 +9,7 @@ from torchvision.models import ResNet
 from torchvision.models.resnet import model_urls
 
 from se_models import SEBasicBlock, SpatialChannelSEBlock
-from senet import senet154
+from senet import senet154, se_resnext50_32x4d
 
 
 class ConvBnRelu(nn.Module):
@@ -52,27 +52,37 @@ class UNetSeNetHc(nn.Module):
         super().__init__()
         self.dropout_2d = dropout_2d
 
-        self.encoder = senet154(pretrained="imagenet" if pretrained else None)
+        if True:
+            self.encoder = senet154(pretrained="imagenet" if pretrained else None)
+            bottom_channel_nr = 2048
 
-        layer0_modules = [
-            ('conv1', self.encoder.layer0.conv1),
-            ('bn1', self.encoder.layer0.bn1),
-            ('relu1', self.encoder.layer0.relu1),
-            ('conv2', self.encoder.layer0.conv2),
-            ('bn2', self.encoder.layer0.bn2),
-            ('relu2', self.encoder.layer0.relu2),
-            ('conv3', self.encoder.layer0.conv3),
-            ('bn3', self.encoder.layer0.bn3),
-            ('relu3', self.encoder.layer0.relu3),
-        ]
+            layer0_modules = [
+                ('conv1', self.encoder.layer0.conv1),
+                ('bn1', self.encoder.layer0.bn1),
+                ('relu1', self.encoder.layer0.relu1),
+                ('conv2', self.encoder.layer0.conv2),
+                ('bn2', self.encoder.layer0.bn2),
+                ('relu2', self.encoder.layer0.relu2),
+                ('conv3', self.encoder.layer0.conv3),
+                ('bn3', self.encoder.layer0.bn3),
+                ('relu3', self.encoder.layer0.relu3),
+            ]
+        else:
+            self.encoder = se_resnext50_32x4d(pretrained="imagenet" if pretrained else None)
+            bottom_channel_nr = 2048
+
+            layer0_modules = [
+                ('conv1', self.encoder.layer0.conv1),
+                ('bn1', self.encoder.layer0.bn1),
+                ('relu1', self.encoder.layer0.relu1),
+            ]
+
 
         self.conv0 = nn.Sequential(OrderedDict(layer0_modules))
         self.conv1 = self.encoder.layer1
         self.conv2 = self.encoder.layer2
         self.conv3 = self.encoder.layer3
         self.conv4 = self.encoder.layer4
-
-        bottom_channel_nr = 2048
 
         dec_in_channels = [
             bottom_channel_nr,
