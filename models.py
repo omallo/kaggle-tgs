@@ -1,5 +1,5 @@
 from math import ceil
-import numpy as np
+
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -7,7 +7,7 @@ from torch.utils import model_zoo
 from torchvision.models import ResNet
 from torchvision.models.resnet import model_urls
 
-from se_models import SEBasicBlock, SEBottleneck, SpatialChannelSEBlock
+from se_models import SEBasicBlock, SpatialChannelSEBlock
 
 
 class ConvBnRelu(nn.Module):
@@ -68,6 +68,7 @@ class UNetResNet(nn.Module):
         ]
 
         self.input_adjust = nn.Sequential(self.encoder.conv1, self.encoder.bn1, self.encoder.relu)
+
         self.conv1 = self.encoder.layer1
         self.conv2 = self.encoder.layer2
         self.conv3 = self.encoder.layer3
@@ -77,6 +78,7 @@ class UNetResNet(nn.Module):
         self.dec3 = DecoderBlock(dec_in_channels[1], dec_out_channels[1], size=dec_sizes[1])
         self.dec2 = DecoderBlock(dec_in_channels[2], dec_out_channels[2], size=dec_sizes[2])
         self.dec1 = DecoderBlock(dec_in_channels[3], dec_out_channels[3], size=dec_sizes[3])
+
         self.final = nn.Conv2d(num_filters * 2 * 2, num_classes, kernel_size=1)
 
     def forward(self, x):

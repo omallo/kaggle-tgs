@@ -1,6 +1,6 @@
 from collections import OrderedDict
+from math import ceil
 
-import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -22,9 +22,9 @@ class ConvBnRelu(nn.Module):
         return self.conv(x)
 
 
-class DecoderBlockV2(nn.Module):
+class DecoderBlock(nn.Module):
     def __init__(self, in_channels, out_channels, size):
-        super(DecoderBlockV2, self).__init__()
+        super().__init__()
         self.upsample = nn.Sequential(
             ConvBnRelu(in_channels, out_channels),
             nn.Upsample(size=size, mode="bilinear", align_corners=False),
@@ -77,6 +77,27 @@ class UNetSeNet(nn.Module):
         else:
             raise Exception("Unsupported backbone type: '{}".format(backbone))
 
+        dec_in_channels = [
+            bottom_channel_nr,
+            bottom_channel_nr // 2 + num_filters * 8,
+            bottom_channel_nr // 4 + num_filters * 8,
+            bottom_channel_nr // 8 + num_filters * 2
+        ]
+
+        dec_out_channels = [
+            num_filters * 8,
+            num_filters * 8,
+            num_filters * 2,
+            num_filters * 2 * 2
+        ]
+
+        dec_sizes = [
+            ceil(input_size / 8),
+            ceil(input_size / 4),
+            ceil(input_size / 2),
+            input_size
+        ]
+
         self.input_adjust = nn.Sequential(OrderedDict(layer0_modules))
 
         self.conv1 = self.encoder.layer1
@@ -84,12 +105,10 @@ class UNetSeNet(nn.Module):
         self.conv3 = self.encoder.layer3
         self.conv4 = self.encoder.layer4
 
-        self.dec4 = DecoderBlockV2(bottom_channel_nr, num_filters * 8, size=int(np.ceil(input_size / 8)))
-        self.dec3 = DecoderBlockV2(bottom_channel_nr // 2 + num_filters * 8, num_filters * 8,
-                                   size=int(np.ceil(input_size / 4)))
-        self.dec2 = DecoderBlockV2(bottom_channel_nr // 4 + num_filters * 8, num_filters * 2,
-                                   size=int(np.ceil(input_size / 2)))
-        self.dec1 = DecoderBlockV2(bottom_channel_nr // 8 + num_filters * 2, num_filters * 2 * 2, size=input_size)
+        self.dec4 = DecoderBlock(dec_in_channels[0], dec_out_channels[0], size=dec_sizes[0])
+        self.dec3 = DecoderBlock(dec_in_channels[1], dec_out_channels[1], size=dec_sizes[1])
+        self.dec2 = DecoderBlock(dec_in_channels[2], dec_out_channels[2], size=dec_sizes[2])
+        self.dec1 = DecoderBlock(dec_in_channels[3], dec_out_channels[3], size=dec_sizes[3])
 
         self.final = nn.Conv2d(num_filters * 2 * 2, num_classes, kernel_size=1)
 
