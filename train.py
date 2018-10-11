@@ -51,11 +51,11 @@ def create_model(type, input_size, pretrained, parallel):
     elif type == "unet_drn":
         model = UNetDrn(1, input_size, pretrained=pretrained)
     elif type == "unet_seresnet":
-        model = UNetSeNet(backbone="se_resnet50", num_classes=1, input_size=input_size)
+        model = UNetSeNet(backbone="se_resnet50", num_classes=1, input_size=input_size, pretrained=pretrained)
     elif type == "unet_seresnext":
-        model = UNetSeNet(backbone="se_resnext50", num_classes=1, input_size=input_size)
+        model = UNetSeNet(backbone="se_resnext50", num_classes=1, input_size=input_size, pretrained=pretrained)
     elif type == "unet_senet":
-        model = UNetSeNet(backbone="senet154", num_classes=1, input_size=input_size)
+        model = UNetSeNet(backbone="senet154", num_classes=1, input_size=input_size, pretrained=pretrained)
     elif type == "unet_senet_hc":
         model = UNetSeNetHc(1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained)
     elif type == "deeplab":

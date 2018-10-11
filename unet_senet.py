@@ -36,13 +36,13 @@ class DecoderBlock(nn.Module):
 
 
 class UNetSeNet(nn.Module):
-    def __init__(self, backbone, num_classes, input_size, num_filters=32, dropout_2d=0.2):
+    def __init__(self, backbone, num_classes, input_size, num_filters=32, dropout_2d=0.2, pretrained=False):
         super().__init__()
         self.num_classes = num_classes
         self.dropout_2d = dropout_2d
 
         if backbone == "senet154":
-            self.encoder = senet154()
+            self.encoder = senet154(pretrained="imagenet" if pretrained else None)
             bottom_channel_nr = 2048
 
             layer0_modules = [
@@ -57,7 +57,7 @@ class UNetSeNet(nn.Module):
                 ('relu3', self.encoder.layer0.relu3),
             ]
         elif backbone == "se_resnet50":
-            self.encoder = se_resnet50()
+            self.encoder = se_resnet50(pretrained="imagenet" if pretrained else None)
             bottom_channel_nr = 2048
 
             layer0_modules = [
@@ -66,7 +66,7 @@ class UNetSeNet(nn.Module):
                 ('relu1', self.encoder.layer0.relu1),
             ]
         elif backbone == "se_resnext50":
-            self.encoder = se_resnext50_32x4d()
+            self.encoder = se_resnext50_32x4d(pretrained="imagenet" if pretrained else None)
             bottom_channel_nr = 2048
 
             layer0_modules = [
