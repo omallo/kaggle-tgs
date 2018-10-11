@@ -293,8 +293,12 @@ def main():
             batch_loss_sum = 0.0
             batch_precision_sum = 0.0
 
+            batch_iter_count = 0
             for _ in range(batch_iters):
-                batch = next(train_set_data_loader_iter)
+                try:
+                    batch = next(train_set_data_loader_iter)
+                except StopIteration:
+                    break
 
                 images, masks, mask_weights = \
                     batch[0].to(device, non_blocking=True), \
@@ -311,10 +315,12 @@ def main():
                     predictions = torch.sigmoid(prediction_logits)
                     batch_precision_sum += np.mean(precision_batch(predictions, masks))
 
+                batch_iter_count += 1
+
             optimizer.step()
 
-            train_loss_sum += batch_loss_sum / batch_iters
-            train_precision_sum += batch_precision_sum / batch_iters
+            train_loss_sum += batch_loss_sum / batch_iter_count
+            train_precision_sum += batch_precision_sum / batch_iter_count
 
             sgdr_iterations += 1
             batch_count += 1
