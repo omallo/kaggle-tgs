@@ -52,7 +52,7 @@ class UNetSeNetHc(nn.Module):
         super().__init__()
         self.dropout_2d = dropout_2d
 
-        if True:
+        if False:
             self.encoder = senet154(pretrained="imagenet" if pretrained else None)
             bottom_channel_nr = 2048
 
