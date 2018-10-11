@@ -159,7 +159,7 @@ def main():
     pin_memory = args.pin_memory
     patience = args.patience
     sgdr_cycle_epochs = args.sgdr_cycle_epochs
-    sgdr_cycle_epochs_increase = args.sgdr_cycle_epochs_increase
+    sgdr_cycle_epochs_mult = args.sgdr_cycle_epochs_mult
     sgdr_cycle_end_prolongation = args.sgdr_cycle_end_prolongation
     sgdr_cycle_end_patience = args.sgdr_cycle_end_patience
     ensemble_model_count = args.ensemble_model_count
@@ -364,7 +364,7 @@ def main():
                 print('{"chart": "swa_val_loss", "x": %d, "y": %.4f}' % (epoch + 1, swa_val_loss_avg))
 
             sgdr_iterations = 0
-            current_sgdr_cycle_epochs += sgdr_cycle_epochs_increase
+            current_sgdr_cycle_epochs = int(current_sgdr_cycle_epochs * sgdr_cycle_epochs_mult)
             sgdr_next_cycle_end_epoch = epoch + 1 + current_sgdr_cycle_epochs + sgdr_cycle_end_prolongation
 
             ensemble_model_index += 1
@@ -493,7 +493,7 @@ if __name__ == "__main__":
     argparser.add_argument("--bce_loss_weight", default=0.3, type=float)
     argparser.add_argument("--augment", default=True, type=str2bool)
     argparser.add_argument("--sgdr_cycle_epochs", default=20, type=int)
-    argparser.add_argument("--sgdr_cycle_epochs_increase", default=0, type=int)
+    argparser.add_argument("--sgdr_cycle_epochs_mult", default=1.0, type=float)
     argparser.add_argument("--sgdr_cycle_end_prolongation", default=2, type=int)
     argparser.add_argument("--sgdr_cycle_end_patience", default=3, type=int)
     argparser.add_argument("--ensemble_model_count", default=3, type=int)
