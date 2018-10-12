@@ -468,6 +468,12 @@ def main():
     print()
     print("evaluation of the training model")
 
+    model = create_model(
+        type=model_type,
+        input_size=image_size_target,
+        pretrained=False,
+        parallel=use_parallel_model).to(device)
+
     model.load_state_dict(torch.load("{}/model.pth".format(output_dir), map_location=device))
 
     analyze(Ensemble([model]), train_data.val_set_df, use_tta=False)
