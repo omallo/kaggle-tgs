@@ -36,7 +36,8 @@ def predict(model, data_loader, use_tta):
 
             if use_tta:
                 predictions1, _ = model(image)
-                predictions2, _ = model(image.flip(3)).flip(3)
+                predictions2, _ = model(image.flip(3))
+                predictions2 = predictions2.flip(3)
                 predictions = 0.5 * (predictions1 + predictions2)
             else:
                 predictions, _ = model(image)
