@@ -101,7 +101,7 @@ def evaluate(model, data_loader, criterion):
                 print(torch.abs(has_salt - has_salt_prediction))
                 print(torch.abs(has_salt - has_salt_prediction).sum())
                 print(has_salt.size(0))
-                print()
+                print(flush=True)
                 salt_loss = torch.abs(has_salt - has_salt_prediction).sum() / has_salt.size(0)
                 loss += salt_loss
                 salt_loss_sum += salt_loss.item()

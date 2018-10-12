@@ -101,6 +101,7 @@ class UNetResNet(nn.Module):
             c = self.classifier_avgpool(center)
             c = c.view(c.size(0), -1)
             c = self.classifier_fc(c)
+            c = c.squeeze()
             return self.final(dec1), c
         else:
             return self.final(dec1), None
