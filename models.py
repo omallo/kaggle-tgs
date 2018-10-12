@@ -37,7 +37,7 @@ class DecoderBlock(nn.Module):
 
 
 class UNetResNet(nn.Module):
-    def __init__(self, num_classes, input_size, num_filters=32, dropout_2d=0.2, pretrained=False, output_classification=False):
+    def __init__(self, num_classes, input_size, num_filters=32, dropout_2d=0.2, pretrained=False, output_classification=True):
         super().__init__()
         self.dropout_2d = dropout_2d
         self.output_classification = output_classification
