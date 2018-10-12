@@ -75,7 +75,7 @@ class UNetResNet(nn.Module):
         self.conv3 = self.encoder.layer3
         self.conv4 = self.encoder.layer4
 
-        self.classifier_avgpool = nn.AvgPool2d(dec_sizes[0], stride=1)
+        self.classifier_avgpool = nn.AvgPool2d(ceil(dec_sizes[0] / 2), stride=1)
         self.classifier_fc = nn.Linear(bottom_channel_nr, num_classes)
 
         self.dec4 = DecoderBlock(dec_in_channels[0], dec_out_channels[0], size=dec_sizes[0])
