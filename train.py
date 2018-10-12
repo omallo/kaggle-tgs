@@ -81,6 +81,8 @@ def evaluate(model, data_loader, criterion):
     salt_loss_sum = 0.0
     step_count = 0
 
+    has_salt_criterion = nn.BCEWithLogitsLoss()
+
     with torch.no_grad():
         for batch in data_loader:
             images, masks, mask_weights, has_salt = \
@@ -95,8 +97,7 @@ def evaluate(model, data_loader, criterion):
             loss = criterion(mask_prediction_logits, masks)
 
             if has_salt_prediction_logits is not None:
-                has_salt_prediction = torch.sigmoid(has_salt_prediction_logits)
-                salt_loss = torch.abs(has_salt - has_salt_prediction).sum() / has_salt.size(0)
+                salt_loss = has_salt_criterion(has_salt_prediction_logits, has_salt)
                 loss += salt_loss
                 salt_loss_sum += salt_loss.item()
 
@@ -294,6 +295,8 @@ def main():
     else:
         raise Exception("Unsupported loss type: '{}".format(loss_type))
 
+    has_salt_criterion = nn.BCEWithLogitsLoss()
+
     for epoch in range(epochs_to_train):
         epoch_start_time = time.time()
 
@@ -331,8 +334,7 @@ def main():
                 criterion.weight = mask_weights
                 loss = criterion(mask_prediction_logits, masks)
                 if has_salt_prediction_logits is not None:
-                    has_salt_prediction = torch.sigmoid(has_salt_prediction_logits)
-                    salt_loss = torch.abs(has_salt - has_salt_prediction).sum() / has_salt.size(0)
+                    salt_loss = has_salt_criterion(has_salt_prediction_logits, has_salt)
                     loss += salt_loss
                 loss.backward()
 
