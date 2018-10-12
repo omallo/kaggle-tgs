@@ -78,28 +78,38 @@ def evaluate(model, data_loader, criterion):
 
     loss_sum = 0.0
     precision_sum = 0.0
+    salt_loss_sum = 0.0
     step_count = 0
 
     with torch.no_grad():
         for batch in data_loader:
-            images, masks, mask_weights = \
+            images, masks, mask_weights, has_salt = \
                 batch[0].to(device, non_blocking=True), \
                 batch[1].to(device, non_blocking=True), \
-                batch[2].to(device, non_blocking=True)
+                batch[2].to(device, non_blocking=True), \
+                batch[3].to(device, non_blocking=True)
 
-            mask_prediction_logits, _ = model(images)
+            mask_prediction_logits, has_salt_prediction_logits = model(images)
             mask_predictions = torch.sigmoid(mask_prediction_logits)
             criterion.weight = mask_weights
             loss = criterion(mask_prediction_logits, masks)
 
+            if has_salt_prediction_logits is not None:
+                has_salt_prediction = torch.sigmoid(has_salt_prediction_logits)
+                salt_loss = torch.abs(has_salt - has_salt_prediction).sum() / has_salt.size(0)
+                loss += salt_loss
+                salt_loss_sum += salt_loss.item()
+
             loss_sum += loss.item()
             precision_sum += np.mean(precision_batch(mask_predictions, masks))
+
             step_count += 1
 
     loss_avg = loss_sum / step_count
     precision_avg = precision_sum / step_count
+    salt_loss_avg = salt_loss_sum / step_count
 
-    return loss_avg, precision_avg
+    return loss_avg, precision_avg, salt_loss_avg
 
 
 def load_ensemble_model(ensemble_model_count, base_dir, val_set_data_loader, criterion, swa_enabled, model_type,
@@ -113,7 +123,7 @@ def load_ensemble_model(ensemble_model_count, base_dir, val_set_data_loader, cri
         m = create_model(type=model_type, input_size=input_size, pretrained=False, parallel=use_parallel_model).to(
             device)
         m.load_state_dict(torch.load(model_file_path, map_location=device))
-        val_loss_avg, val_precision_avg = evaluate(m, val_set_data_loader, criterion)
+        val_loss_avg, val_precision_avg, _ = evaluate(m, val_set_data_loader, criterion)
         print("ensemble '%s': val_loss=%.4f, val_precision=%.4f" % (model_file_name, val_loss_avg, val_precision_avg))
         if len(score_to_model) < ensemble_model_count or min(score_to_model.keys()) < val_precision_avg:
             if len(score_to_model) >= ensemble_model_count:
@@ -122,7 +132,7 @@ def load_ensemble_model(ensemble_model_count, base_dir, val_set_data_loader, cri
     ensemble_models = list(score_to_model.values())
 
     for ensemble_model in ensemble_models:
-        val_loss_avg, val_precision_avg = evaluate(ensemble_model, val_set_data_loader, criterion)
+        val_loss_avg, val_precision_avg, _ = evaluate(ensemble_model, val_set_data_loader, criterion)
         print("ensemble: val_loss=%.4f, val_precision=%.4f" % (val_loss_avg, val_precision_avg))
 
     return Ensemble(ensemble_models)
@@ -266,6 +276,8 @@ def main():
         print('{"chart": "swa_val_precision", "axis": "epoch"}')
         print('{"chart": "swa_val_loss", "axis": "epoch"}')
     print('{"chart": "lr_scaled", "axis": "epoch"}')
+    print('{"chart": "val_salt_loss", "axis": "epoch"}')
+    print('{"chart": "salt_loss", "axis": "epoch"}')
 
     train_start_time = time.time()
 
@@ -289,6 +301,7 @@ def main():
 
         train_loss_sum = 0.0
         train_precision_sum = 0.0
+        train_salt_loss_sum = 0.0
 
         train_set_data_loader_iter = iter(train_set_data_loader)
 
@@ -299,6 +312,7 @@ def main():
 
             batch_loss_sum = 0.0
             batch_precision_sum = 0.0
+            batch_salt_loss_sum = 0.0
 
             batch_iter_count = 0
             for _ in range(batch_iters):
@@ -317,14 +331,17 @@ def main():
                 criterion.weight = mask_weights
                 loss = criterion(mask_prediction_logits, masks)
                 if has_salt_prediction_logits is not None:
-                    has_salt_prediction = torch.sigmoid(mask_prediction_logits)
-                    loss += torch.abs(has_salt - has_salt_prediction).sum() / has_salt.size(0)
+                    has_salt_prediction = torch.sigmoid(has_salt_prediction_logits)
+                    salt_loss = torch.abs(has_salt - has_salt_prediction).sum() / has_salt.size(0)
+                    loss += salt_loss
                 loss.backward()
 
                 with torch.no_grad():
                     batch_loss_sum += loss.item()
                     mask_predictions = torch.sigmoid(mask_prediction_logits)
                     batch_precision_sum += np.mean(precision_batch(mask_predictions, masks))
+                    if has_salt_prediction_logits is not None:
+                        batch_salt_loss_sum += salt_loss.item()
 
                 batch_iter_count += 1
 
@@ -332,6 +349,7 @@ def main():
 
             train_loss_sum += batch_loss_sum / batch_iter_count
             train_precision_sum += batch_precision_sum / batch_iter_count
+            train_salt_loss_sum += batch_salt_loss_sum / batch_iter_count
 
             sgdr_iterations += 1
             batch_count += 1
@@ -340,8 +358,9 @@ def main():
 
         train_loss_avg = train_loss_sum / epoch_iterations
         train_precision_avg = train_precision_sum / epoch_iterations
+        train_salt_loss_avg = train_salt_loss_sum / epoch_iterations
 
-        val_loss_avg, val_precision_avg = evaluate(model, val_set_data_loader, criterion)
+        val_loss_avg, val_precision_avg, val_salt_loss_avg = evaluate(model, val_set_data_loader, criterion)
 
         model_improved_within_sgdr_cycle = val_precision_avg > sgdr_cycle_val_precision_best_avg
         if model_improved_within_sgdr_cycle:
@@ -367,7 +386,7 @@ def main():
                 moving_average(swa_model, m, 1.0 / swa_update_count)
                 bn_update(train_set_data_loader, swa_model)
 
-                swa_val_loss_avg, swa_val_precision_avg = evaluate(swa_model, val_set_data_loader, criterion)
+                swa_val_loss_avg, swa_val_precision_avg, _ = evaluate(swa_model, val_set_data_loader, criterion)
 
                 swa_model_improved = swa_val_precision_avg > global_swa_val_precision_best_avg
                 if swa_model_improved:
@@ -427,6 +446,8 @@ def main():
         print('{"chart": "precision", "x": %d, "y": %.4f}' % (epoch + 1, train_precision_avg))
         print('{"chart": "loss", "x": %d, "y": %.4f}' % (epoch + 1, train_loss_avg))
         print('{"chart": "lr_scaled", "x": %d, "y": %.4f}' % (epoch + 1, 1000 * get_learning_rate(optimizer)))
+        print('{"chart": "val_salt_loss", "x": %d, "y": %.4f}' % (epoch + 1, val_salt_loss_avg))
+        print('{"chart": "salt_loss", "x": %d, "y": %.4f}' % (epoch + 1, train_salt_loss_avg))
 
         if sgdr_reset and sgdr_cycle_count >= ensemble_model_count and epoch - epoch_of_last_improval >= patience:
             print("early abort")
