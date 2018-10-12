@@ -102,4 +102,4 @@ class UNetResNet(nn.Module):
         if self.output_classification:
             return self.final(dec1), self.classifier(center)
         else:
-            return self.final(dec1)
+            return self.final(dec1), None

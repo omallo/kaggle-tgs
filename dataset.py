@@ -121,6 +121,7 @@ class TrainDataset(Dataset):
     def __getitem__(self, index):
         image = self.df.images[index % len(self.df)]
         mask = self.df.masks[index % len(self.df)]
+        coverage_class = self.df.coverage_class[index % len(self.df)]
 
         if self.augment:
             image, mask = augment(image, mask)
@@ -134,13 +135,14 @@ class TrainDataset(Dataset):
         image = image_to_tensor(image)
         mask = mask_to_tensor(mask)
         mask_weights = mask_to_tensor(mask_weights)
+        has_salt = torch.tensor(0.0 if coverage_class == 0 else 1.0).float()
 
         image_mean = 0.4719
         image_std = 0.1610
 
         image = normalize(image, (image_mean, image_mean, image_mean), (image_std, image_std, image_std))
 
-        return image, mask, mask_weights
+        return image, mask, mask_weights, has_salt
 
 
 class TestDataset(Dataset):

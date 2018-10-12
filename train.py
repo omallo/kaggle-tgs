@@ -87,13 +87,13 @@ def evaluate(model, data_loader, criterion):
                 batch[1].to(device, non_blocking=True), \
                 batch[2].to(device, non_blocking=True)
 
-            prediction_logits = model(images)
-            predictions = torch.sigmoid(prediction_logits)
+            mask_prediction_logits, _ = model(images)
+            mask_predictions = torch.sigmoid(mask_prediction_logits)
             criterion.weight = mask_weights
-            loss = criterion(prediction_logits, masks)
+            loss = criterion(mask_prediction_logits, masks)
 
             loss_sum += loss.item()
-            precision_sum += np.mean(precision_batch(predictions, masks))
+            precision_sum += np.mean(precision_batch(mask_predictions, masks))
             step_count += 1
 
     loss_avg = loss_sum / step_count
@@ -307,20 +307,24 @@ def main():
                 except StopIteration:
                     break
 
-                images, masks, mask_weights = \
+                images, masks, mask_weights, has_salt = \
                     batch[0].to(device, non_blocking=True), \
                     batch[1].to(device, non_blocking=True), \
-                    batch[2].to(device, non_blocking=True)
+                    batch[2].to(device, non_blocking=True), \
+                    batch[3].to(device, non_blocking=True)
 
-                prediction_logits = model(images)
+                mask_prediction_logits, has_salt_prediction_logits = model(images)
                 criterion.weight = mask_weights
-                loss = criterion(prediction_logits, masks)
+                loss = criterion(mask_prediction_logits, masks)
+                if has_salt_prediction_logits is not None:
+                    has_salt_prediction = torch.sigmoid(mask_prediction_logits)
+                    loss += torch.abs(has_salt - has_salt_prediction).sum() / has_salt.size(0)
                 loss.backward()
 
                 with torch.no_grad():
                     batch_loss_sum += loss.item()
-                    predictions = torch.sigmoid(prediction_logits)
-                    batch_precision_sum += np.mean(precision_batch(predictions, masks))
+                    mask_predictions = torch.sigmoid(mask_prediction_logits)
+                    batch_precision_sum += np.mean(precision_batch(mask_predictions, masks))
 
                 batch_iter_count += 1
 
