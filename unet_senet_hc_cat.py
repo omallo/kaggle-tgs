@@ -132,4 +132,4 @@ class UNetSeNetHcCat(nn.Module):
 
         out = torch.cat([dec1, dec1_input, dec2_input, dec3_input, dec4_input], 1)
 
-        return self.final(F.dropout2d(out, p=self.dropout_2d))
+        return self.final(F.dropout2d(out, p=self.dropout_2d)), None

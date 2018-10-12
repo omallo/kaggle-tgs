@@ -110,4 +110,4 @@ class UNetResNetHc(nn.Module):
 
         out = dec1 + dec1_input + dec2_input + dec3_input + dec4_input
 
-        return self.final(F.dropout2d(out, p=self.dropout_2d))
+        return self.final(F.dropout2d(out, p=self.dropout_2d)), None
