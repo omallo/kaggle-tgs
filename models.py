@@ -75,10 +75,8 @@ class UNetResNet(nn.Module):
         self.conv3 = self.encoder.layer3
         self.conv4 = self.encoder.layer4
 
-        self.classifier = nn.Sequential(
-            self.encoder.avgpool,
-            nn.Linear(bottom_channel_nr, num_classes)
-        )
+        self.classifier_avgpool = self.encoder.avgpool
+        self.classifier_fc = nn.Linear(bottom_channel_nr, num_classes)
 
         self.dec4 = DecoderBlock(dec_in_channels[0], dec_out_channels[0], size=dec_sizes[0])
         self.dec3 = DecoderBlock(dec_in_channels[1], dec_out_channels[1], size=dec_sizes[1])
@@ -100,6 +98,9 @@ class UNetResNet(nn.Module):
         dec1 = F.dropout2d(self.dec1(torch.cat([dec2, conv1], 1)), p=self.dropout_2d)
 
         if self.output_classification:
-            return self.final(dec1), self.classifier(center)
+            c = self.classifier_avgpool(center)
+            c = c.view(c.size(0), -1)
+            c = self.classifier_fc(c)
+            return self.final(dec1), c
         else:
             return self.final(dec1), None
