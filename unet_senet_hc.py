@@ -7,14 +7,13 @@ from torch.nn import functional as F
 
 from se_models import SpatialChannelSEBlock
 from senet import senet154, se_resnext50_32x4d, se_resnext101_32x4d
-from utils import with_he_normal_weights
 
 
 class ConvBnRelu(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.conv = nn.Sequential(
-            with_he_normal_weights(nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
         )
