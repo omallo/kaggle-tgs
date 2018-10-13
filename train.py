@@ -186,6 +186,7 @@ def main():
     sgdr_cycle_epochs_mult = args.sgdr_cycle_epochs_mult
     sgdr_cycle_end_prolongation = args.sgdr_cycle_end_prolongation
     sgdr_cycle_end_patience = args.sgdr_cycle_end_patience
+    max_sgdr_cycles = args.max_sgdr_cycles
     ensemble_model_count = args.ensemble_model_count
     swa_enabled = args.swa_enabled
     swa_epoch_to_start = args.swa_epoch_to_start
@@ -458,7 +459,11 @@ def main():
         print('{"chart": "salt_loss", "x": %d, "y": %.4f}' % (epoch + 1, train_salt_loss_avg))
 
         if sgdr_reset and sgdr_cycle_count >= ensemble_model_count and epoch - epoch_of_last_improval >= patience:
-            print("early abort")
+            print("early abort due to lack of improval")
+            break
+
+        if max_sgdr_cycles is not None and sgdr_cycle_count >= max_sgdr_cycles:
+            print("early abort due to maximum number of sgdr cycles reached")
             break
 
     optim_summary_writer.close()
@@ -541,6 +546,7 @@ if __name__ == "__main__":
     argparser.add_argument("--sgdr_cycle_epochs_mult", default=1.0, type=float)
     argparser.add_argument("--sgdr_cycle_end_prolongation", default=3, type=int)
     argparser.add_argument("--sgdr_cycle_end_patience", default=3, type=int)
+    argparser.add_argument("--max_sgdr_cycles", default=None, type=int)
     argparser.add_argument("--ensemble_model_count", default=3, type=int)
     argparser.add_argument("--swa_enabled", default=False, type=str2bool)
     argparser.add_argument("--swa_epoch_to_start", default=0, type=int)
