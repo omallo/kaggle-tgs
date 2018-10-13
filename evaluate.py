@@ -124,7 +124,10 @@ def calculate_best_precisions(df):
 
 
 def calculate_best_prediction_mask(df, idx, best_mask_per_cc):
-    return df.loc[idx][best_mask_per_cc[df.loc[idx].predictions_cc]]
+    if df.loc[idx].prediction_masks_crf.sum() == 0:
+        return df.loc[idx].prediction_masks_crf
+    else:
+        return df.loc[idx][best_mask_per_cc[df.loc[idx].predictions_cc]]
 
 
 def analyze(model, df, use_tta):
