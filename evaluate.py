@@ -101,9 +101,11 @@ def calculate_best_mask_per_cc(df):
         precision_otsu = np.mean(df_cc.precisions_otsu)
         precision_crf = np.mean(df_cc.precisions_crf)
 
-        if precision_otsu >= precision and precision_otsu >= precision_crf:
+        precision_max = max([precision, precision_otsu, precision_crf])
+
+        if precision_otsu >= precision_max:
             best_mask_per_cc[cc] = "prediction_masks_otsu"
-        elif precision_crf >= precision and precision_crf >= precision_otsu:
+        elif precision_crf >= precision_max:
             best_mask_per_cc[cc] = "prediction_masks_crf"
         else:
             best_mask_per_cc[cc] = "prediction_masks"
