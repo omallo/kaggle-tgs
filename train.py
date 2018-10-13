@@ -507,7 +507,7 @@ def main():
 
     write_submission(test_data.df, "prediction_masks", "{}/{}".format(output_dir, "submission.csv"))
     write_submission(test_data.df, "prediction_masks_best", "{}/{}".format(output_dir, "submission_best.csv"))
-    write_submission(test_data.df, "prediction_masks_cc", "{}/{}".format(output_dir, "submission_cc.csv"))
+    write_submission(test_data.df, "prediction_masks_best_pp", "{}/{}".format(output_dir, "submission_best_pp.csv"))
 
     submission_end_time = time.time()
     print()

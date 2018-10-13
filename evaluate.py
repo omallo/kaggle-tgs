@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 
 from dataset import calculate_coverage_class, TestDataset
 from metrics import precision
-from processing import crf_batch
+from processing import crf_batch, postprocess_mask
 from transforms import downsample
 
 image_size_original = 101
@@ -113,6 +113,12 @@ def calculate_best_mask_per_cc(df):
 
 def calculate_best_prediction_masks(df, best_mask_per_cc):
     df["prediction_masks_best"] = [calculate_best_prediction_mask(df, idx, best_mask_per_cc) for idx in df.index]
+    df["prediction_masks_best_pp"] = [postprocess_mask(m) for m in df.prediction_masks_best]
+
+
+def calculate_best_precisions(df):
+    df["precisions_best"] = [precision(pm, m) for pm, m in zip(df.prediction_masks_best, df.masks)]
+    df["precisions_best_pp"] = [precision(pm, m) for pm, m in zip(df.prediction_masks_best_pp, df.masks)]
 
 
 def calculate_best_prediction_mask(df, idx, best_mask_per_cc):
@@ -137,17 +143,17 @@ def analyze(model, df, use_tta):
 
     best_mask_per_cc = calculate_best_mask_per_cc(df)
     calculate_best_prediction_masks(df, best_mask_per_cc)
-    df["precisions_best"] = [precision(pm, m) for pm, m in zip(df.prediction_masks_best, df.masks)]
+    calculate_best_precisions(df)
 
     print()
     print(
-        "threshold: %.3f, precision: %.3f, precision_crf: %.3f, precision_otsu: %.3f, precision_best: %.3f, precision_cc: %.3f" % (
+        "threshold: %.3f, precision: %.3f, precision_crf: %.3f, precision_otsu: %.3f, precision_best: %.3f, precision_best_pp: %.3f" % (
             mask_threshold_global,
             df.precisions.mean(),
             df.precisions_crf.mean(),
             df.precisions_otsu.mean(),
             df.precisions_best.mean(),
-            df.precisions_cc.mean()))
+            df.precisions_best_pp.mean()))
 
     print()
     print(df
@@ -157,7 +163,7 @@ def analyze(model, df, use_tta):
         "precisions_crf": "mean",
         "precisions_otsu": "mean",
         "precisions_best": "mean",
-        "precisions_cc": "mean",
+        "precisions_best_pp": "mean",
         "coverage_class": "count"
     }))
 
@@ -169,7 +175,7 @@ def analyze(model, df, use_tta):
         "precisions_crf": "mean",
         "precisions_otsu": "mean",
         "precisions_best": "mean",
-        "precisions_cc": "mean",
+        "precisions_best_pp": "mean",
         "predictions_cc": "count"
     }))
 

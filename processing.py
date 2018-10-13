@@ -134,3 +134,36 @@ def rldec(rle_mask):
     for lo, hi in zip(starts, ends):
         img[lo:hi] = 1
     return img.reshape(101, 101).transpose((1, 0))
+
+
+def postprocess_mask(mask):
+    mask = remove_non_salt_inside_salt(mask)
+    mask = remove_small_salt_areas(mask)
+    return mask
+
+
+def remove_non_salt_inside_salt(mask):
+    mask = mask.copy()
+    target = np.abs(1 - mask.astype(np.int8))
+    nlabels, labels, stats, _ = cv2.connectedComponentsWithStats(target, 4, cv2.CV_32S)
+    for l in range(1, nlabels):
+        stat = stats[l]
+        left = stat[cv2.CC_STAT_LEFT]
+        top = stat[cv2.CC_STAT_TOP]
+        right = left + stat[cv2.CC_STAT_WIDTH]
+        bottom = top + stat[cv2.CC_STAT_HEIGHT]
+        if left > 0 and top > 0 and right < mask.shape[1] and bottom < mask.shape[0]:
+            mask[labels == l] = 1.0
+    return mask
+
+
+def remove_small_salt_areas(mask):
+    mask = mask.copy()
+    target = mask.astype(np.uint8)
+    nlabels, labels, stats, _ = cv2.connectedComponentsWithStats(target, 4, cv2.CV_32S)
+    for l in range(1, nlabels):
+        stat = stats[l]
+        area = stat[cv2.CC_STAT_AREA]
+        if area < 20:
+            mask[labels == l] = 0.0
+    return mask
