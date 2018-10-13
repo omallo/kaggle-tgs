@@ -119,6 +119,8 @@ def load_ensemble_model(ensemble_model_count, base_dir, val_set_data_loader, cri
     ensemble_model_candidates = glob.glob("{}/model-*.pth".format(base_dir))
     if swa_enabled and os.path.isfile("{}/swa_model.pth".format(base_dir)):
         ensemble_model_candidates.append("{}/swa_model.pth".format(base_dir))
+
+    best_model = None
     for model_file_path in ensemble_model_candidates:
         model_file_name = os.path.basename(model_file_path)
         m = create_model(type=model_type, input_size=input_size, pretrained=False, parallel=use_parallel_model).to(
@@ -130,13 +132,15 @@ def load_ensemble_model(ensemble_model_count, base_dir, val_set_data_loader, cri
             if len(score_to_model) >= ensemble_model_count:
                 del score_to_model[min(score_to_model.keys())]
             score_to_model[val_precision_avg] = m
+        if best_model is None or val_precision_avg > max(score_to_model.keys()):
+            best_model = m
     ensemble_models = list(score_to_model.values())
 
     for ensemble_model in ensemble_models:
         val_loss_avg, val_precision_avg, _ = evaluate(ensemble_model, val_set_data_loader, criterion)
         print("ensemble: val_loss=%.4f, val_precision=%.4f" % (val_loss_avg, val_precision_avg))
 
-    return Ensemble(ensemble_models)
+    return best_model, Ensemble(ensemble_models)
 
 
 def create_optimizer(type, model, lr):
@@ -468,22 +472,15 @@ def main():
     print()
     print("evaluation of the training model")
 
-    model = create_model(
-        type=model_type,
-        input_size=image_size_target,
-        pretrained=False,
-        parallel=use_parallel_model).to(device)
-
-    model.load_state_dict(torch.load("{}/model.pth".format(output_dir), map_location=device))
-
-    analyze(Ensemble([model]), train_data.val_set_df, use_tta=False)
-    analyze(Ensemble([model]), train_data.val_set_df, use_tta=True)
-
-    model = load_ensemble_model(
+    best_model, ensemble_model = load_ensemble_model(
         ensemble_model_count, output_dir, val_set_data_loader, criterion, swa_enabled, model_type, image_size_target,
         use_parallel_model=use_parallel_model)
 
-    mask_threshold_global, mask_threshold_per_cc, best_mask_per_cc = analyze(model, train_data.val_set_df, use_tta=True)
+    analyze(Ensemble([best_model]), train_data.val_set_df, use_tta=False)
+    analyze(Ensemble([best_model]), train_data.val_set_df, use_tta=True)
+
+    mask_threshold_global, mask_threshold_per_cc, best_mask_per_cc = \
+        analyze(ensemble_model, train_data.val_set_df, use_tta=True)
 
     eval_end_time = time.time()
     print()
@@ -498,7 +495,7 @@ def main():
     submission_start_time = time.time()
 
     test_data = TestData(input_dir)
-    calculate_predictions(test_data.df, model, use_tta=True)
+    calculate_predictions(test_data.df, ensemble_model, use_tta=True)
     calculate_predictions_cc(test_data.df, mask_threshold_global)
     calculate_prediction_masks(test_data.df, mask_threshold_global, mask_threshold_per_cc)
     calculate_best_prediction_masks(test_data.df, best_mask_per_cc)
