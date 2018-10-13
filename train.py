@@ -529,7 +529,7 @@ if __name__ == "__main__":
     argparser.add_argument("--lr_max", default=0.001, type=float)
     argparser.add_argument("--lr_min_decay", default=1.0, type=float)
     argparser.add_argument("--lr_max_decay", default=1.0, type=float)
-    argparser.add_argument("--model", default="unet_resnet")
+    argparser.add_argument("--model", default="unet_seresnext50_hc")
     argparser.add_argument("--parallel_model", default=True, type=str2bool)
     argparser.add_argument("--pin_memory", default=False, type=str2bool)
     argparser.add_argument("--patience", default=30, type=int)
