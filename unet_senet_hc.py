@@ -6,7 +6,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from se_models import SpatialChannelSEBlock
-from senet import senet154, se_resnext50_32x4d
+from senet import senet154, se_resnext50_32x4d, se_resnext101_32x4d
 
 
 class ConvBnRelu(nn.Module):
@@ -68,6 +68,15 @@ class UNetSeNetHc(nn.Module):
             ]
         elif backbone == "se_resnext50":
             self.encoder = se_resnext50_32x4d(pretrained="imagenet" if pretrained else None)
+            bottom_channel_nr = 2048
+
+            layer0_modules = [
+                ('conv1', self.encoder.layer0.conv1),
+                ('bn1', self.encoder.layer0.bn1),
+                ('relu1', self.encoder.layer0.relu1),
+            ]
+        elif backbone == "se_resnext101":
+            self.encoder = se_resnext101_32x4d(pretrained="imagenet" if pretrained else None)
             bottom_channel_nr = 2048
 
             layer0_modules = [
