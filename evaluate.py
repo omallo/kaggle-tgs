@@ -184,4 +184,12 @@ def analyze(model, df, use_tta):
     for cc, best_mask in best_mask_per_cc.items():
         print("  {}: {}".format(cc, best_mask))
 
+    print()
+    df["predictions_cc_best"] = df.prediction_masks_best.map(calculate_coverage_class)
+    print(df.groupby("predictions_cc_best").agg({"predictions_cc_best": "count"}))
+
+    print()
+    df["predictions_cc_best_pp"] = df.prediction_masks_best_pp.map(calculate_coverage_class)
+    print(df.groupby("predictions_cc_best_pp").agg({"predictions_cc_best_pp": "count"}))
+
     return mask_threshold_global, mask_threshold_per_cc, best_mask_per_cc
