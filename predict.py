@@ -73,7 +73,7 @@ def main():
 
     _, ensemble_model = load_ensemble_model(
         ensemble_model_count, "/storage/models/tgs/senet", val_set_data_loader,
-        criterion, swa_enabled, "unet_senet_hc",
+        criterion, swa_enabled, "unet_senet",
         image_size_target, use_parallel_model=use_parallel_model)
     models.append(ensemble_model)
 
