@@ -193,8 +193,8 @@ def main():
     fold_count = args.fold_count
     fold_index = args.fold_index
     train_set_scale_factor = args.train_set_scale_factor
-    pseudo_labeling_enabled = args.pseudo_labeling_enabled
-    pseudo_labeling_submission_csv = args.pseudo_labeling_submission_csv
+    pseudo_labeling_enabled = args.pl_enabled
+    pseudo_labeling_submission_csv = args.pl_submission_csv
     submit = args.submit
 
     train_data = TrainData(
@@ -549,10 +549,10 @@ if __name__ == "__main__":
     argparser.add_argument("--swa_enabled", default=False, type=str2bool)
     argparser.add_argument("--swa_epoch_to_start", default=0, type=int)
     argparser.add_argument("--fold_count", default=5, type=int)
-    argparser.add_argument("--fold_index", default=0, type=int)
+    argparser.add_argument("--fold_index", default=3, type=int)
     argparser.add_argument("--train_set_scale_factor", default=2.0, type=float)
-    argparser.add_argument("--pseudo_labeling_enabled", default=False, type=str2bool)
-    argparser.add_argument("--pseudo_labeling_submission_csv")
+    argparser.add_argument("--pl_enabled", default=False, type=str2bool)
+    argparser.add_argument("--pl_submission_csv")
     argparser.add_argument("--submit", default=True, type=str2bool)
 
     main()
