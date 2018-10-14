@@ -1,15 +1,16 @@
 import datetime
 import time
 
+import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from dataset import TrainData, TrainDataset, TestData
+from dataset import TrainData, TrainDataset
 from ensemble import Ensemble
-from evaluate import analyze, calculate_predictions, calculate_predictions_cc, calculate_prediction_masks, \
-    calculate_best_prediction_masks
-from train import load_ensemble_model
-from utils import write_submission
+from evaluate import analyze
+from train import create_model
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 def main():
@@ -57,55 +58,16 @@ def main():
     print()
     print("evaluation of the training model")
 
-    models = []
+    m = create_model(type="unet_seresnext50_hc", input_size=128, pretrained=False, parallel=True).to(device)
+    m.load_state_dict(torch.load("/storage/models/tgs/fold-3-pl/model.pth", map_location=device))
 
-    _, ensemble_model = load_ensemble_model(
-        ensemble_model_count, "/storage/models/tgs/seresnext-hc-fold-3", val_set_data_loader,
-        criterion, swa_enabled, "unet_seresnext50_hc",
-        image_size_target, use_parallel_model=use_parallel_model)
-    models.append(ensemble_model)
+    ensemble_model = Ensemble([m])
 
-    _, ensemble_model = load_ensemble_model(
-        ensemble_model_count, "/storage/models/tgs/seresnext101-hc-fold-3", val_set_data_loader,
-        criterion, swa_enabled, "unet_seresnext101_hc",
-        image_size_target, use_parallel_model=use_parallel_model)
-    models.append(ensemble_model)
-
-    _, ensemble_model = load_ensemble_model(
-        ensemble_model_count, "/storage/models/tgs/senet", val_set_data_loader,
-        criterion, swa_enabled, "unet_senet",
-        image_size_target, use_parallel_model=use_parallel_model)
-    models.append(ensemble_model)
-
-    ensemble_model = Ensemble(models)
-
-    mask_threshold, best_mask_per_cc = analyze(ensemble_model, train_data.val_set_df, use_tta=True)
+    mask_threshold, best_mask_per_cc = analyze(ensemble_model, train_data.val_set_df, use_tta=False)
 
     eval_end_time = time.time()
     print()
     print("Eval time: %s" % str(datetime.timedelta(seconds=eval_end_time - eval_start_time)))
-
-    print()
-    print("submission preparation")
-
-    submission_start_time = time.time()
-
-    test_data = TestData(input_dir)
-    calculate_predictions(test_data.df, ensemble_model, use_tta=True)
-    calculate_predictions_cc(test_data.df, mask_threshold)
-    calculate_prediction_masks(test_data.df, mask_threshold)
-    calculate_best_prediction_masks(test_data.df, best_mask_per_cc)
-
-    print()
-    print(test_data.df.groupby("predictions_cc").agg({"predictions_cc": "count"}))
-
-    write_submission(test_data.df, "prediction_masks", "{}/{}".format(output_dir, "submission.csv"))
-    write_submission(test_data.df, "prediction_masks_best", "{}/{}".format(output_dir, "submission_best.csv"))
-    write_submission(test_data.df, "prediction_masks_best_pp", "{}/{}".format(output_dir, "submission_best_pp.csv"))
-
-    submission_end_time = time.time()
-    print()
-    print("Submission time: %s" % str(datetime.timedelta(seconds=submission_end_time - submission_start_time)))
 
 
 if __name__ == "__main__":
