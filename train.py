@@ -488,8 +488,7 @@ def main():
     analyze(Ensemble([best_model]), train_data.val_set_df, use_tta=False)
     analyze(Ensemble([best_model]), train_data.val_set_df, use_tta=True)
 
-    mask_threshold_global, mask_threshold_per_cc, best_mask_per_cc = \
-        analyze(ensemble_model, train_data.val_set_df, use_tta=True)
+    mask_threshold, best_mask_per_cc = analyze(ensemble_model, train_data.val_set_df, use_tta=True)
 
     eval_end_time = time.time()
     print()
@@ -505,8 +504,8 @@ def main():
 
     test_data = TestData(input_dir)
     calculate_predictions(test_data.df, ensemble_model, use_tta=True)
-    calculate_predictions_cc(test_data.df, mask_threshold_global)
-    calculate_prediction_masks(test_data.df, mask_threshold_global, mask_threshold_per_cc)
+    calculate_predictions_cc(test_data.df, mask_threshold)
+    calculate_prediction_masks(test_data.df, mask_threshold)
     calculate_best_prediction_masks(test_data.df, best_mask_per_cc)
 
     print()

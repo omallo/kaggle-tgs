@@ -62,13 +62,6 @@ def calculate_best_threshold(df):
     return thresholds[np.argmax(precisions_per_threshold)]
 
 
-def calculate_best_threshold_per_cc(df):
-    mask_threshold_per_cc = {}
-    for cc, cc_df in df.groupby("predictions_cc"):
-        mask_threshold_per_cc[cc] = calculate_best_threshold(cc_df)
-    return mask_threshold_per_cc
-
-
 def calculate_predictions_cc(df, threshold):
     df["predictions_cc"] = [calculate_coverage_class(np.int32(p > threshold)) for p in df.predictions]
 
@@ -79,18 +72,16 @@ def calculate_predictions(df, model, use_tta):
     df["predictions"] = predict(model, data_loader, use_tta)
 
 
-def calculate_prediction_masks(df, threshold, threshold_per_cc):
+def calculate_prediction_masks(df, threshold):
     df["prediction_masks"] = [np.int32(p > threshold) for p in df.predictions]
     df["prediction_masks_otsu"] = [np.int32(compute_otsu_mask(p)) for p in df.predictions]
     df["prediction_masks_crf"] = crf_batch(df.images, df.prediction_masks)
-    df["prediction_masks_cc"] = [np.int32(p > threshold_per_cc[cc]) for p, cc in zip(df.predictions, df.predictions_cc)]
 
 
 def calculate_precisions(df):
     df["precisions"] = [precision(pm, m) for pm, m in zip(df.prediction_masks, df.masks)]
     df["precisions_otsu"] = [precision(pm, m) for pm, m in zip(df.prediction_masks_otsu, df.masks)]
     df["precisions_crf"] = [precision(pm, m) for pm, m in zip(df.prediction_masks_crf, df.masks)]
-    df["precisions_cc"] = [precision(pm, m) for pm, m in zip(df.prediction_masks_cc, df.masks)]
 
 
 def calculate_best_mask_per_cc(df):
@@ -137,10 +128,9 @@ def analyze(model, df, use_tta):
 
     calculate_predictions(df, model, use_tta)
 
-    mask_threshold_global = calculate_best_threshold(df)
-    calculate_predictions_cc(df, mask_threshold_global)
-    mask_threshold_per_cc = calculate_best_threshold_per_cc(df)
-    calculate_prediction_masks(df, mask_threshold_global, mask_threshold_per_cc)
+    mask_threshold = calculate_best_threshold(df)
+    calculate_predictions_cc(df, mask_threshold)
+    calculate_prediction_masks(df, mask_threshold)
     calculate_precisions(df)
 
     best_mask_per_cc = calculate_best_mask_per_cc(df)
@@ -150,7 +140,7 @@ def analyze(model, df, use_tta):
     print()
     print(
         "threshold: %.3f, precision: %.3f, precision_crf: %.3f, precision_otsu: %.3f, precision_best: %.3f, precision_best_pp: %.3f" % (
-            mask_threshold_global,
+            mask_threshold,
             df.precisions.mean(),
             df.precisions_crf.mean(),
             df.precisions_otsu.mean(),
@@ -194,4 +184,4 @@ def analyze(model, df, use_tta):
     df["predictions_cc_best_pp"] = df.prediction_masks_best_pp.map(calculate_coverage_class)
     print(df.groupby("predictions_cc_best_pp").agg({"predictions_cc_best_pp": "count"}))
 
-    return mask_threshold_global, mask_threshold_per_cc, best_mask_per_cc
+    return mask_threshold, best_mask_per_cc
