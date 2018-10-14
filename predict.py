@@ -28,6 +28,7 @@ def main():
     pseudo_labeling_submission_csv = None
     pseudo_labeling_test_fold_count = 3
     pseudo_labeling_test_fold_index = 0
+    pseudo_labeling_extend_val_set = False
     pseudo_labeling_loss_weight_factor = 1.0
 
     criterion = nn.BCEWithLogitsLoss()
@@ -40,7 +41,8 @@ def main():
         pseudo_labeling_enabled,
         pseudo_labeling_submission_csv,
         pseudo_labeling_test_fold_count,
-        pseudo_labeling_test_fold_index)
+        pseudo_labeling_test_fold_index,
+        pseudo_labeling_extend_val_set)
 
     val_set = TrainDataset(
         train_data.val_set_df,

@@ -20,7 +20,8 @@ class TrainData:
             pseudo_labeling_enabled,
             pseudo_labeling_submission_csv,
             pseudo_labeling_test_fold_count,
-            pseudo_labeling_test_fold_index):
+            pseudo_labeling_test_fold_index,
+            pseudo_labeling_extend_val_set):
 
         train_df = pd.read_csv("{}/train.csv".format(base_dir), index_col="id", usecols=[0])
         depths_df = pd.read_csv("{}/depths.csv".format(base_dir), index_col="id")
@@ -69,7 +70,8 @@ class TrainData:
             test_val_set_df["pseudo_masked"] = True
 
             train_set_df = pd.concat([train_set_df, test_train_set_df])
-            val_set_df = pd.concat([val_set_df, test_val_set_df])
+            if pseudo_labeling_extend_val_set:
+                val_set_df = pd.concat([val_set_df, test_val_set_df])
 
         train_val_id_intersection = [vid for vid in val_set_df.index if vid in train_set_df.index]
         if len(train_val_id_intersection) > 0:

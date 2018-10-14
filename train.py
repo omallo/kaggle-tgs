@@ -198,6 +198,7 @@ def main():
     pseudo_labeling_submission_csv = args.pl_submission_csv
     pseudo_labeling_test_fold_count = args.pl_test_fold_count
     pseudo_labeling_test_fold_index = args.pl_test_fold_index
+    pseudo_labeling_extend_val_set = args.pl_extend_val_set
     pseudo_labeling_loss_weight_factor = args.pl_loss_weight_factor
     submit = args.submit
 
@@ -209,7 +210,8 @@ def main():
         pseudo_labeling_enabled,
         pseudo_labeling_submission_csv,
         pseudo_labeling_test_fold_count,
-        pseudo_labeling_test_fold_index)
+        pseudo_labeling_test_fold_index,
+        pseudo_labeling_extend_val_set)
 
     train_set = TrainDataset(
         train_data.train_set_df,
@@ -580,6 +582,7 @@ if __name__ == "__main__":
     argparser.add_argument("--pl_submission_csv")
     argparser.add_argument("--pl_test_fold_count", default=3, type=int)
     argparser.add_argument("--pl_test_fold_index", default=0, type=int)
+    argparser.add_argument("--pl_extend_val_set", default=True, type=str2bool)
     argparser.add_argument("--pl_loss_weight_factor", default=1.0, type=float)
     argparser.add_argument("--submit", default=True, type=str2bool)
 
