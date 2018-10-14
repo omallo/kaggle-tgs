@@ -510,6 +510,13 @@ def main():
         print()
         analyze(Ensemble([best_model]), train_data.val_set_df, use_tta=True)
 
+        if pseudo_labeling_enabled and pseudo_labeling_extend_val_set:
+            print("analyze validation set using ensemble model and w/ TTA and w/o pseudo labels")
+            print()
+            no_pseudo_labels_val_set_df = \
+                train_data.val_set_df.drop(train_data.val_set_df.index[train_data.val_set_df.pseudo_masked]).copy()
+            analyze(ensemble_model, no_pseudo_labels_val_set_df, use_tta=True)
+
         print("analyze validation set using ensemble model and w/ TTA")
         print()
         mask_threshold, best_mask_per_cc = analyze(ensemble_model, train_data.val_set_df, use_tta=True)
