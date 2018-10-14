@@ -16,6 +16,7 @@ class TrainData:
             base_dir,
             fold_count,
             fold_index,
+            use_val_set,
             pseudo_labeling_enabled,
             pseudo_labeling_submission_csv,
             pseudo_labeling_test_fold_count,
@@ -29,8 +30,11 @@ class TrainData:
         train_df["masks"] = load_masks("{}/train/masks".format(base_dir), train_df.index)
         train_df["coverage_class"] = train_df.masks.map(calculate_coverage_class)
 
-        train_set_ids, val_set_ids = \
-            list(kfold_split(fold_count, sorted(train_df.index.values), train_df.coverage_class))[fold_index]
+        if use_val_set:
+            train_set_ids, val_set_ids = \
+                list(kfold_split(fold_count, sorted(train_df.index.values), train_df.coverage_class))[fold_index]
+        else:
+            train_set_ids, val_set_ids = train_df.index.values, []
 
         train_set_df = train_df[train_df.index.isin(train_set_ids)].copy()
         val_set_df = train_df[train_df.index.isin(val_set_ids)].copy()
@@ -43,11 +47,14 @@ class TrainData:
             test_df["coverage_class"] = test_df.masks.map(calculate_coverage_class)
             test_df = test_df.drop(columns=["rle_mask"])
 
-            test_train_set_ids, test_val_set_ids = \
-                list(kfold_split(
-                    pseudo_labeling_test_fold_count,
-                    sorted(test_df.index.values),
-                    test_df.coverage_class))[pseudo_labeling_test_fold_index]
+            if use_val_set:
+                test_train_set_ids, test_val_set_ids = \
+                    list(kfold_split(
+                        pseudo_labeling_test_fold_count,
+                        sorted(test_df.index.values),
+                        test_df.coverage_class))[pseudo_labeling_test_fold_index]
+            else:
+                test_train_set_ids, test_val_set_ids = test_df.index.values, []
 
             test_train_set_df = test_df[test_df.index.isin(test_train_set_ids)].copy()
             test_val_set_df = test_df[test_df.index.isin(test_val_set_ids)].copy()

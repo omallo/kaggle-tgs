@@ -193,6 +193,7 @@ def main():
     fold_count = args.fold_count
     fold_index = args.fold_index
     train_set_scale_factor = args.train_set_scale_factor
+    use_val_set = args.use_val_set
     pseudo_labeling_enabled = args.pl_enabled
     pseudo_labeling_submission_csv = args.pl_submission_csv
     pseudo_labeling_test_fold_count = args.pl_test_fold_count
@@ -203,6 +204,7 @@ def main():
         input_dir,
         fold_count,
         fold_index,
+        use_val_set,
         pseudo_labeling_enabled,
         pseudo_labeling_submission_csv,
         pseudo_labeling_test_fold_count,
@@ -371,7 +373,11 @@ def main():
         train_precision_avg = train_precision_sum / epoch_iterations
         train_salt_loss_avg = train_salt_loss_sum / epoch_iterations
 
-        val_loss_avg, val_precision_avg, val_salt_loss_avg = evaluate(model, val_set_data_loader, criterion)
+        if use_val_set:
+            val_loss_avg, val_precision_avg, val_salt_loss_avg = evaluate(model, val_set_data_loader, criterion)
+        else:
+            val_loss_avg, val_precision_avg, val_salt_loss_avg = \
+                train_loss_avg, train_precision_avg, train_salt_loss_avg
 
         model_improved_within_sgdr_cycle = val_precision_avg > sgdr_cycle_val_precision_best_avg
         if model_improved_within_sgdr_cycle:
@@ -481,14 +487,21 @@ def main():
     print()
     print("evaluation of the training model")
 
-    best_model, ensemble_model = load_ensemble_model(
-        ensemble_model_count, output_dir, val_set_data_loader, criterion, swa_enabled, model_type, image_size_target,
-        use_parallel_model=use_parallel_model)
+    if use_val_set:
+        best_model, ensemble_model = load_ensemble_model(
+            ensemble_model_count, output_dir, val_set_data_loader, criterion, swa_enabled, model_type,
+            image_size_target, use_parallel_model=use_parallel_model)
 
-    analyze(Ensemble([best_model]), train_data.val_set_df, use_tta=False)
-    analyze(Ensemble([best_model]), train_data.val_set_df, use_tta=True)
+        analyze(Ensemble([best_model]), train_data.val_set_df, use_tta=False)
+        analyze(Ensemble([best_model]), train_data.val_set_df, use_tta=True)
 
-    mask_threshold, best_mask_per_cc = analyze(ensemble_model, train_data.val_set_df, use_tta=True)
+        mask_threshold, best_mask_per_cc = analyze(ensemble_model, train_data.val_set_df, use_tta=True)
+    else:
+        best_model, ensemble_model = load_ensemble_model(
+            ensemble_model_count, output_dir, train_set_data_loader, criterion, swa_enabled, model_type,
+            image_size_target, use_parallel_model=use_parallel_model)
+
+        mask_threshold, best_mask_per_cc = analyze(ensemble_model, train_data.train_set_df, use_tta=True)
 
     eval_end_time = time.time()
     print()
@@ -554,6 +567,7 @@ if __name__ == "__main__":
     argparser.add_argument("--fold_count", default=5, type=int)
     argparser.add_argument("--fold_index", default=3, type=int)
     argparser.add_argument("--train_set_scale_factor", default=2.0, type=float)
+    argparser.add_argument("--use_val_set", default=True, type=str2bool)
     argparser.add_argument("--pl_enabled", default=False, type=str2bool)
     argparser.add_argument("--pl_submission_csv")
     argparser.add_argument("--pl_test_fold_count", default=3, type=int)
