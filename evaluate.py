@@ -56,14 +56,7 @@ def calculate_best_threshold(df):
         for idx in df.index:
             mask = df.loc[idx].masks
             prediction = df.loc[idx].predictions
-            try:
-                prediction_mask = np.int32(prediction > threshold)
-            except ValueError:
-                print(threshold)
-                print(type(prediction))
-                print(prediction)
-                print(prediction.shape)
-                raise Exception("foo")
+            prediction_mask = np.int32(prediction > threshold)
             precisions.append(precision(prediction_mask, mask))
         precisions_per_threshold.append(np.mean(precisions))
     return thresholds[np.argmax(precisions_per_threshold)]
