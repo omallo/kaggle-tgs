@@ -195,7 +195,6 @@ def main():
     train_set_scale_factor = args.train_set_scale_factor
     pseudo_labeling_enabled = args.pseudo_labeling_enabled
     pseudo_labeling_submission_csv = args.pseudo_labeling_submission_csv
-    pseudo_labeling_all_in = args.pseudo_labeling_all_in
     submit = args.submit
 
     train_data = TrainData(
@@ -203,8 +202,7 @@ def main():
         fold_count,
         fold_index,
         pseudo_labeling_enabled,
-        pseudo_labeling_submission_csv,
-        pseudo_labeling_all_in)
+        pseudo_labeling_submission_csv)
 
     train_set = TrainDataset(
         train_data.train_set_df,
@@ -555,7 +553,6 @@ if __name__ == "__main__":
     argparser.add_argument("--train_set_scale_factor", default=2.0, type=float)
     argparser.add_argument("--pseudo_labeling_enabled", default=False, type=str2bool)
     argparser.add_argument("--pseudo_labeling_submission_csv")
-    argparser.add_argument("--pseudo_labeling_all_in", default=False, type=str2bool)
     argparser.add_argument("--submit", default=True, type=str2bool)
 
     main()
