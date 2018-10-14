@@ -65,11 +65,19 @@ class TrainData:
             train_set_df = pd.concat([train_set_df, test_train_set_df])
             val_set_df = pd.concat([val_set_df, test_val_set_df])
 
+        train_val_id_intersection = [vid for vid in val_set_df.index if vid in train_set_df.index]
+        if len(train_val_id_intersection) > 0:
+            raise Exception("Train and val set do overlap")
+
         train_set_df.reset_index()
+        val_set_df.reset_index()
 
         print()
         train_set_df["coverage_class"] = train_set_df.masks.map(calculate_coverage_class)
         print(train_set_df.groupby("coverage_class").agg({"coverage_class": "count"}))
+        print()
+        val_set_df["coverage_class"] = val_set_df.masks.map(calculate_coverage_class)
+        print(val_set_df.groupby("coverage_class").agg({"coverage_class": "count"}))
         print()
 
         self.train_set_df = train_set_df
