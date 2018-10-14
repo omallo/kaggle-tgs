@@ -20,7 +20,7 @@ function install_dependencies() {
 function archive_artifacts() {
   if [ -d /artifacts/logs ]
   then
-    ( cd /artifacts && zip -r logs.zip logs )
+    ( cd /artifacts && zip -q -r logs.zip logs )
     rm -rf /artifacts/logs
   fi
 
