@@ -502,15 +502,24 @@ def main():
             ensemble_model_count, output_dir, val_set_data_loader, criterion, swa_enabled, model_type,
             image_size_target, use_parallel_model=use_parallel_model)
 
+        print("analyze validation set using best model and w/o TTA")
+        print()
         analyze(Ensemble([best_model]), train_data.val_set_df, use_tta=False)
+
+        print("analyze validation set using best model and w/ TTA")
+        print()
         analyze(Ensemble([best_model]), train_data.val_set_df, use_tta=True)
 
+        print("analyze validation set using ensemble model and w/ TTA")
+        print()
         mask_threshold, best_mask_per_cc = analyze(ensemble_model, train_data.val_set_df, use_tta=True)
     else:
         best_model, ensemble_model = load_ensemble_model(
             ensemble_model_count, output_dir, train_set_data_loader, criterion, swa_enabled, model_type,
             image_size_target, use_parallel_model=use_parallel_model)
 
+        print("analyze validation set using ensemble model and w/ TTA")
+        print()
         mask_threshold, best_mask_per_cc = analyze(ensemble_model, train_data.train_set_df, use_tta=True)
 
     eval_end_time = time.time()
