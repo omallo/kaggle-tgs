@@ -39,6 +39,9 @@ class TrainData:
         train_set_df = train_df[train_df.index.isin(train_set_ids)].copy()
         val_set_df = train_df[train_df.index.isin(val_set_ids)].copy()
 
+        train_set_df["pseudo_masked"] = False
+        val_set_df["pseudo_masked"] = False
+
         if pseudo_labeling_enabled:
             test_df = pd.read_csv(pseudo_labeling_submission_csv, index_col="id")
             test_df["rle_mask"] = test_df.rle_mask.astype(str)
@@ -61,6 +64,9 @@ class TrainData:
 
             test_train_set_df = self.replace_samples_with_cc1(test_train_set_df)
             test_val_set_df = self.replace_samples_with_cc1(test_val_set_df)
+
+            test_train_set_df["pseudo_masked"] = True
+            test_val_set_df["pseudo_masked"] = True
 
             train_set_df = pd.concat([train_set_df, test_train_set_df])
             val_set_df = pd.concat([val_set_df, test_val_set_df])
@@ -125,12 +131,13 @@ class TestData:
 
 
 class TrainDataset(Dataset):
-    def __init__(self, df, image_size_target, augment, train_set_scale_factor=1.0):
+    def __init__(self, df, image_size_target, augment, train_set_scale_factor, pseudo_mask_weight_scale_factor):
         super().__init__()
         self.df = df
         self.image_size_target = image_size_target
         self.augment = augment
         self.train_set_scale_factor = train_set_scale_factor
+        self.pseudo_mask_weight_scale_factor = pseudo_mask_weight_scale_factor
 
     def __len__(self):
         return int(self.train_set_scale_factor * len(self.df))
@@ -139,11 +146,14 @@ class TrainDataset(Dataset):
         image = self.df.images[index % len(self.df)]
         mask = self.df.masks[index % len(self.df)]
         coverage_class = self.df.coverage_class[index % len(self.df)]
+        pseudo_masked = self.df.pseudo_masked[index % len(self.df)]
 
         if self.augment:
             image, mask = augment(image, mask)
 
         mask_weights = calculate_mask_weights(mask)
+        if pseudo_masked:
+            mask_weights *= self.pseudo_mask_weight_scale_factor
 
         image = upsample(image, self.image_size_target)
         mask = upsample(mask, self.image_size_target)

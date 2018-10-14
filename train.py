@@ -198,6 +198,7 @@ def main():
     pseudo_labeling_submission_csv = args.pl_submission_csv
     pseudo_labeling_test_fold_count = args.pl_test_fold_count
     pseudo_labeling_test_fold_index = args.pl_test_fold_index
+    pseudo_labeling_loss_weight_factor = args.pl_loss_weight_factor
     submit = args.submit
 
     train_data = TrainData(
@@ -214,12 +215,19 @@ def main():
         train_data.train_set_df,
         image_size_target,
         augment=augment,
-        train_set_scale_factor=train_set_scale_factor)
+        train_set_scale_factor=train_set_scale_factor,
+        pseudo_mask_weight_scale_factor=pseudo_labeling_loss_weight_factor)
 
     train_set_data_loader = \
         DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=pin_memory)
 
-    val_set = TrainDataset(train_data.val_set_df, image_size_target, augment=False)
+    val_set = TrainDataset(
+        train_data.val_set_df,
+        image_size_target,
+        augment=False,
+        train_set_scale_factor=1.0,
+        pseudo_mask_weight_scale_factor=pseudo_labeling_loss_weight_factor)
+
     val_set_data_loader = \
         DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=pin_memory)
 
@@ -572,6 +580,7 @@ if __name__ == "__main__":
     argparser.add_argument("--pl_submission_csv")
     argparser.add_argument("--pl_test_fold_count", default=3, type=int)
     argparser.add_argument("--pl_test_fold_index", default=0, type=int)
+    argparser.add_argument("--pl_loss_weight_factor", default=1.0, type=float)
     argparser.add_argument("--submit", default=True, type=str2bool)
 
     main()
