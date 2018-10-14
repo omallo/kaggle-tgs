@@ -100,7 +100,7 @@ class TrainData:
                         ids_with_reduced_cc1.append(id)
                         break
 
-        df_reduced = df[df.index.isin(ids_with_reduced_cc1[:cc1_count])].copy()
+        df_reduced = df[df.index.isin(ids_with_reduced_cc1)].copy()
 
         df_final = df_original.copy()
         df_final = df_final.drop(df_final.index[df_final.coverage_class == 1])
