@@ -60,7 +60,9 @@ def calculate_best_threshold(df):
                 prediction_mask = np.int32(prediction > threshold)
             except ValueError:
                 print(threshold)
+                print(type(prediction))
                 print(prediction)
+                print(prediction.shape)
                 raise Exception("foo")
             precisions.append(precision(prediction_mask, mask))
         precisions_per_threshold.append(np.mean(precisions))
