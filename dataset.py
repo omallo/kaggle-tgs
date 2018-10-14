@@ -75,8 +75,8 @@ class TrainData:
         if len(train_val_id_intersection) > 0:
             raise Exception("Train and val set do overlap")
 
-        train_set_df.reset_index()
-        val_set_df.reset_index()
+        train_set_df = train_set_df.reset_index()
+        val_set_df = val_set_df.reset_index()
 
         print()
         train_set_df["coverage_class"] = train_set_df.masks.map(calculate_coverage_class)
