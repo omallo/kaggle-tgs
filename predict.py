@@ -25,10 +25,10 @@ def main():
     use_val_set = True
     pin_memory = False
     swa_enabled = False
-    pseudo_labeling_enabled = False
-    pseudo_labeling_submission_csv = None
-    pseudo_labeling_test_fold_count = 3
-    pseudo_labeling_test_fold_index = 0
+    pseudo_labeling_enabled = True
+    pseudo_labeling_submission_csv = "/storage/models/tgs/best_submission.csv"
+    pseudo_labeling_test_fold_count = 5
+    pseudo_labeling_test_fold_index = 3
     pseudo_labeling_loss_weight_factor = 1.0
 
     criterion = nn.BCEWithLogitsLoss()
