@@ -11,7 +11,16 @@ from utils import kfold_split
 
 
 class TrainData:
-    def __init__(self, base_dir, fold_count, fold_index, pseudo_labeling_enabled, pseudo_labeling_submission_csv):
+    def __init__(
+            self,
+            base_dir,
+            fold_count,
+            fold_index,
+            pseudo_labeling_enabled,
+            pseudo_labeling_submission_csv,
+            pseudo_labeling_test_fold_count,
+            pseudo_labeling_test_fold_index):
+
         train_df = pd.read_csv("{}/train.csv".format(base_dir), index_col="id", usecols=[0])
         depths_df = pd.read_csv("{}/depths.csv".format(base_dir), index_col="id")
         train_df = train_df.join(depths_df)
@@ -35,7 +44,10 @@ class TrainData:
             test_df = test_df.drop(columns=["rle_mask"])
 
             test_train_set_ids, test_val_set_ids = \
-                list(kfold_split(fold_count, sorted(test_df.index.values), test_df.coverage_class))[fold_index]
+                list(kfold_split(
+                    pseudo_labeling_test_fold_count,
+                    sorted(test_df.index.values),
+                    test_df.coverage_class))[pseudo_labeling_test_fold_index]
 
             test_train_set_df = test_df[test_df.index.isin(test_train_set_ids)].copy()
             test_val_set_df = test_df[test_df.index.isin(test_val_set_ids)].copy()
