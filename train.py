@@ -505,14 +505,17 @@ def main():
         no_pseudo_labels_val_set_df = \
             train_data.val_set_df.drop(train_data.val_set_df.index[train_data.val_set_df.pseudo_masked]).copy()
 
+        print()
         print("analyze validation set using best model and w/o TTA")
         print()
         analyze(Ensemble([best_model]), no_pseudo_labels_val_set_df, use_tta=False)
 
+        print()
         print("analyze validation set using best model and w/ TTA")
         print()
         analyze(Ensemble([best_model]), no_pseudo_labels_val_set_df, use_tta=True)
 
+        print()
         print("analyze validation set using ensemble model and w/ TTA")
         print()
         mask_threshold, best_mask_per_cc = analyze(ensemble_model, no_pseudo_labels_val_set_df, use_tta=True)
@@ -521,6 +524,7 @@ def main():
             ensemble_model_count, output_dir, train_set_data_loader, criterion, swa_enabled, model_type,
             image_size_target, use_parallel_model=use_parallel_model)
 
+        print()
         print("analyze validation set using ensemble model and w/ TTA")
         print()
         mask_threshold, best_mask_per_cc = analyze(ensemble_model, train_data.train_set_df, use_tta=True)
@@ -595,7 +599,7 @@ if __name__ == "__main__":
     argparser.add_argument("--pl_test_fold_count", default=3, type=int)
     argparser.add_argument("--pl_test_fold_index", default=0, type=int)
     argparser.add_argument("--pl_extend_val_set", default=False, type=str2bool)
-    argparser.add_argument("--pl_loss_weight_factor", default=1.0, type=float)
+    argparser.add_argument("--pl_loss_weight_factor", default=0.2, type=float)
     argparser.add_argument("--submit", default=True, type=str2bool)
 
     main()
