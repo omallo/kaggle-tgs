@@ -1,0 +1,168 @@
+from collections import OrderedDict
+from math import ceil
+
+import torch
+from torch import nn
+from torch.nn import functional as F
+
+from se_models import SpatialChannelSEBlock
+from senet import senet154, se_resnext50_32x4d, se_resnext101_32x4d
+
+
+class ConvBnRelu(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.conv = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, x):
+        return self.conv(x)
+
+
+class DecoderBlock(nn.Module):
+    def __init__(self, in_channels, out_channels_next, up_size_next, out_channels_input, up_size_input):
+        super().__init__()
+
+        self.conv_next = ConvBnRelu(in_channels, out_channels_next)
+        self.up_next = nn.Upsample(size=up_size_next, mode="bilinear", align_corners=False)
+        self.se_next = SpatialChannelSEBlock(out_channels_next)
+
+        self.final = nn.Sequential(
+            ConvBnRelu(out_channels_next, out_channels_next // 2),
+            nn.Conv2d(out_channels_next // 2, 1, kernel_size=1),
+            nn.Upsample(size=up_size_input, mode="nearest")
+        )
+
+        self.conv_input = ConvBnRelu(in_channels, out_channels_input)
+        self.up_input = nn.Upsample(size=up_size_input, mode="bilinear", align_corners=False)
+
+    def forward(self, x):
+        x_next = self.conv_next(x)
+        x_next = self.up_next(x_next)
+        x_next = self.se_next(x_next)
+
+        x_final = self.final(x_next)
+
+        x_up = self.conv_input(x)
+        x_up = self.up_input(x_up)
+
+        return x_next, x_final, x_up
+
+
+class UNetSeNetHcDs(nn.Module):
+    def __init__(self, backbone, num_classes, input_size, num_filters=32, dropout_2d=0.2, pretrained=False,
+                 output_classification=False):
+        super().__init__()
+        self.dropout_2d = dropout_2d
+        self.output_classification = output_classification
+
+        if backbone == "senet154":
+            self.encoder = senet154(pretrained="imagenet" if pretrained else None)
+            bottom_channel_nr = 2048
+
+            layer0_modules = [
+                ('conv1', self.encoder.layer0.conv1),
+                ('bn1', self.encoder.layer0.bn1),
+                ('relu1', self.encoder.layer0.relu1),
+                ('conv2', self.encoder.layer0.conv2),
+                ('bn2', self.encoder.layer0.bn2),
+                ('relu2', self.encoder.layer0.relu2),
+                ('conv3', self.encoder.layer0.conv3),
+                ('bn3', self.encoder.layer0.bn3),
+                ('relu3', self.encoder.layer0.relu3),
+            ]
+        elif backbone == "se_resnext50":
+            self.encoder = se_resnext50_32x4d(pretrained="imagenet" if pretrained else None)
+            bottom_channel_nr = 2048
+
+            layer0_modules = [
+                ('conv1', self.encoder.layer0.conv1),
+                ('bn1', self.encoder.layer0.bn1),
+                ('relu1', self.encoder.layer0.relu1),
+            ]
+        elif backbone == "se_resnext101":
+            self.encoder = se_resnext101_32x4d(pretrained="imagenet" if pretrained else None)
+            bottom_channel_nr = 2048
+
+            layer0_modules = [
+                ('conv1', self.encoder.layer0.conv1),
+                ('bn1', self.encoder.layer0.bn1),
+                ('relu1', self.encoder.layer0.relu1),
+            ]
+        else:
+            raise Exception("Unsupported backbone type: '{}".format(backbone))
+
+        self.conv0 = nn.Sequential(OrderedDict(layer0_modules))
+        self.conv1 = self.encoder.layer1
+        self.conv2 = self.encoder.layer2
+        self.conv3 = self.encoder.layer3
+        self.conv4 = self.encoder.layer4
+
+        dec_in_channels = [
+            bottom_channel_nr,
+            bottom_channel_nr // 2 + num_filters * 8,
+            bottom_channel_nr // 4 + num_filters * 8,
+            bottom_channel_nr // 8 + num_filters * 2
+        ]
+
+        dec_out_channels = [
+            num_filters * 8,
+            num_filters * 8,
+            num_filters * 2,
+            num_filters * 2 * 2
+        ]
+
+        dec_sizes = [
+            ceil(input_size / 8),
+            ceil(input_size / 4),
+            ceil(input_size / 2),
+            input_size
+        ]
+
+        hc_out_channels = dec_out_channels[3]
+        final_in_channels = dec_out_channels[3]
+        final_mid_channels = dec_out_channels[3]
+
+        if self.output_classification:
+            self.classifier_avgpool = nn.AvgPool2d(ceil(dec_sizes[0] / 2), stride=1)
+            self.classifier_fc = nn.Linear(bottom_channel_nr, num_classes)
+
+        self.dec4 = DecoderBlock(dec_in_channels[0], dec_out_channels[0], dec_sizes[0], hc_out_channels, input_size)
+        self.dec3 = DecoderBlock(dec_in_channels[1], dec_out_channels[1], dec_sizes[1], hc_out_channels, input_size)
+        self.dec2 = DecoderBlock(dec_in_channels[2], dec_out_channels[2], dec_sizes[2], hc_out_channels, input_size)
+        self.dec1 = DecoderBlock(dec_in_channels[3], dec_out_channels[3], dec_sizes[3], hc_out_channels, input_size)
+
+        self.final = nn.Sequential(
+            ConvBnRelu(final_in_channels, final_mid_channels // 2),
+            nn.Conv2d(final_mid_channels // 2, num_classes, kernel_size=1)
+        )
+
+    def forward(self, x):
+        conv0 = self.conv0(x)
+        conv1 = self.conv1(conv0)
+        conv2 = self.conv2(conv1)
+        conv3 = self.conv3(conv2)
+        center = self.conv4(conv3)
+
+        dec4, dec4_ds, dec4_hc = self.dec4(center)
+        dec3, dec3_ds, dec3_hc = self.dec3(torch.cat([dec4, conv3], 1))
+        dec2, dec2_ds, dec2_hc = self.dec2(torch.cat([dec3, conv2], 1))
+        dec1, dec1_ds, dec1_hc = self.dec1(torch.cat([dec2, conv1], 1))
+
+        out = dec1 + dec1_hc + dec2_hc + dec3_hc + dec4_hc
+
+        f = self.final(F.dropout2d(out, p=self.dropout_2d))
+
+        f = torch.cat([dec3_ds, dec2_ds, dec1_ds, f], 1)
+
+        if self.output_classification:
+            c = self.classifier_avgpool(center)
+            c = c.view(c.size(0), -1)
+            c = self.classifier_fc(c)
+            c = c.squeeze()
+            return f, c
+        else:
+            return f, None
