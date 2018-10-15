@@ -99,17 +99,18 @@ class TrainData:
         cc1_count = np.sum(df.coverage_class == 1)
 
         ids_with_reduced_cc1 = []
-        for id in sorted(df.index):
-            image = df.loc[id].images
-            mask = df.loc[id].masks
-            if df.loc[id].coverage_class > 1:
-                for _ in range(2):
-                    reduced_image, reduced_mask = reduce_salt_coverage(image, mask)
-                    if calculate_coverage_class(reduced_mask) == 1:
-                        df.at[id, "images"] = reduced_image
-                        df.at[id, "masks"] = reduced_mask
-                        ids_with_reduced_cc1.append(id)
-                        break
+        if False:
+            for id in sorted(df.index):
+                image = df.loc[id].images
+                mask = df.loc[id].masks
+                if df.loc[id].coverage_class > 1:
+                    for _ in range(2):
+                        reduced_image, reduced_mask = reduce_salt_coverage(image, mask)
+                        if calculate_coverage_class(reduced_mask) == 1:
+                            df.at[id, "images"] = reduced_image
+                            df.at[id, "masks"] = reduced_mask
+                            ids_with_reduced_cc1.append(id)
+                            break
 
         df_reduced = df[df.index.isin(ids_with_reduced_cc1)].copy()
 
