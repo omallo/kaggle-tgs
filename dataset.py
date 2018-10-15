@@ -52,11 +52,14 @@ class TrainData:
             test_df = test_df.drop(columns=["rle_mask"])
 
             if use_val_set:
-                test_train_set_ids, test_val_set_ids = \
-                    list(kfold_split(
-                        pseudo_labeling_test_fold_count,
-                        sorted(test_df.index.values),
-                        test_df.coverage_class))[pseudo_labeling_test_fold_index]
+                if pseudo_labeling_test_fold_count == 1:
+                    test_train_set_ids, test_val_set_ids = test_df.index.values, []
+                else:
+                    test_train_set_ids, test_val_set_ids = \
+                        list(kfold_split(
+                            pseudo_labeling_test_fold_count,
+                            sorted(test_df.index.values),
+                            test_df.coverage_class))[pseudo_labeling_test_fold_index]
             else:
                 test_train_set_ids, test_val_set_ids = test_df.index.values, []
 
