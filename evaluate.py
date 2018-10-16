@@ -35,12 +35,12 @@ def predict(model, data_loader, use_tta):
             image = image.to(device)
 
             if use_tta:
-                predictions1, _ = model(image)
-                predictions2, _ = model(image.flip(3))
+                predictions1, _ = model(image)[3]
+                predictions2, _ = model(image.flip(3))[3]
                 predictions2 = predictions2.flip(3)
                 predictions = 0.5 * (predictions1 + predictions2)
             else:
-                predictions, _ = model(image)
+                predictions, _ = model(image)[3]
 
             val_predictions += [p for p in predictions.cpu().numpy()]
     val_predictions = np.asarray(val_predictions).reshape(-1, image_size_target, image_size_target)
@@ -69,12 +69,7 @@ def calculate_predictions_cc(df, threshold):
 def calculate_predictions(df, model, use_tta):
     data_set = TestDataset(df, image_size_target)
     data_loader = DataLoader(data_set, batch_size=batch_size, shuffle=False, num_workers=4)
-    preds = predict(model, data_loader, use_tta)
-    print("foobar")
-    print(len(preds))
-    print(len(df))
-    print()
-    df["predictions"] = preds
+    df["predictions"] = predict(model, data_loader, use_tta)
 
 
 def calculate_prediction_masks(df, threshold):
