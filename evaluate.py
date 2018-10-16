@@ -37,15 +37,10 @@ def predict(model, data_loader, use_tta):
             if use_tta:
                 predictions1, _ = model(image)
                 predictions2, _ = model(image.flip(3))
-
-                predictions1 = predictions1[:, 3:4, :, :]
-                predictions2 = predictions2[:, 3:4, :, :]
-
                 predictions2 = predictions2.flip(3)
                 predictions = 0.5 * (predictions1 + predictions2)
             else:
                 predictions, _ = model(image)
-                predictions = predictions[:, 3:4, :, :]
 
             val_predictions += [p for p in predictions.cpu().numpy()]
     val_predictions = np.asarray(val_predictions).reshape(-1, image_size_target, image_size_target)
