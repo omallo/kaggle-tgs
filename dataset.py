@@ -170,8 +170,8 @@ class TrainDataset(Dataset):
         mask_weights = mask_to_tensor(mask_weights)
         has_salt = torch.tensor(0.0 if coverage_class == 0 else 1.0).float()
 
-        mask = mask.expand(4, -1, -1)
-        mask_weights = mask_weights.expand(4, -1, -1)
+        # mask = mask.expand(4, -1, -1)
+        # mask_weights = mask_weights.expand(4, -1, -1)
 
         image_mean = 0.4719
         image_std = 0.1610
