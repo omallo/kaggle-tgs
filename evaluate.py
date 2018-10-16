@@ -69,7 +69,12 @@ def calculate_predictions_cc(df, threshold):
 def calculate_predictions(df, model, use_tta):
     data_set = TestDataset(df, image_size_target)
     data_loader = DataLoader(data_set, batch_size=batch_size, shuffle=False, num_workers=4)
-    df["predictions"] = predict(model, data_loader, use_tta)
+    preds = predict(model, data_loader, use_tta)
+    print("foobar")
+    print(len(preds))
+    print(len(df))
+    print()
+    df["predictions"] = preds
 
 
 def calculate_prediction_masks(df, threshold):
