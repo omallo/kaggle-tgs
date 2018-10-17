@@ -124,7 +124,7 @@ def load_ensemble_model(ensemble_model_count, base_dir, val_set_data_loader, cri
         m = create_model(type=model_type, input_size=input_size, pretrained=False, parallel=use_parallel_model).to(
             device)
         m.load_state_dict(torch.load(model_file_path, map_location=device))
-        val_loss_avg, val_precision_avg, _ = evaluate(m, val_set_data_loader, criterion)
+        val_loss_avg, val_precision_avg = evaluate(m, val_set_data_loader, criterion)
         print("ensemble '%s': val_loss=%.4f, val_precision=%.4f" % (model_file_name, val_loss_avg, val_precision_avg))
         if len(score_to_model) < ensemble_model_count or min(score_to_model.keys()) < val_precision_avg:
             if len(score_to_model) >= ensemble_model_count:
@@ -135,7 +135,7 @@ def load_ensemble_model(ensemble_model_count, base_dir, val_set_data_loader, cri
     ensemble_models = list(score_to_model.values())
 
     for ensemble_model in ensemble_models:
-        val_loss_avg, val_precision_avg, _ = evaluate(ensemble_model, val_set_data_loader, criterion)
+        val_loss_avg, val_precision_avg = evaluate(ensemble_model, val_set_data_loader, criterion)
         print("ensemble: val_loss=%.4f, val_precision=%.4f" % (val_loss_avg, val_precision_avg))
 
     return best_model, Ensemble(ensemble_models)
@@ -397,7 +397,7 @@ def main():
                 moving_average(swa_model, m, 1.0 / swa_update_count)
                 bn_update(train_set_data_loader, swa_model)
 
-                swa_val_loss_avg, swa_val_precision_avg, _ = evaluate(swa_model, val_set_data_loader, criterion)
+                swa_val_loss_avg, swa_val_precision_avg = evaluate(swa_model, val_set_data_loader, criterion)
 
                 swa_model_improved = swa_val_precision_avg > global_swa_val_precision_best_avg
                 if swa_model_improved:
