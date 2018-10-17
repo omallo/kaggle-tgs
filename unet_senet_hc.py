@@ -45,11 +45,9 @@ class DecoderBlock(nn.Module):
 
 
 class UNetSeNetHc(nn.Module):
-    def __init__(self, backbone, num_classes, input_size, num_filters=32, dropout_2d=0.2, pretrained=False,
-                 output_classification=False):
+    def __init__(self, backbone, num_classes, input_size, num_filters=32, dropout_2d=0.2, pretrained=False):
         super().__init__()
         self.dropout_2d = dropout_2d
-        self.output_classification = output_classification
 
         if backbone == "senet154":
             self.encoder = senet154(pretrained="imagenet" if pretrained else None)
@@ -118,10 +116,6 @@ class UNetSeNetHc(nn.Module):
         final_in_channels = dec_out_channels[3]
         final_mid_channels = dec_out_channels[3]
 
-        if self.output_classification:
-            self.classifier_avgpool = nn.AvgPool2d(ceil(dec_sizes[0] / 2), stride=1)
-            self.classifier_fc = nn.Linear(bottom_channel_nr, num_classes)
-
         self.dec4 = DecoderBlock(dec_in_channels[0], dec_out_channels[0], dec_sizes[0], hc_out_channels, input_size)
         self.dec3 = DecoderBlock(dec_in_channels[1], dec_out_channels[1], dec_sizes[1], hc_out_channels, input_size)
         self.dec2 = DecoderBlock(dec_in_channels[2], dec_out_channels[2], dec_sizes[2], hc_out_channels, input_size)
@@ -148,11 +142,4 @@ class UNetSeNetHc(nn.Module):
 
         f = self.final(F.dropout2d(out, p=self.dropout_2d))
 
-        if self.output_classification:
-            c = self.classifier_avgpool(center)
-            c = c.view(c.size(0), -1)
-            c = self.classifier_fc(c)
-            c = c.squeeze()
-            return f, c
-        else:
-            return f, None
+        return f

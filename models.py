@@ -37,11 +37,9 @@ class DecoderBlock(nn.Module):
 
 
 class UNetResNet(nn.Module):
-    def __init__(self, num_classes, input_size, num_filters=32, dropout_2d=0.2, pretrained=False,
-                 output_classification=True):
+    def __init__(self, num_classes, input_size, num_filters=32, dropout_2d=0.2, pretrained=False):
         super().__init__()
         self.dropout_2d = dropout_2d
-        self.output_classification = output_classification
 
         self.encoder = ResNet(SEBasicBlock, [3, 4, 6, 3])
         if pretrained:
@@ -76,10 +74,6 @@ class UNetResNet(nn.Module):
         self.conv3 = self.encoder.layer3
         self.conv4 = self.encoder.layer4
 
-        if self.output_classification:
-            self.classifier_avgpool = nn.AvgPool2d(ceil(dec_sizes[0] / 2), stride=1)
-            self.classifier_fc = nn.Linear(bottom_channel_nr, num_classes)
-
         self.dec4 = DecoderBlock(dec_in_channels[0], dec_out_channels[0], size=dec_sizes[0])
         self.dec3 = DecoderBlock(dec_in_channels[1], dec_out_channels[1], size=dec_sizes[1])
         self.dec2 = DecoderBlock(dec_in_channels[2], dec_out_channels[2], size=dec_sizes[2])
@@ -99,11 +93,4 @@ class UNetResNet(nn.Module):
         dec2 = self.dec2(torch.cat([dec3, conv2], 1))
         dec1 = F.dropout2d(self.dec1(torch.cat([dec2, conv1], 1)), p=self.dropout_2d)
 
-        if self.output_classification:
-            c = self.classifier_avgpool(center)
-            c = c.view(c.size(0), -1)
-            c = self.classifier_fc(c)
-            c = c.squeeze()
-            return self.final(dec1), c
-        else:
-            return self.final(dec1), None
+        return self.final(dec1)
