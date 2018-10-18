@@ -172,9 +172,9 @@ class TrainDataset(Dataset):
             mask = upsample(mask, self.image_size_target)
             mask_weights = upsample(mask_weights, self.image_size_target)
         else:
-            image = cv2.resize(image, self.image_size_target)
-            mask = cv2.resize(mask, self.image_size_target)
-            mask_weights = cv2.resize(mask_weights, self.image_size_target)
+            image = cv2.resize(image, (self.image_size_target, self.image_size_target))
+            mask = cv2.resize(mask, (self.image_size_target, self.image_size_target))
+            mask_weights = cv2.resize(mask_weights, (self.image_size_target, self.image_size_target))
 
         image = image_to_tensor(image)
         mask = mask_to_tensor(mask)
