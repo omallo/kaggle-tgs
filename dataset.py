@@ -91,6 +91,9 @@ class TrainData:
         print(val_set_df.groupby("coverage_class").agg({"coverage_class": "count"}))
         print()
 
+        train_set_df = train_set_df.drop(train_set_df.index[train_set_df.coverage_class != 1])
+        val_set_df = val_set_df.drop(val_set_df.index[val_set_df.coverage_class != 1])
+
         self.train_set_df = train_set_df
         self.val_set_df = val_set_df
 
