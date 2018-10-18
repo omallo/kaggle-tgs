@@ -30,6 +30,7 @@ from unet_senet import UNetSeNet
 from unet_senet_hc import UNetSeNetHc
 from unet_senet_hc_cat import UNetSeNetHcCat
 from unet_senet_hc_ds import UNetSeNetHcDs
+from unet_senet_hc_scale import UNetSeNetHcScale
 from utils import get_learning_rate, write_submission
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -60,6 +61,8 @@ def create_model(type, input_size, pretrained, parallel):
         model = UNetSeNet(backbone="senet154", num_classes=1, input_size=input_size, pretrained=pretrained)
     elif type == "unet_seresnext50_hc":
         model = UNetSeNetHc("se_resnext50", 1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained)
+    elif type == "unet_seresnext50_hc_scale":
+        model = UNetSeNetHcScale("se_resnext50", 1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained)
     elif type == "unet_seresnext101_hc":
         model = UNetSeNetHc("se_resnext101", 1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained)
     elif type == "unet_senet_hc":
@@ -310,7 +313,7 @@ def main():
     else:
         raise Exception("Unsupported loss type: '{}".format(loss_type))
 
-    has_salt_criterion = nn.BCEWithLogitsLoss()
+    image_sizes = [64, 96, 128, 160, 192, 224, 256]
 
     for epoch in range(epochs_to_train):
         epoch_start_time = time.time()
@@ -319,6 +322,9 @@ def main():
 
         train_loss_sum = 0.0
         train_precision_sum = 0.0
+
+        current_image_size = image_sizes[min(epoch // 10, len(image_sizes) - 1)]
+        train_set.image_size_target = current_image_size
 
         train_set_data_loader_iter = iter(train_set_data_loader)
 
