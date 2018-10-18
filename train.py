@@ -323,7 +323,7 @@ def main():
         train_loss_sum = 0.0
         train_precision_sum = 0.0
 
-        image_size_target = image_sizes[min(epoch // 10, len(image_sizes) - 1)]
+        image_size_target = image_sizes[min(epoch // 8, len(image_sizes) - 1)]
         train_set.image_size_target = image_size_target
         val_set.image_size_target = image_size_target
 
