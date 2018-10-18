@@ -83,6 +83,9 @@ class TrainData:
         train_set_df = train_set_df.reset_index()
         val_set_df = val_set_df.reset_index()
 
+        train_set_df = train_set_df.drop(train_set_df.index[train_set_df.coverage_class != 1]).copy()
+        val_set_df = val_set_df.drop(val_set_df.index[val_set_df.coverage_class != 1]).copy()
+
         print()
         train_set_df["coverage_class"] = train_set_df.masks.map(calculate_coverage_class)
         print(train_set_df.groupby("coverage_class").agg({"coverage_class": "count"}))
@@ -90,9 +93,6 @@ class TrainData:
         val_set_df["coverage_class"] = val_set_df.masks.map(calculate_coverage_class)
         print(val_set_df.groupby("coverage_class").agg({"coverage_class": "count"}))
         print()
-
-        train_set_df = train_set_df.drop(train_set_df.index[train_set_df.coverage_class != 1]).copy()
-        val_set_df = val_set_df.drop(val_set_df.index[val_set_df.coverage_class != 1]).copy()
 
         self.train_set_df = train_set_df
         self.val_set_df = val_set_df
