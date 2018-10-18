@@ -5,7 +5,7 @@ import torch
 import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
 
-from dataset import calculate_coverage_class, TestDataset, calculate_coverage, calculate_predictions_coverage_class
+from dataset import calculate_coverage_class, TestDataset
 from metrics import precision
 from processing import crf_batch, postprocess_mask
 from transforms import downsample
@@ -63,10 +63,7 @@ def calculate_best_threshold(df):
 
 
 def calculate_predictions_cc(df, threshold):
-    df["predictions_c"] = [calculate_coverage(p) for p in df.predictions]
-    zero_class_coverage_threshold = df.predictions_c.quantile(0.39)
-    df["predictions_cc"] = \
-        [calculate_predictions_coverage_class(p, zero_class_coverage_threshold) for p in df.predictions]
+    df["predictions_cc"] = [calculate_coverage_class(np.int32(p > threshold)) for p in df.predictions]
 
 
 def calculate_predictions(df, model, use_tta):
