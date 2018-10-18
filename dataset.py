@@ -242,8 +242,21 @@ def prepare_mask(mask, image_size_target):
     return np.expand_dims(upsample(mask, image_size_target), axis=2)
 
 
+def calculate_coverage(mask):
+    return mask.sum() / mask.size
+
+
 def calculate_coverage_class(mask):
-    coverage = mask.sum() / mask.size
+    coverage = calculate_coverage(mask)
+    for i in range(0, 11):
+        if coverage * 10 <= i:
+            return i
+
+
+def calculate_predictions_coverage_class(mask, zero_class_coverage_threshold):
+    coverage = calculate_coverage(mask)
+    if coverage < zero_class_coverage_threshold:
+        return 0
     for i in range(0, 11):
         if coverage * 10 <= i:
             return i
