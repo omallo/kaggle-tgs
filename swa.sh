@@ -3,6 +3,12 @@
 set -e
 set -o pipefail
 
+if [ -z $1 ]
+then
+  echo "missing run name"
+  exit 1
+fi
+
 trap archive_artifacts EXIT
 
 function install_dependencies() {
