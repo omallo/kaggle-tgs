@@ -313,7 +313,7 @@ def main():
     else:
         raise Exception("Unsupported loss type: '{}".format(loss_type))
 
-    image_sizes = [64, 96, 128, 160, 192, 224, 256]
+    image_sizes = [64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224]
 
     for epoch in range(epochs_to_train):
         epoch_start_time = time.time()
