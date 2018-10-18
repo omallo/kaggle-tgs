@@ -581,7 +581,7 @@ if __name__ == "__main__":
     argparser.add_argument("--pl_test_fold_count", default=3, type=int)
     argparser.add_argument("--pl_test_fold_index", default=0, type=int)
     argparser.add_argument("--pl_extend_val_set", default=False, type=str2bool)
-    argparser.add_argument("--pl_loss_weight_factor", default=0.3, type=float)
+    argparser.add_argument("--pl_loss_weight_factor", default=0.6, type=float)
     argparser.add_argument("--submit", default=True, type=str2bool)
 
     main()
