@@ -1,5 +1,4 @@
 from collections import OrderedDict
-from math import ceil
 
 import torch
 from torch import nn
@@ -45,7 +44,7 @@ class DecoderBlock(nn.Module):
 
 
 class UNetSeNetHcScale(nn.Module):
-    def __init__(self, backbone, num_classes, input_size, num_filters=32, dropout_2d=0.2, pretrained=False):
+    def __init__(self, backbone, num_classes, num_filters=32, dropout_2d=0.2, pretrained=False):
         super().__init__()
         self.dropout_2d = dropout_2d
 
@@ -105,21 +104,14 @@ class UNetSeNetHcScale(nn.Module):
             num_filters * 2 * 2
         ]
 
-        dec_sizes = [
-            ceil(input_size / 8),
-            ceil(input_size / 4),
-            ceil(input_size / 2),
-            input_size
-        ]
-
         hc_out_channels = dec_out_channels[3]
         final_in_channels = dec_out_channels[3]
         final_mid_channels = dec_out_channels[3]
 
-        self.dec4 = DecoderBlock(dec_in_channels[0], dec_out_channels[0], 2, 16, input_size)
-        self.dec3 = DecoderBlock(dec_in_channels[1], dec_out_channels[1], 2, 8, input_size)
-        self.dec2 = DecoderBlock(dec_in_channels[2], dec_out_channels[2], 2, 4, input_size)
-        self.dec1 = DecoderBlock(dec_in_channels[3], dec_out_channels[3], 2, 2, input_size)
+        self.dec4 = DecoderBlock(dec_in_channels[0], dec_out_channels[0], 2, hc_out_channels, 16)
+        self.dec3 = DecoderBlock(dec_in_channels[1], dec_out_channels[1], 2, hc_out_channels, 8)
+        self.dec2 = DecoderBlock(dec_in_channels[2], dec_out_channels[2], 2, hc_out_channels, 4)
+        self.dec1 = DecoderBlock(dec_in_channels[3], dec_out_channels[3], 2, hc_out_channels, 2)
 
         self.final = nn.Sequential(
             ConvBnRelu(final_in_channels, final_mid_channels // 2),

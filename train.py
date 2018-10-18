@@ -62,7 +62,7 @@ def create_model(type, input_size, pretrained, parallel):
     elif type == "unet_seresnext50_hc":
         model = UNetSeNetHc("se_resnext50", 1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained)
     elif type == "unet_seresnext50_hc_scale":
-        model = UNetSeNetHcScale("se_resnext50", 1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained)
+        model = UNetSeNetHcScale("se_resnext50", 1, num_filters=32, dropout_2d=0.2, pretrained=pretrained)
     elif type == "unet_seresnext101_hc":
         model = UNetSeNetHc("se_resnext101", 1, input_size, num_filters=32, dropout_2d=0.2, pretrained=pretrained)
     elif type == "unet_senet_hc":
@@ -323,8 +323,9 @@ def main():
         train_loss_sum = 0.0
         train_precision_sum = 0.0
 
-        current_image_size = image_sizes[min(epoch // 10, len(image_sizes) - 1)]
-        train_set.image_size_target = current_image_size
+        image_size_target = image_sizes[min(epoch // 10, len(image_sizes) - 1)]
+        train_set.image_size_target = image_size_target
+        val_set.image_size_target = image_size_target
 
         train_set_data_loader_iter = iter(train_set_data_loader)
 
