@@ -128,7 +128,7 @@ def analyze(model, df, use_tta):
 
     calculate_predictions(df, model, use_tta)
 
-    mask_threshold = 0.480
+    mask_threshold = 0.420
     calculate_predictions_cc(df, mask_threshold)
     calculate_prediction_masks(df, mask_threshold)
     calculate_precisions(df)
