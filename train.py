@@ -495,16 +495,6 @@ def main():
             train_data.val_set_df.drop(train_data.val_set_df.index[train_data.val_set_df.pseudo_masked]).copy()
 
         print()
-        print("analyze validation set using best model and w/o TTA")
-        print()
-        analyze(Ensemble([best_model]), no_pseudo_labels_val_set_df, use_tta=False)
-
-        print()
-        print("analyze validation set using best model and w/ TTA")
-        print()
-        analyze(Ensemble([best_model]), no_pseudo_labels_val_set_df, use_tta=True)
-
-        print()
         print("analyze validation set using ensemble model and w/ TTA")
         print()
         mask_threshold, best_mask_per_cc = analyze(ensemble_model, no_pseudo_labels_val_set_df, use_tta=True)
@@ -524,8 +514,6 @@ def main():
 
     if not submit:
         return
-
-    mask_threshold = 0.480
 
     print()
     print("submission preparation")
