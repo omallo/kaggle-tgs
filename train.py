@@ -313,7 +313,7 @@ def main():
     else:
         raise Exception("Unsupported loss type: '{}".format(loss_type))
 
-    image_sizes = [64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224]
+    # image_sizes = [64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224]
 
     for epoch in range(epochs_to_train):
         epoch_start_time = time.time()
@@ -323,9 +323,9 @@ def main():
         train_loss_sum = 0.0
         train_precision_sum = 0.0
 
-        image_size_target = image_sizes[min(epoch // 8, len(image_sizes) - 1)]
-        train_set.image_size_target = image_size_target
-        val_set.image_size_target = image_size_target
+        # image_size_target = image_sizes[min(epoch // 8, len(image_sizes) - 1)]
+        # train_set.image_size_target = image_size_target
+        # val_set.image_size_target = image_size_target
 
         train_set_data_loader_iter = iter(train_set_data_loader)
 
