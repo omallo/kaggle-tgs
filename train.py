@@ -148,7 +148,7 @@ def create_optimizer(type, model, lr):
     if type == "adam":
         return optim.Adam(model.parameters(), lr=lr)
     elif type == "sgd":
-        return optim.SGD(model.parameters(), lr=lr, weight_decay=0, momentum=0.9, nesterov=True)
+        return optim.SGD(model.parameters(), lr=lr, weight_decay=1e-4, momentum=0.9, nesterov=True)
     else:
         raise Exception("Unsupported optimizer type: '{}".format(type))
 
