@@ -525,6 +525,8 @@ def main():
     if not submit:
         return
 
+    mask_threshold = 0.480
+
     print()
     print("submission preparation")
 
